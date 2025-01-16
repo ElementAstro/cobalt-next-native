@@ -80,7 +80,7 @@ const NetworkInfoModal: React.FC<NetworkInfoModalProps> = ({
         useNativeDriver: true,
       }).start();
     }
-  }, [visible]);
+  }, [fadeAnim, slideAnim, visible]);
 
   return (
     <Modal

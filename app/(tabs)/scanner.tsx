@@ -1,27 +1,110 @@
-import React, { useState, useEffect, useMemo, useCallback } from "react";
+import React, { useState, useMemo, useCallback } from "react";
 import {
   View,
   Alert as RNAlert,
   FlatList,
   useWindowDimensions,
 } from "react-native";
-import Slider from "@react-native-community/slider";
-import { Picker } from "@react-native-picker/picker";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import * as Notifications from "expo-notifications";
 import { z } from "zod";
 import SettingsSection from "@/components/scanner/SettingsSection";
-import ScanButton from "@/components/scanner/ScanButton";
 import ScanResultItem from "@/components/scanner/ScanResultItem";
 import { Input } from "@/components/ui/input";
 import { Text } from "@/components/ui/text";
-import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import type { Option } from "@/components/ui/select";
 
 interface ScanResult {
   port: number;
   status: string;
   service?: string;
 }
+
+const ScannerSettings = React.memo(
+  ({
+    ipAddress,
+    setIpAddress,
+    portRange,
+    setPortRange,
+    customPortRange,
+    setCustomPortRange,
+    isScanning,
+  }: {
+    ipAddress: string;
+    setIpAddress: (value: string) => void;
+    portRange: string;
+    setPortRange: (value: string) => void;
+    customPortRange: string;
+    setCustomPortRange: (value: string) => void;
+    isScanning: boolean;
+  }) => {
+    return (
+      <SettingsSection title="基本设置">
+        <View className="flex-1">
+          <Input
+            placeholder="输入IP地址 (如: 192.168.1.1)"
+            value={ipAddress}
+            onChangeText={setIpAddress}
+            editable={!isScanning}
+            keyboardType="numeric"
+            className="mb-4"
+          />
+          <Label htmlFor="port-range" className="text-lg mb-2">
+            端口范围
+          </Label>
+
+          <Select
+            value={portRange as unknown as Option}
+            onValueChange={(value: Option) =>
+              setPortRange(value as unknown as string)
+            }
+            disabled={isScanning}
+          >
+            <SelectTrigger id="port-range">
+              <SelectValue placeholder="选择扫描端口范围" />
+            </SelectTrigger>
+
+            <SelectContent>
+              <SelectGroup>
+                <SelectItem value="common" label="常用端口 (1-1000)">
+                  常用端口 (1-1000)
+                </SelectItem>
+                <SelectItem value="all" label="所有端口 (1-65535)">
+                  所有端口 (1-65535)
+                </SelectItem>
+                <SelectItem value="custom" label="自定义">
+                  自定义
+                </SelectItem>
+              </SelectGroup>
+            </SelectContent>
+          </Select>
+
+          {portRange === "custom" && (
+            <Input
+              placeholder="自定义范围 (如: 1-100,200-300)"
+              value={customPortRange}
+              onChangeText={setCustomPortRange}
+              editable={!isScanning}
+              keyboardType="numeric"
+              className="mt-4"
+            />
+          )}
+        </View>
+      </SettingsSection>
+    );
+  }
+);
+
+ScannerSettings.displayName = "ScannerSettings";
 
 const ScannerPage: React.FC = () => {
   const [ipAddress, setIpAddress] = useState<string>("");
@@ -63,18 +146,21 @@ const ScannerPage: React.FC = () => {
     return true;
   }, "自定义端口范围格式错误 (如: 1-100,200-300)");
 
-  const sendNotification = async (title: string, body: string) => {
-    if (!notificationsEnabled) return;
-    await Notifications.scheduleNotificationAsync({
-      content: {
-        title,
-        body,
-      },
-      trigger: null,
-    });
-  };
+  const sendNotification = useCallback(
+    async (title: string, body: string) => {
+      if (!notificationsEnabled) return;
+      await Notifications.scheduleNotificationAsync({
+        content: {
+          title,
+          body,
+        },
+        trigger: null,
+      });
+    },
+    [notificationsEnabled]
+  );
 
-  const validateInputs = () => {
+  const validateInputs = useCallback(() => {
     const ipValidation = ipSchema.safeParse(ipAddress);
     if (!ipValidation.success) {
       RNAlert.alert("输入错误", ipValidation.error.errors[0].message);
@@ -88,9 +174,9 @@ const ScannerPage: React.FC = () => {
     }
 
     return true;
-  };
+  }, [ipAddress, portRange, ipSchema, portRangeSchema]);
 
-  const getPorts = (): number[] => {
+  const getPorts = useCallback((): number[] => {
     switch (portRange) {
       case "common":
         return Array.from({ length: 1000 }, (_, i) => i + 1);
@@ -110,37 +196,40 @@ const ScannerPage: React.FC = () => {
       default:
         return [];
     }
-  };
+  }, [portRange, customPortRange]);
 
-  const scanPort = async (ip: string, port: number): Promise<ScanResult> => {
-    return new Promise((resolve) => {
-      const timeoutHandle = setTimeout(() => {
-        resolve({
-          port,
-          status: "closed",
-          service: `${ip}:${port} - Timeout`,
-        });
-      }, timeout);
+  const scanPort = useCallback(
+    async (ip: string, port: number): Promise<ScanResult> => {
+      return new Promise((resolve) => {
+        const timeoutHandle = setTimeout(() => {
+          resolve({
+            port,
+            status: "closed",
+            service: `${ip}:${port} - Timeout`,
+          });
+        }, timeout);
 
-      // Enhanced simulated port scanning logic (20% open rate)
-      const isOpen = Math.random() > 0.8;
-      if (isOpen) {
-        clearTimeout(timeoutHandle);
-        resolve({
-          port,
-          status: "open",
-          service: `${ip}:${port} - Service running`,
-        });
-      } else {
-        clearTimeout(timeoutHandle);
-        resolve({
-          port,
-          status: "closed",
-          service: `${ip}:${port} - No response`,
-        });
-      }
-    });
-  };
+        // Enhanced simulated port scanning logic (20% open rate)
+        const isOpen = Math.random() > 0.8;
+        if (isOpen) {
+          clearTimeout(timeoutHandle);
+          resolve({
+            port,
+            status: "open",
+            service: `${ip}:${port} - Service running`,
+          });
+        } else {
+          clearTimeout(timeoutHandle);
+          resolve({
+            port,
+            status: "closed",
+            service: `${ip}:${port} - No response`,
+          });
+        }
+      });
+    },
+    [timeout]
+  );
 
   const filteredResults = useMemo(() => {
     return scanResults.filter((result) =>
@@ -164,26 +253,37 @@ const ScannerPage: React.FC = () => {
     [autoReconnect, scanPort]
   );
 
+  const updateScanResults = useCallback((newResults: ScanResult[]) => {
+    setScanResults((prev) => {
+      const uniqueResults = new Map(prev.map((r) => [r.port, r]));
+      newResults.forEach((r) => uniqueResults.set(r.port, r));
+      return Array.from(uniqueResults.values());
+    });
+  }, []);
+
   const processScanBatch = useCallback(
     async (ports: number[]) => {
-      const batchSize = 5;
+      const batchSize = 10; // 增加批量大小以提高性能
       const results: ScanResult[] = [];
 
       for (let i = 0; i < ports.length; i += batchSize) {
+        if (!isScanning) break; // 允许中断扫描
+
         const batch = ports.slice(i, i + batchSize);
         const batchResults = await Promise.all(
           batch.map((port) => scanPortWithRetry(ipAddress, port))
         );
         results.push(...batchResults);
 
-        // 批量更新结果以减少渲染次数
-        if (results.length >= 20 || i + batchSize >= ports.length) {
-          setScanResults((prev) => [...prev, ...results]);
+        if (results.length >= 50 || i + batchSize >= ports.length) {
+          updateScanResults(results);
           results.length = 0;
+          // 添加小延时以避免UI阻塞
+          await new Promise((resolve) => setTimeout(resolve, 10));
         }
       }
     },
-    [ipAddress, scanPortWithRetry]
+    [ipAddress, scanPortWithRetry, isScanning, updateScanResults]
   );
 
   const startScan = useCallback(async () => {
@@ -210,167 +310,19 @@ const ScannerPage: React.FC = () => {
     }
   }, [validateInputs, getPorts, processScanBatch, sendNotification]);
 
-  const renderHeader = () => (
-    <View
-      className={`flex-1 ${
-        isLandscape ? "flex-row flex-wrap justify-between" : ""
-      }`}
-    >
-      <SettingsSection
-        title="基本设置"
-        children={
-          <View className={`flex-1 ${isLandscape ? "mr-2 mb-4" : "mr-4"}`}>
-            <Input
-              placeholder="输入IP地址 (如: 192.168.1.1)"
-              value={ipAddress}
-              onChangeText={setIpAddress}
-              editable={!isScanning}
-              keyboardType="numeric"
-              className="mb-4"
-            />
-
-            <Text className="text-lg mb-2 text-gray-700 dark:text-gray-300">
-              端口范围
-            </Text>
-            <View className="border border-gray-300 dark:border-gray-700 rounded mb-4 bg-white dark:bg-gray-800">
-              <Picker
-                selectedValue={portRange}
-                onValueChange={(value) => setPortRange(value)}
-                enabled={!isScanning}
-                style={{ height: 50 }}
-              >
-                <Picker.Item label="常用端口 (1-1000)" value="common" />
-                <Picker.Item label="所有端口 (1-65535)" value="all" />
-                <Picker.Item label="自定义" value="custom" />
-              </Picker>
-            </View>
-
-            {portRange === "custom" && (
-              <Input
-                placeholder="自定义范围 (如: 1-100,200-300)"
-                value={customPortRange}
-                onChangeText={setCustomPortRange}
-                editable={!isScanning}
-                keyboardType="numeric"
-                className="mb-4"
-              />
-            )}
-          </View>
-        }
+  const renderHeader = useMemo(
+    () => (
+      <ScannerSettings
+        ipAddress={ipAddress}
+        setIpAddress={setIpAddress}
+        portRange={portRange}
+        setPortRange={setPortRange}
+        customPortRange={customPortRange}
+        setCustomPortRange={setCustomPortRange}
+        isScanning={isScanning}
       />
-
-      <SettingsSection
-        title="高级选项"
-        children={
-          <View className={`flex-1 ${isLandscape ? "mr-2 mb-4" : "mr-4"}`}>
-            <Text className="text-lg mb-2 text-gray-700 dark:text-gray-300">
-              扫描速度
-            </Text>
-            <View className="border border-gray-300 dark:border-gray-700 rounded mb-4 bg-white dark:bg-gray-800">
-              <Picker
-                selectedValue={scanSpeed}
-                onValueChange={(value) => setScanSpeed(value)}
-                enabled={!isScanning}
-                style={{ height: 50 }}
-              >
-                <Picker.Item label="快速 (100ms)" value="fast" />
-                <Picker.Item label="正常 (500ms)" value="normal" />
-                <Picker.Item label="彻底 (2000ms)" value="thorough" />
-              </Picker>
-            </View>
-
-            <Text className="text-lg mb-2 text-gray-700 dark:text-gray-300">
-              超时设置: {timeout}毫秒
-            </Text>
-            <Slider
-              minimumValue={100}
-              maximumValue={5000}
-              step={100}
-              value={timeout}
-              onValueChange={setTimeoutValue}
-              className="mb-4"
-              disabled={isScanning}
-            />
-
-            <View className="flex-row items-center mb-4">
-              <Switch
-                checked={showClosedPorts}
-                onCheckedChange={setShowClosedPorts}
-                disabled={isScanning}
-              />
-              <Text className="ml-2 text-gray-700 dark:text-gray-300">
-                显示关闭的端口
-              </Text>
-            </View>
-          </View>
-        }
-      />
-
-      <SettingsSection
-        title="扫描方法"
-        children={
-          <View className={`flex-1 ${isLandscape ? "mr-2 mb-4" : "mr-4"}`}>
-            <Text className="text-lg mb-2 text-gray-700 dark:text-gray-300">
-              扫描方法
-            </Text>
-            <View className="border border-gray-300 dark:border-gray-700 rounded mb-4 bg-white dark:bg-gray-800">
-              <Picker
-                selectedValue={scanMethod}
-                onValueChange={(value) => setScanMethod(value)}
-                enabled={!isScanning}
-                style={{ height: 50 }}
-              >
-                {Object.entries(scanMethods).map(([value, label]) => (
-                  <Picker.Item key={value} label={label} value={value} />
-                ))}
-              </Picker>
-            </View>
-          </View>
-        }
-      />
-
-      <SettingsSection
-        title="额外选项"
-        children={
-          <View className={`flex-1 ${isLandscape ? "mr-2 mb-4" : "mr-4"}`}>
-            <View className="flex-row items-center mb-4">
-              <Switch
-                checked={saveResults}
-                onCheckedChange={setSaveResults}
-                disabled={isScanning}
-              />
-              <Text className="ml-2 text-gray-700 dark:text-gray-300">
-                保存扫描结果
-              </Text>
-            </View>
-            <View className="flex-row items-center mb-4">
-              <Switch
-                checked={autoReconnect}
-                onCheckedChange={setAutoReconnect}
-                disabled={isScanning}
-              />
-              <Text className="ml-2 text-gray-700 dark:text-gray-300">
-                自动重试失败连接
-              </Text>
-            </View>
-            <View className="flex-row items-center mb-4">
-              <Switch
-                checked={notificationsEnabled}
-                onCheckedChange={setNotificationsEnabled}
-                disabled={isScanning}
-              />
-              <Text className="ml-2 text-gray-700 dark:text-gray-300">
-                扫描完成通知
-              </Text>
-            </View>
-          </View>
-        }
-      />
-
-      <View className={`mt-4 ${isLandscape ? "w-1/2" : "w-auto"}`}>
-        <ScanButton isScanning={isScanning} onPress={startScan} />
-      </View>
-    </View>
+    ),
+    [ipAddress, portRange, customPortRange, isScanning]
   );
 
   const renderEmptyComponent = () => {
@@ -386,7 +338,11 @@ const ScannerPage: React.FC = () => {
 
   const renderItem = useCallback(
     ({ item, index }: { item: ScanResult; index: number }) => (
-      <ScanResultItem item={item} index={index} />
+      <ScanResultItem
+        item={item}
+        index={index}
+        key={`${item.port}-${item.status}`}
+      />
     ),
     []
   );
@@ -401,15 +357,25 @@ const ScannerPage: React.FC = () => {
           []
         )}
         renderItem={renderItem}
-        contentContainerStyle={""} // Removed incorrect 'p-4'
         className="p-4"
         ListEmptyComponent={renderEmptyComponent}
         removeClippedSubviews={true}
         maxToRenderPerBatch={10}
         windowSize={5}
+        getItemLayout={useCallback(
+          (_data: ArrayLike<ScanResult> | null | undefined, index: number) => ({
+            length: 60, // 假设每个项的高度为60
+            offset: 60 * index,
+            index,
+          }),
+          []
+        )}
+        maintainVisibleContentPosition={{
+          minIndexForVisible: 0,
+        }}
       />
     </GestureHandlerRootView>
   );
 };
 
-export default ScannerPage;
+export default React.memo(ScannerPage);
