@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
 import {
   View,
   Alert as RNAlert,
@@ -9,7 +9,6 @@ import Slider from "@react-native-community/slider";
 import { Picker } from "@react-native-picker/picker";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import * as Notifications from "expo-notifications";
-import * as Permissions from "expo-permissions";
 import { z } from "zod";
 import SettingsSection from "@/components/scanner/SettingsSection";
 import ScanButton from "@/components/scanner/ScanButton";
@@ -17,19 +16,6 @@ import ScanResultItem from "@/components/scanner/ScanResultItem";
 import { Input } from "@/components/ui/input";
 import { Text } from "@/components/ui/text";
 import { Switch } from "@/components/ui/switch";
-import { Alert } from "@/components/ui/alert";
-
-const commonPorts: { [key: number]: string } = {
-  21: "FTP",
-  22: "SSH",
-  80: "HTTP",
-  443: "HTTPS",
-  3306: "MySQL",
-  5432: "PostgreSQL",
-  8080: "HTTP Alternate",
-  27017: "MongoDB",
-  6379: "Redis",
-};
 
 interface ScanResult {
   port: number;
@@ -43,7 +29,6 @@ const ScannerPage: React.FC = () => {
   const [customPortRange, setCustomPortRange] = useState<string>("");
   const [scanSpeed, setScanSpeed] = useState<string>("normal");
   const [timeout, setTimeoutValue] = useState<number>(500);
-  const [concurrentScans, setConcurrentScans] = useState<number>(10);
   const [showClosedPorts, setShowClosedPorts] = useState<boolean>(false);
   const [scanResults, setScanResults] = useState<ScanResult[]>([]);
   const [isScanning, setIsScanning] = useState<boolean>(false);
@@ -77,23 +62,6 @@ const ScannerPage: React.FC = () => {
     }
     return true;
   }, "自定义端口范围格式错误 (如: 1-100,200-300)");
-
-  useEffect(() => {
-    registerForPushNotificationsAsync();
-  }, []);
-
-  const registerForPushNotificationsAsync = async () => {
-    const { status } = await Permissions.getAsync(Permissions.NOTIFICATIONS);
-    if (status !== "granted") {
-      const { status: newStatus } = await Permissions.askAsync(
-        Permissions.NOTIFICATIONS
-      );
-      if (newStatus !== "granted") {
-        RNAlert.alert("权限不足", "无法发送通知");
-        setNotificationsEnabled(false);
-      }
-    }
-  };
 
   const sendNotification = async (title: string, body: string) => {
     if (!notificationsEnabled) return;
@@ -147,22 +115,78 @@ const ScannerPage: React.FC = () => {
   const scanPort = async (ip: string, port: number): Promise<ScanResult> => {
     return new Promise((resolve) => {
       const timeoutHandle = setTimeout(() => {
-        resolve({ port, status: "closed" });
+        resolve({
+          port,
+          status: "closed",
+          service: `${ip}:${port} - Timeout`,
+        });
       }, timeout);
 
-      // Simulated port scanning logic (20% open rate)
+      // Enhanced simulated port scanning logic (20% open rate)
       const isOpen = Math.random() > 0.8;
       if (isOpen) {
         clearTimeout(timeoutHandle);
-        resolve({ port, status: "open" });
+        resolve({
+          port,
+          status: "open",
+          service: `${ip}:${port} - Service running`,
+        });
       } else {
         clearTimeout(timeoutHandle);
-        resolve({ port, status: "closed" });
+        resolve({
+          port,
+          status: "closed",
+          service: `${ip}:${port} - No response`,
+        });
       }
     });
   };
 
-  const startScan = async () => {
+  const filteredResults = useMemo(() => {
+    return scanResults.filter((result) =>
+      showClosedPorts ? true : result.status === "open"
+    );
+  }, [scanResults, showClosedPorts]);
+
+  const scanPortWithRetry = useCallback(
+    async (ip: string, port: number, retries = 3): Promise<ScanResult> => {
+      for (let i = 0; i < retries; i++) {
+        try {
+          const result = await scanPort(ip, port);
+          return result;
+        } catch (error) {
+          if (i === retries - 1 || !autoReconnect) throw error;
+          await new Promise((resolve) => setTimeout(resolve, 1000));
+        }
+      }
+      throw new Error("Max retries reached");
+    },
+    [autoReconnect, scanPort]
+  );
+
+  const processScanBatch = useCallback(
+    async (ports: number[]) => {
+      const batchSize = 5;
+      const results: ScanResult[] = [];
+
+      for (let i = 0; i < ports.length; i += batchSize) {
+        const batch = ports.slice(i, i + batchSize);
+        const batchResults = await Promise.all(
+          batch.map((port) => scanPortWithRetry(ipAddress, port))
+        );
+        results.push(...batchResults);
+
+        // 批量更新结果以减少渲染次数
+        if (results.length >= 20 || i + batchSize >= ports.length) {
+          setScanResults((prev) => [...prev, ...results]);
+          results.length = 0;
+        }
+      }
+    },
+    [ipAddress, scanPortWithRetry]
+  );
+
+  const startScan = useCallback(async () => {
     if (!validateInputs()) return;
 
     try {
@@ -171,39 +195,31 @@ const ScannerPage: React.FC = () => {
       await sendNotification("扫描开始", "端口扫描已启动");
 
       const ports = getPorts();
-      const totalPorts = ports.length;
-
-      for (let i = 0; i < totalPorts; i += concurrentScans) {
-        const batch = ports.slice(i, i + concurrentScans);
-        const results = await Promise.all(
-          batch.map((port) => scanPort(ipAddress, port))
-        );
-        setScanResults((prevResults) => [
-          ...prevResults,
-          ...results.map((r) => ({
-            ...r,
-            service:
-              r.status === "open" ? commonPorts[r.port] || "未知" : undefined,
-          })),
-        ]);
-      }
+      await processScanBatch(ports);
 
       setIsScanning(false);
-      await sendNotification("扫描完成", `成功扫描了 ${totalPorts} 个端口`);
-      RNAlert.alert("扫描完成", `成功扫描了 ${totalPorts} 个端口`);
+      await sendNotification("扫描完成", `成功扫描了 ${ports.length} 个端口`);
     } catch (error) {
       setIsScanning(false);
-      RNAlert.alert("扫描错误", "扫描过程中发生错误");
-      await sendNotification("扫描错误", "扫描过程中发生错误");
+      RNAlert.alert(
+        "扫描错误",
+        `扫描过程中发生错误: ${
+          error instanceof Error ? error.message : "未知错误"
+        }`
+      );
     }
-  };
+  }, [validateInputs, getPorts, processScanBatch, sendNotification]);
 
   const renderHeader = () => (
-    <View className={`flex-1 ${isLandscape ? "flex-row flex-wrap" : ""}`}>
+    <View
+      className={`flex-1 ${
+        isLandscape ? "flex-row flex-wrap justify-between" : ""
+      }`}
+    >
       <SettingsSection
         title="基本设置"
         children={
-          <View className={`flex-1 ${isLandscape ? "mr-4" : ""}`}>
+          <View className={`flex-1 ${isLandscape ? "mr-2 mb-4" : "mr-4"}`}>
             <Input
               placeholder="输入IP地址 (如: 192.168.1.1)"
               value={ipAddress}
@@ -246,7 +262,7 @@ const ScannerPage: React.FC = () => {
       <SettingsSection
         title="高级选项"
         children={
-          <View className={`flex-1 ${isLandscape ? "mr-4" : ""}`}>
+          <View className={`flex-1 ${isLandscape ? "mr-2 mb-4" : "mr-4"}`}>
             <Text className="text-lg mb-2 text-gray-700 dark:text-gray-300">
               扫描速度
             </Text>
@@ -278,8 +294,8 @@ const ScannerPage: React.FC = () => {
 
             <View className="flex-row items-center mb-4">
               <Switch
-                value={showClosedPorts}
-                onValueChange={setShowClosedPorts}
+                checked={showClosedPorts}
+                onCheckedChange={setShowClosedPorts}
                 disabled={isScanning}
               />
               <Text className="ml-2 text-gray-700 dark:text-gray-300">
@@ -293,7 +309,7 @@ const ScannerPage: React.FC = () => {
       <SettingsSection
         title="扫描方法"
         children={
-          <View className={`flex-1 ${isLandscape ? "mr-4" : ""}`}>
+          <View className={`flex-1 ${isLandscape ? "mr-2 mb-4" : "mr-4"}`}>
             <Text className="text-lg mb-2 text-gray-700 dark:text-gray-300">
               扫描方法
             </Text>
@@ -316,11 +332,11 @@ const ScannerPage: React.FC = () => {
       <SettingsSection
         title="额外选项"
         children={
-          <View className={`flex-1 ${isLandscape ? "mr-4" : ""}`}>
+          <View className={`flex-1 ${isLandscape ? "mr-2 mb-4" : "mr-4"}`}>
             <View className="flex-row items-center mb-4">
               <Switch
-                value={saveResults}
-                onValueChange={setSaveResults}
+                checked={saveResults}
+                onCheckedChange={setSaveResults}
                 disabled={isScanning}
               />
               <Text className="ml-2 text-gray-700 dark:text-gray-300">
@@ -329,8 +345,8 @@ const ScannerPage: React.FC = () => {
             </View>
             <View className="flex-row items-center mb-4">
               <Switch
-                value={autoReconnect}
-                onValueChange={setAutoReconnect}
+                checked={autoReconnect}
+                onCheckedChange={setAutoReconnect}
                 disabled={isScanning}
               />
               <Text className="ml-2 text-gray-700 dark:text-gray-300">
@@ -339,8 +355,8 @@ const ScannerPage: React.FC = () => {
             </View>
             <View className="flex-row items-center mb-4">
               <Switch
-                value={notificationsEnabled}
-                onValueChange={setNotificationsEnabled}
+                checked={notificationsEnabled}
+                onCheckedChange={setNotificationsEnabled}
                 disabled={isScanning}
               />
               <Text className="ml-2 text-gray-700 dark:text-gray-300">
@@ -351,7 +367,7 @@ const ScannerPage: React.FC = () => {
         }
       />
 
-      <View className={`mt-4 ${isLandscape ? "w-full" : "w-auto"}`}>
+      <View className={`mt-4 ${isLandscape ? "w-1/2" : "w-auto"}`}>
         <ScanButton isScanning={isScanning} onPress={startScan} />
       </View>
     </View>
@@ -368,16 +384,29 @@ const ScannerPage: React.FC = () => {
     );
   };
 
+  const renderItem = useCallback(
+    ({ item, index }: { item: ScanResult; index: number }) => (
+      <ScanResultItem item={item} index={index} />
+    ),
+    []
+  );
+
   return (
     <GestureHandlerRootView className="flex-1 bg-gray-100 dark:bg-gray-900">
       <FlatList
         ListHeaderComponent={renderHeader}
-        data={scanResults}
-        keyExtractor={(item, index) => index.toString()}
-        renderItem={({ item }) => <ScanResultItem item={item} />}
+        data={filteredResults}
+        keyExtractor={useCallback(
+          (_item: ScanResult, index: number) => index.toString(),
+          []
+        )}
+        renderItem={renderItem}
         contentContainerStyle={""} // Removed incorrect 'p-4'
         className="p-4"
         ListEmptyComponent={renderEmptyComponent}
+        removeClippedSubviews={true}
+        maxToRenderPerBatch={10}
+        windowSize={5}
       />
     </GestureHandlerRootView>
   );

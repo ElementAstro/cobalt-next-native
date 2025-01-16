@@ -1,6 +1,8 @@
-import React from "react";
-import { View, Text } from "react-native";
+import React, { memo } from "react";
+import { View, Pressable } from "react-native";
 import Animated, { FadeInLeft } from "react-native-reanimated";
+import { Label } from "@/components/ui/label";
+import * as Haptics from 'expo-haptics';
 
 interface ScanResult {
   port: number;
@@ -10,31 +12,53 @@ interface ScanResult {
 
 interface ScanResultItemProps {
   item: ScanResult;
+  index: number;
 }
 
-const ScanResultItem: React.FC<ScanResultItemProps> = ({ item }) => {
+const ScanResultItem: React.FC<ScanResultItemProps> = memo(({ item, index }) => {
+  const handlePress = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+  };
+
   return (
     <Animated.View
-      entering={FadeInLeft.delay(100).duration(500)}
-      className="border-b border-gray-200 dark:border-gray-700 py-2"
+      entering={FadeInLeft.delay(index * 50)
+        .duration(400)
+        .springify()}
     >
-      <Text className="text-md text-gray-700 dark:text-gray-300">
-        端口: {item.port}
-      </Text>
-      <Text
-        className={`text-md ${
-          item.status === "open" ? "text-green-500" : "text-red-500"
-        } dark:text-${item.status === "open" ? "green-400" : "red-400"}`}
+      <Pressable
+        onPress={handlePress}
+        className="flex-row items-center justify-between p-3 mb-2 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700"
       >
-        状态: {item.status === "open" ? "开放" : "关闭"}
-      </Text>
-      {item.service && (
-        <Text className="text-md text-gray-700 dark:text-gray-300">
-          服务: {item.service}
-        </Text>
-      )}
+        <View className="flex-1">
+          <Label className="text-base font-medium mb-1">
+            端口 {item.port}
+            {item.service && ` - ${item.service}`}
+          </Label>
+          
+          <Label
+            className={`${
+              item.status === "open" 
+                ? "text-green-600 dark:text-green-400" 
+                : "text-red-600 dark:text-red-400"
+            } text-sm`}
+          >
+            {item.status === "open" ? "开放" : "关闭"}
+          </Label>
+        </View>
+        
+        <View 
+          className={`w-3 h-3 rounded-full ${
+            item.status === "open"
+              ? "bg-green-500"
+              : "bg-red-500"
+          }`} 
+        />
+      </Pressable>
     </Animated.View>
   );
-};
+});
+
+ScanResultItem.displayName = "ScanResultItem";
 
 export default ScanResultItem;

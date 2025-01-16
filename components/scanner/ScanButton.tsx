@@ -1,9 +1,9 @@
 import React from "react";
-import { TouchableOpacity, Text } from "react-native";
 import Animated, { FadeIn } from "react-native-reanimated";
+import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
 
-const AnimatedTouchableOpacity =
-  Animated.createAnimatedComponent(TouchableOpacity);
+const AnimatedButton = Animated.createAnimatedComponent(Button);
 
 interface ScanButtonProps {
   isScanning: boolean;
@@ -12,18 +12,21 @@ interface ScanButtonProps {
 
 const ScanButton: React.FC<ScanButtonProps> = ({ isScanning, onPress }) => {
   return (
-    <AnimatedTouchableOpacity
+    <AnimatedButton
       entering={FadeIn.duration(500)}
-      className={`p-4 rounded-lg items-center ${
-        isScanning ? "bg-gray-400" : "bg-blue-500"
-      }`}
+      variant={isScanning ? "secondary" : "default"}
+      size="lg"
       onPress={onPress}
       disabled={isScanning}
     >
-      <Text className="text-white text-lg font-bold">
+      <Label
+        className={`${
+          isScanning ? "text-secondary-foreground" : "text-primary-foreground"
+        } text-lg font-bold`}
+      >
         {isScanning ? "扫描中..." : "开始扫描"}
-      </Text>
-    </AnimatedTouchableOpacity>
+      </Label>
+    </AnimatedButton>
   );
 };
 
