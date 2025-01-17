@@ -1,5 +1,5 @@
 import { Link, Stack } from "expo-router";
-import { View, Text } from "react-native";
+import { View, Text, SafeAreaView, Dimensions } from "react-native";
 import {
   HeartCrack,
   QrCode,
@@ -24,7 +24,7 @@ import {
   CardContent,
   CardFooter,
 } from "@/components/ui/card";
-import { H2, Large, Small } from "@/components/ui/typography";
+import { Large, Small } from "@/components/ui/typography";
 import { Button } from "@/components/ui/button";
 import { ThemedView } from "@/components/ThemedView";
 import { useEffect } from "react";
@@ -76,6 +76,10 @@ export default function NotFoundScreen() {
     opacity: withTiming(detailsTranslateX.value === 0 ? 1 : 0),
   }));
 
+  const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } =
+    Dimensions.get("window");
+  const isLandscape = SCREEN_WIDTH > SCREEN_HEIGHT;
+
   return (
     <>
       <Stack.Screen options={{ headerShown: false }} />
@@ -83,21 +87,28 @@ export default function NotFoundScreen() {
         <ThemedView className="flex-1 relative">
           <View className="absolute inset-0 opacity-5 flex-row flex-wrap justify-center items-center">
             {[...Array(20)].map((_, i) => (
-              <QrCode key={i} size={100} className="m-4 text-white" />
+              <QrCode
+                key={i}
+                size={isLandscape ? 80 : 100}
+                className="m-4 text-white"
+              />
             ))}
           </View>
 
-          <View className="flex-1 justify-center px-6">
-            <Animated.View style={cardStyle}>
-              <Card className="bg-white/20 backdrop-blur-lg border-white/20 shadow-lg">
-                <CardHeader>
+          <SafeAreaView className="flex-1 justify-center px-6">
+            <Animated.View
+              style={cardStyle}
+              className="flex-1 justify-center items-center"
+            >
+              <Card className="bg-white/20 backdrop-blur-lg border-white/20 shadow-lg p-6 w-full max-w-md">
+                <CardHeader className="mb-4">
                   <CardTitle className="flex-row items-center space-x-2">
                     <AnimatedHeartCrack
                       size={32}
                       className="text-white"
                       style={iconStyle}
                     />
-                    <AnimatedText className="text-white font-mono">
+                    <AnimatedText className="text-white font-mono text-2xl">
                       {errorCode}
                     </AnimatedText>
                   </CardTitle>
@@ -105,7 +116,7 @@ export default function NotFoundScreen() {
 
                 <CardContent className="space-y-4">
                   <AnimatedView style={textStyle}>
-                    <Large className="text-white font-mono">
+                    <Large className="text-white font-mono text-center">
                       页面遇到问题，需要重新启动。
                     </Large>
                   </AnimatedView>
@@ -114,7 +125,7 @@ export default function NotFoundScreen() {
                     {errorDetails.map((detail, index) => (
                       <Small
                         key={index}
-                        className="text-white/90 font-mono mb-2"
+                        className="text-white/90 font-mono mb-2 text-center"
                       >
                         {detail}
                       </Small>
@@ -122,11 +133,11 @@ export default function NotFoundScreen() {
                   </AnimatedView>
                 </CardContent>
 
-                <CardFooter className="flex-row space-x-4">
+                <CardFooter className="flex-row space-x-4 mt-4">
                   <Link href="/" asChild>
                     <Button
                       variant="secondary"
-                      className="flex-1 bg-white/10 backdrop-blur-lg transform scale-95"
+                      className="flex-1 bg-white/10 backdrop-blur-lg transform active:scale-95"
                     >
                       <HomeIcon size={16} className="mr-2 text-white" />
                       返回首页
@@ -135,7 +146,7 @@ export default function NotFoundScreen() {
                   <Link href="/scanner" asChild>
                     <Button
                       variant="secondary"
-                      className="flex-1 bg-white/10 backdrop-blur-lg transform scale-95"
+                      className="flex-1 bg-white/10 backdrop-blur-lg transform active:scale-95"
                     >
                       <ScanIcon size={16} className="mr-2 text-white" />
                       去扫描
@@ -150,7 +161,7 @@ export default function NotFoundScreen() {
                 错误代码: PAGE_NOT_FOUND_EXCEPTION
               </Small>
             </Animated.View>
-          </View>
+          </SafeAreaView>
         </ThemedView>
       </LinearGradient>
     </>

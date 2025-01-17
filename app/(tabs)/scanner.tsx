@@ -26,6 +26,7 @@ import type { Option } from "@/components/ui/select";
 import ScanButton from "@/components/scanner/ScanButton";
 import AdvancedSettings from "@/components/scanner/AdvancedSettings";
 import ScanHistory from "@/components/scanner/ScanHistory";
+import Animated, { FadeIn } from "react-native-reanimated";
 
 interface ScanResult {
   port: number;
@@ -517,21 +518,49 @@ const ScannerPage: React.FC = () => {
     ]
   );
 
+  const { height: windowHeight } = useWindowDimensions();
+
+  const contentHeight = useMemo(() => {
+    const headerHeight = 56; // 估计的header高度
+    const historyHeight = scanHistory.length > 0 ? 140 : 0;
+    return windowHeight - headerHeight - historyHeight;
+  }, [windowHeight, scanHistory.length]);
+
   return (
     <GestureHandlerRootView
       className={`flex-1 ${isDarkTheme ? "bg-gray-900" : "bg-gray-100"}`}
     >
-      <View className={`flex-1 ${isLandscape ? "flex-row" : "flex-col"}`}>
-        {renderSettings}
-        <View className={`${isLandscape ? "w-2/3" : "w-full"}`}>
+      <View
+        className={`flex-1 ${isLandscape ? "flex-row" : "flex-col"}`}
+        style={{ height: contentHeight }}
+      >
+        <View
+          className={`${
+            isLandscape
+              ? "w-1/3 border-r border-gray-200 dark:border-gray-700"
+              : "w-full"
+          }`}
+          style={{
+            maxHeight: isLandscape ? contentHeight : contentHeight * 0.4,
+          }}
+        >
+          {renderSettings}
+        </View>
+
+        <View
+          className={`${isLandscape ? "w-2/3" : "w-full"}`}
+          style={{
+            height: isLandscape ? contentHeight : contentHeight * 0.6,
+          }}
+        >
           {scanHistory.length > 0 && (
-            <View className="mb-4">
-              <Label className="text-lg font-bold px-4 mb-2">最近扫描</Label>
+            <Animated.View entering={FadeIn.duration(500)} className="mb-2">
+              <Label className="text-lg font-bold px-4 mb-1">最近扫描</Label>
               <ScanHistory
                 history={scanHistory}
                 onSelectHistory={handleHistorySelect}
               />
-            </View>
+            </Animated.View>
           )}
           {renderScanResults}
         </View>

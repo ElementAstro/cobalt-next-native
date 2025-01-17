@@ -4,20 +4,10 @@ import {
   Text,
   TouchableOpacity,
   useWindowDimensions,
-  ScrollView,
   ActivityIndicator,
 } from "react-native";
+import { Wifi, Gauge, Signal, RefreshCw, History } from "lucide-react-native";
 import {
-  XCircle,
-  Wifi,
-  Gauge,
-  Signal,
-  RefreshCw,
-  History,
-  TrendingUp,
-  Database,
-} from "lucide-react-native";
-import Animated, {
   useAnimatedStyle,
   withTiming,
   useSharedValue,
@@ -26,12 +16,7 @@ import Animated, {
 import { useNetworkStore } from "@/stores/useNetworkStore";
 import { useColorScheme } from "@/hooks/useColorScheme";
 import RNEChartsPro from "react-native-echarts-pro";
-import {
-  Dialog,
-  DialogContent,
-  DialogClose,
-  DialogHeader,
-} from "@/components/ui/dialog";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 
 interface NetworkInfoModalProps {
   visible: boolean;
@@ -75,11 +60,7 @@ export const NetworkInfoModal: React.FC<NetworkInfoModalProps> = ({
         easing: Easing.in(Easing.exp),
       });
     }
-  }, [fadeAnim, fetchNetworkInfo, slideAnim, visible]);
-
-  const overlayStyle = useAnimatedStyle(() => ({
-    opacity: fadeAnim.value,
-  }));
+  }, [visible, fadeAnim, slideAnim, fetchNetworkInfo]);
 
   const modalStyle = useAnimatedStyle(() => ({
     transform: [{ translateY: slideAnim.value }],
@@ -150,17 +131,14 @@ export const NetworkInfoModal: React.FC<NetworkInfoModalProps> = ({
   return (
     <Dialog open={visible} onOpenChange={onClose}>
       <DialogContent
-        className={`w-11/12 max-w-2xl bg-white dark:bg-gray-800 rounded-xl p-6 shadow-lg flex ${
+        className={`w-full max-w-3xl bg-white dark:bg-gray-800 rounded-xl p-4 shadow-lg flex ${
           isLandscape ? "flex-row space-x-4" : "flex-col"
         }`}
         style={modalStyle}
       >
-        {/* Content */}
-        <ScrollView
-          className={`${isLandscape ? "flex-1" : "w-full"} space-y-4`}
-          contentContainerStyle={{ flexGrow: 1 }}
-        >
-          {/* IP Address */}
+        {/* 左侧：网络信息 */}
+        <View className={`flex-1 space-y-4`}>
+          {/* IP 地址 */}
           <View className="flex-row items-center space-x-2">
             <Wifi size={20} color="#3b82f6" />
             <Text
@@ -172,7 +150,7 @@ export const NetworkInfoModal: React.FC<NetworkInfoModalProps> = ({
             </Text>
           </View>
 
-          {/* Network Status */}
+          {/* 网络状态 */}
           <View className="flex-row items-center space-x-2">
             <Signal size={20} color="#3b82f6" />
             <Text
@@ -184,7 +162,7 @@ export const NetworkInfoModal: React.FC<NetworkInfoModalProps> = ({
             </Text>
           </View>
 
-          {/* Airplane Mode */}
+          {/* 飞行模式 */}
           <View className="flex-row items-center space-x-2">
             <Gauge size={20} color="#3b82f6" />
             <Text
@@ -196,11 +174,11 @@ export const NetworkInfoModal: React.FC<NetworkInfoModalProps> = ({
             </Text>
           </View>
 
-          {/* Network Speed */}
+          {/* 网络速度 */}
           {networkSpeed && (
-            <View>
+            <View className="space-y-2">
               <Text
-                className={`text-xl font-medium mb-2 ${
+                className={`text-xl font-medium ${
                   colorScheme === "dark" ? "text-white" : "text-black"
                 }`}
               >
@@ -235,81 +213,63 @@ export const NetworkInfoModal: React.FC<NetworkInfoModalProps> = ({
             </View>
           )}
 
-          {/* Network History Chart */}
-          {networkHistory.length > 0 && (
-            <View>
+          {/* 操作按钮 */}
+          <View className="space-y-2">
+            <TouchableOpacity
+              className={`py-3 rounded-lg flex-row justify-center items-center bg-blue-500 dark:bg-blue-600 transform active:scale-95 disabled:opacity-50`}
+              onPress={testNetworkSpeed}
+              disabled={isTestingSpeed}
+            >
+              {isTestingSpeed ? (
+                <ActivityIndicator size="small" color="#fff" />
+              ) : (
+                <>
+                  <RefreshCw size={16} color="#fff" className="mr-2" />
+                  <Text className="text-white font-medium">测试网络速度</Text>
+                </>
+              )}
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              className={`py-3 rounded-lg flex-row justify-center items-center bg-gray-300 dark:bg-gray-600 transform active:scale-95`}
+              onPress={fetchNetworkInfo}
+            >
+              <History
+                size={16}
+                color={colorScheme === "dark" ? "#fff" : "#000"}
+                className="mr-2"
+              />
               <Text
-                className={`text-xl font-medium mb-2 ${
+                className={`font-medium ${
                   colorScheme === "dark" ? "text-white" : "text-black"
                 }`}
               >
-                网络历史
+                刷新网络信息
               </Text>
-              <View className="h-64">
-                <RNEChartsPro
-                  height={250}
-                  option={chartOptions}
-                  backgroundColor="transparent"
-                  themeName={colorScheme === "dark" ? "dark" : "shine"}
-                />
-              </View>
-            </View>
-          )}
+            </TouchableOpacity>
+          </View>
+        </View>
 
-          {/* Buttons */}
-          <TouchableOpacity
-            className={`mt-6 py-3 rounded-lg flex-row justify-center items-center ${
-              colorScheme === "dark"
-                ? "bg-blue-600"
-                : "bg-blue-500 hover:bg-blue-600"
-            } disabled:opacity-50`}
-            onPress={testNetworkSpeed}
-            disabled={isTestingSpeed}
-          >
-            {isTestingSpeed ? (
-              <ActivityIndicator size="small" color="#fff" />
-            ) : (
-              <>
-                <RefreshCw size={16} color="#fff" className="mr-2" />
-                <Text className="text-white font-medium">测试网络速度</Text>
-              </>
-            )}
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            className={`mt-4 py-3 rounded-lg flex-row justify-center items-center ${
-              colorScheme === "dark"
-                ? "bg-gray-600"
-                : "bg-gray-300 hover:bg-gray-400"
-            }`}
-            onPress={fetchNetworkInfo}
-          >
-            <History
-              size={16}
-              color={colorScheme === "dark" ? "#fff" : "#000"}
-              className="mr-2"
-            />
+        {/* 右侧：网络历史图表（横屏时显示） */}
+        {isLandscape && networkHistory.length > 0 && (
+          <View className="flex-1 space-y-4">
             <Text
-              className={`font-medium ${
+              className={`text-xl font-medium ${
                 colorScheme === "dark" ? "text-white" : "text-black"
               }`}
             >
-              刷新网络信息
+              网络历史
             </Text>
-          </TouchableOpacity>
-        </ScrollView>
-
-        {/* Additional Icons for Enhanced Visuals */}
-        <View
-          className={`absolute ${
-            isLandscape ? "left-4 top-4" : "right-4 top-4"
-          } flex flex-col items-center space-y-2 ${
-            isLandscape ? "mt-0" : "mt-4"
-          }`}
-        >
-          <TrendingUp size={24} color="#10b981" />
-          <Database size={24} color="#f59e0b" />
-        </View>
+            <View className="h-48">
+              <RNEChartsPro
+                height={200}
+                option={chartOptions}
+                backgroundColor="transparent"
+                themeName={colorScheme === "dark" ? "dark" : "shine"}
+              />
+            </View>
+          </View>
+        )}
       </DialogContent>
     </Dialog>
   );

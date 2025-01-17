@@ -6,6 +6,7 @@ import Animated, {
   withTiming,
   useAnimatedStyle,
   withSpring,
+  FadeIn,
 } from "react-native-reanimated";
 
 interface SettingsSectionProps {
@@ -29,14 +30,26 @@ const SettingsSection: React.FC<SettingsSectionProps> = ({
     height: withSpring(isCollapsed ? 0 : "auto", {
       damping: 15,
       stiffness: 100,
+      mass: 0.5,
     }),
-    opacity: withTiming(isCollapsed ? 0 : 1),
+    opacity: withTiming(isCollapsed ? 0 : 1, {
+      duration: 200,
+    }),
+    transform: [
+      {
+        scale: withSpring(isCollapsed ? 0.95 : 1, {
+          damping: 15,
+          stiffness: 100,
+        }),
+      },
+    ],
   }));
 
   return (
-    <View
+    <Animated.View
+      entering={FadeIn.duration(300).springify()}
       className={`bg-white dark:bg-gray-800 rounded-lg p-4 ${
-        isLandscape ? "mx-2 max-h-[80vh] overflow-y-auto" : "mb-4"
+        isLandscape ? "mx-2" : "mb-4"
       } ${className}`}
       style={{
         flex: isLandscape ? 1 : undefined,
@@ -55,7 +68,7 @@ const SettingsSection: React.FC<SettingsSectionProps> = ({
       <Animated.View style={collapsible ? contentStyle : undefined}>
         {children}
       </Animated.View>
-    </View>
+    </Animated.View>
   );
 };
 

@@ -3,66 +3,22 @@ import { View, ScrollView, useWindowDimensions } from "react-native";
 import * as FileSystem from "expo-file-system";
 import * as Sharing from "expo-sharing";
 import { useIsFocused } from "@react-navigation/native";
-import Animated, { FadeIn, FadeOut, Layout } from "react-native-reanimated";
-import {
-  Folder,
-  File,
-  Image as ImageIcon,
-  Music,
-  Video,
-  Trash,
-  Share2,
-  ArrowLeft,
-  Edit2,
-  MoreHorizontal,
-  Info,
-  Lock,
-  Star,
-} from "lucide-react-native";
-
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-
-import {
-  Card,
-  CardContent,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-
-import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
-import { Text } from "@/components/ui/text";
-
 import Toast from "react-native-toast-message";
-
-interface FileItem {
-  name: string;
-  uri: string;
-  isDirectory: boolean;
-  size?: number;
-  modificationTime?: number;
-}
+import { FileItem as FileItemType, DialogType } from "./types";
+import FileHeader from "./FileHeader";
+import FileItem from "./FileItem";
+import ConfirmDialog from "./ConfirmDialog";
+import { SafeAreaView } from "react-native-safe-area-context";
+import Animated, { FadeIn, Layout } from "react-native-reanimated";
 
 const FileManager: React.FC = () => {
-  const [files, setFiles] = useState<FileItem[]>([]);
+  const [files, setFiles] = useState<FileItemType[]>([]);
   const [currentPath, setCurrentPath] = useState(
     FileSystem.documentDirectory || ""
   );
   const [selectedFiles, setSelectedFiles] = useState<string[]>([]);
   const [showDialog, setShowDialog] = useState(false);
-  const [dialogType, setDialogType] = useState<
-    "delete" | "rename" | "error" | null
-  >(null);
+  const [dialogType, setDialogType] = useState<DialogType>(null);
   const [dialogMessage, setDialogMessage] = useState("");
 
   const { width, height } = useWindowDimensions();
@@ -94,36 +50,7 @@ const FileManager: React.FC = () => {
     }
   }, [currentPath, isFocused, loadDirectory]);
 
-  const getFileIcon = (file: FileItem) => {
-    if (file.isDirectory) return <Folder className="h-6 w-6 text-primary" />;
-    const ext = file.name.split(".").pop()?.toLowerCase();
-    switch (ext) {
-      case "jpg":
-      case "png":
-      case "gif":
-        return <ImageIcon className="h-6 w-6 text-blue-500" />;
-      case "mp3":
-      case "wav":
-        return <Music className="h-6 w-6 text-green-500" />;
-      case "mp4":
-      case "mov":
-        return <Video className="h-6 w-6 text-purple-500" />;
-      case "pdf":
-        return <File className="h-6 w-6 text-red-500" />;
-      case "txt":
-        return <File className="h-6 w-6 text-gray-500" />;
-      case "doc":
-      case "docx":
-        return <File className="h-6 w-6 text-blue-700" />;
-      case "zip":
-      case "rar":
-        return <File className="h-6 w-6 text-yellow-500" />;
-      default:
-        return <File className="h-6 w-6 text-muted-foreground" />;
-    }
-  };
-
-  const handleFileAction = async (file: FileItem, action: string) => {
+  const handleFileAction = async (file: FileItemType, action: string) => {
     try {
       switch (action) {
         case "open":
@@ -237,143 +164,49 @@ const FileManager: React.FC = () => {
   };
 
   return (
-    <View className="flex-1 bg-white">
-      <View
-        className={`flex-row justify-between items-center px-4 py-4 ${
-          isLandscape ? "h-16" : "h-20"
-        }`}
-      >
-        <View className="flex-row items-center space-x-2">
-          <Button
-            variant="ghost"
-            size="icon"
-            onPress={navigateUp}
-            disabled={currentPath === FileSystem.documentDirectory}
-          >
-            <ArrowLeft className="h-6 w-6" />
-          </Button>
-          <Text className="text-xl font-bold">文件管理器</Text>
-        </View>
-        <Button variant="ghost" size="icon">
-          <MoreHorizontal className="h-6 w-6" />
-        </Button>
-      </View>
+    <SafeAreaView className="flex-1 bg-white">
+      <FileHeader
+        onNavigateUp={navigateUp}
+        isDisabled={currentPath === FileSystem.documentDirectory}
+        isLandscape={isLandscape}
+      />
 
-      <ScrollView contentContainerStyle={{ padding: 16 }}>
-        <View
-          className={`flex-wrap ${isLandscape ? "flex-row" : "flex-col"} gap-4`}
-        >
+      <ScrollView 
+        className="flex-1"
+        contentContainerStyle={{ 
+          flexGrow: 1,
+          padding: 16
+        }}
+      >
+        <View className={`flex-1 ${isLandscape ? "flex-row flex-wrap" : ""} gap-4`}>
           {files.map((file, index) => (
             <Animated.View
               key={file.uri}
-              entering={FadeIn.delay(index * 50)}
-              exiting={FadeOut}
-              layout={Layout}
-              className={`${isLandscape ? "w-1/3 m-2" : "w-full"}`}
+              entering={FadeIn.delay(index * 50).springify()}
+              layout={Layout.springify()}
+              className={isLandscape ? "w-[30%]" : "w-full"}
             >
-              <Card className="bg-gray-50">
-                <CardHeader className="flex-row items-center space-x-2">
-                  {getFileIcon(file)}
-                  <CardTitle className="flex-1 text-lg">{file.name}</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <Text className="text-sm text-gray-500">
-                    {file.size
-                      ? `${(file.size / 1024).toFixed(1)} KB`
-                      : "文件夹"}
-                  </Text>
-                </CardContent>
-                <Separator />
-                <CardFooter className="flex-row justify-between p-2">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onPress={() => handleFileAction(file, "open")}
-                    className="flex-1 mx-1"
-                  >
-                    {file.isDirectory ? "打开" : "预览"}
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onPress={() => handleFileAction(file, "share")}
-                    className="flex-1 mx-1"
-                  >
-                    <Share2 className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onPress={() => handleFileAction(file, "rename")}
-                    className="flex-1 mx-1"
-                  >
-                    <Edit2 className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onPress={() => handleFileAction(file, "delete")}
-                    className="flex-1 mx-1"
-                  >
-                    <Trash className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onPress={() => handleFileAction(file, "info")}
-                    className="flex-1 mx-1"
-                  >
-                    <Info className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onPress={() => handleFileAction(file, "lock")}
-                    className="flex-1 mx-1"
-                  >
-                    <Lock className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onPress={() => handleFileAction(file, "star")}
-                    className="flex-1 mx-1"
-                  >
-                    <Star className="h-4 w-4 text-yellow-500" />
-                  </Button>
-                </CardFooter>
-              </Card>
+              <FileItem
+                file={file}
+                index={index}
+                isLandscape={isLandscape}
+                onFileAction={handleFileAction}
+              />
             </Animated.View>
           ))}
         </View>
       </ScrollView>
 
-      <AlertDialog open={showDialog} onOpenChange={setShowDialog}>
-        <AlertDialogContent className="bg-white rounded-lg p-6">
-          <AlertDialogHeader>
-            <AlertDialogTitle className="text-xl font-semibold">
-              {dialogType === "error" ? "错误" : "确认操作"}
-            </AlertDialogTitle>
-            <AlertDialogDescription className="mt-2 text-gray-600">
-              {dialogMessage}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter className="mt-4 flex-row justify-end space-x-4">
-            <AlertDialogCancel className="text-red-500">取消</AlertDialogCancel>
-            {dialogType !== "error" && (
-              <AlertDialogAction
-                onPress={handleConfirmDialog}
-                className="text-blue-500"
-              >
-                确认
-              </AlertDialogAction>
-            )}
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <ConfirmDialog
+        showDialog={showDialog}
+        setShowDialog={setShowDialog}
+        dialogType={dialogType}
+        dialogMessage={dialogMessage}
+        handleConfirmDialog={handleConfirmDialog}
+      />
 
       <Toast />
-    </View>
+    </SafeAreaView>
   );
 };
 

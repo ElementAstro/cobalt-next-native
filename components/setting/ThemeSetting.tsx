@@ -1,5 +1,5 @@
 import React from "react";
-import { View } from "react-native";
+import { View, useWindowDimensions } from "react-native";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -11,6 +11,8 @@ import { useTheme } from "@/hooks/useTheme";
 
 const ThemeSetting = () => {
   const { theme, setTheme, availableThemes } = useTheme();
+  const { width, height } = useWindowDimensions();
+  const isLandscape = width > height;
 
   const handleThemeChange = (selectedTheme: string) => {
     setTheme(selectedTheme);
@@ -23,10 +25,10 @@ const ThemeSetting = () => {
 
   return (
     <Animated.View 
-      entering={FadeInDown} 
-      className="flex-1 p-4"
+      entering={FadeInDown.springify()} 
+      className={`flex-1 p-4 ${isLandscape ? 'flex-row space-x-4' : ''}`}
     >
-      <Card className="w-full">
+      <Card className={isLandscape ? "w-1/2" : "w-full"}>
         <CardHeader>
           <CardTitle className="flex-row items-center">
             <Monitor size={20} className="mr-2" />
@@ -79,6 +81,17 @@ const ThemeSetting = () => {
           </View>
         </CardContent>
       </Card>
+      
+      <View className={isLandscape ? "w-1/2" : "mt-4"}>
+        <Card>
+          <CardHeader>
+            <CardTitle>主题预览</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {/* 添加主题预览内容 */}
+          </CardContent>
+        </Card>
+      </View>
       <Toast />
     </Animated.View>
   );

@@ -4,7 +4,6 @@ import {
   SafeAreaView,
   TouchableOpacity,
   Dimensions,
-  Platform,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { BlurView } from "expo-blur";
@@ -112,25 +111,19 @@ function HomeScreenContent() {
   const isLandscape = SCREEN_WIDTH > SCREEN_HEIGHT;
 
   return (
-    <SafeAreaView style={{ flex: 1 }}>
-      <LinearGradient colors={["#1a1f25", "#2d3748"]} style={{ flex: 1 }}>
-        <BlurView intensity={20} style={{ flex: 1 }}>
+    <SafeAreaView className="flex-1">
+      <LinearGradient colors={["#1a1f25", "#2d3748"]} className="flex-1">
+        <BlurView intensity={20} className="flex-1">
           <View
-            className="flex-1 p-6"
-            style={{
-              flexDirection: isLandscape ? "row" : "column",
-              justifyContent: "space-between",
-              paddingBottom: 60, // Reserve space for bottom tab bar
-            }}
+            className={`flex-1 p-6 ${
+              isLandscape
+                ? "flex-row justify-between"
+                : "flex-col justify-between"
+            } pb-15`}
           >
             {/* Mode Selection */}
             <View
-              className="space-y-4"
-              style={{
-                flex: isLandscape ? 1 : undefined,
-                marginRight: isLandscape ? 12 : 0,
-                marginBottom: isLandscape ? 0 : 12,
-              }}
+              className={`space-y-4 ${isLandscape ? "flex-1 mr-3" : "mb-3"}`}
             >
               <CopilotStep
                 text="选择热点模式可以快速建立设备间连接"
@@ -139,13 +132,13 @@ function HomeScreenContent() {
               >
                 <TouchableOpacity
                   onPress={() => handleModeChange("hotspot")}
-                  className="transform transition-transform active:scale-98"
+                  className="transform active:scale-95"
                 >
                   <WalkthroughCard
                     className={`border-2 shadow-lg ${
                       activeMode === "hotspot"
                         ? "border-primary bg-primary/10"
-                        : "border-border"
+                        : "border-gray-300 bg-white"
                     }`}
                   >
                     <CardHeader>
@@ -169,7 +162,7 @@ function HomeScreenContent() {
                         className={`text-sm ${
                           activeMode === "hotspot"
                             ? "text-primary"
-                            : "text-muted-foreground"
+                            : "text-gray-500"
                         }`}
                       >
                         {activeMode === "hotspot" ? "当前模式" : "点击切换"}
@@ -186,13 +179,13 @@ function HomeScreenContent() {
               >
                 <TouchableOpacity
                   onPress={() => handleModeChange("lan")}
-                  className="transform transition-transform active:scale-98"
+                  className="transform active:scale-95"
                 >
                   <WalkthroughCard
                     className={`border-2 shadow-lg ${
                       activeMode === "lan"
                         ? "border-primary bg-primary/10"
-                        : "border-border"
+                        : "border-gray-300 bg-white"
                     }`}
                   >
                     <CardHeader>
@@ -213,7 +206,7 @@ function HomeScreenContent() {
                         className={`text-sm ${
                           activeMode === "lan"
                             ? "text-primary"
-                            : "text-muted-foreground"
+                            : "text-gray-500"
                         }`}
                       >
                         {activeMode === "lan" ? "当前模式" : "点击切换"}
@@ -225,13 +218,7 @@ function HomeScreenContent() {
             </View>
 
             {/* Status and Scan */}
-            <View
-              className="space-y-4"
-              style={{
-                flex: isLandscape ? 1 : undefined,
-                width: isLandscape ? undefined : "100%",
-              }}
-            >
+            <View className={`space-y-4 ${isLandscape ? "flex-1" : "w-full"}`}>
               <CopilotStep
                 text="此处显示当前连接状态和IP地址"
                 order={3}
@@ -256,10 +243,10 @@ function HomeScreenContent() {
                         <Label className="text-xl font-semibold">
                           {isConnected ? "已连接" : "未连接设备"}
                         </Label>
-                        <Label className="text-xl text-primary">
+                        <Label className="text-xl text-blue-500">
                           {ipAddress}
                         </Label>
-                        <Text className="text-sm text-muted-foreground">
+                        <Text className="text-sm text-gray-400">
                           {activeMode === "hotspot" ? "热点模式" : "局域网模式"}
                         </Text>
                       </CardContent>
@@ -288,7 +275,7 @@ function HomeScreenContent() {
                         color="#fff"
                       />
                     </Animated.View>
-                    <Text className="text-primary-foreground font-semibold">
+                    <Text className="text-white font-semibold text-lg">
                       {isScanning ? "扫描中..." : "扫描"}
                     </Text>
                   </View>
@@ -298,7 +285,7 @@ function HomeScreenContent() {
           </View>
 
           {/* Reserved Space for Bottom Tab Bar */}
-          <View style={{ height: 60 }} />
+          <View className="h-15" />
 
           <NetworkInfoModal
             visible={modalVisible}

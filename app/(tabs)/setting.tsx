@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { ScrollView, View, Text } from "react-native";
+import { ScrollView, View, Text, useWindowDimensions, SafeAreaView } from "react-native";
 import {
   Settings,
   Bell,
@@ -27,6 +27,8 @@ type SettingSection =
   | "privacy";
 
 const SettingsPage: React.FC = () => {
+  const { width, height } = useWindowDimensions();
+  const isLandscape = width > height;
   const [activeSection, setActiveSection] = useState<SettingSection | null>(
     null
   );
@@ -49,13 +51,16 @@ const SettingsPage: React.FC = () => {
   };
 
   return (
-    <ScrollView className="flex-1 bg-gray-50">
-      <View className="p-4">
-        <Text className="text-2xl font-bold mb-4">设置</Text>
+    <SafeAreaView className="flex-1 bg-gray-50">
+      <View className={`flex-1 p-4 ${isLandscape ? 'flex-row' : ''}`}>
+        <View className={`${isLandscape ? 'w-1/3 mr-4' : ''} space-y-4`}>
+          <Text className="text-2xl font-bold mb-4">设置</Text>
 
-        <View className="space-y-4">
           {/* 常用设置卡片 */}
-          <Animated.View entering={FadeInDown.delay(100).duration(300)}>
+          <Animated.View 
+            entering={FadeInDown.delay(100).duration(300)}
+            className="flex-1"
+          >
             <Card>
               <CardHeader>
                 <CardTitle className="flex-row items-center">
@@ -161,13 +166,20 @@ const SettingsPage: React.FC = () => {
         </View>
 
         {/* 设置内容区域 */}
-        {activeSection && (
-          <Animated.View entering={FadeInDown.duration(300)} className="mt-4">
+        {activeSection ? (
+          <Animated.View 
+            entering={FadeInDown.duration(300)} 
+            className={`${isLandscape ? 'flex-1' : 'mt-4'}`}
+          >
             {renderSettingContent()}
           </Animated.View>
+        ) : (
+          <View className={`${isLandscape ? 'flex-1' : ''} justify-center items-center`}>
+            <Text className="text-gray-500">请选择一个设置项</Text>
+          </View>
         )}
       </View>
-    </ScrollView>
+    </SafeAreaView>
   );
 };
 
