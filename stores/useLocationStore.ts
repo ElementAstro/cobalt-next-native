@@ -8,6 +8,9 @@ interface LocationConfig {
   androidLocationKey: string;
   iosLocationKey: string;
   autoLocate: boolean;
+  accuracy: "high" | "balanced" | "low";
+  compassEnabled: boolean;
+  realTimeNavigation: boolean;
 }
 
 interface LocationState {
@@ -30,6 +33,9 @@ export const useLocationStore = create<LocationState>()(
         androidLocationKey: "043b24fe18785f33c491705ffe5b6935",
         iosLocationKey: "9bd6c82e77583020a73ef1af59d0c759",
         autoLocate: true,
+        accuracy: "balanced",
+        compassEnabled: false,
+        realTimeNavigation: false,
       },
       location: null,
       setConfig: (newConfig) =>

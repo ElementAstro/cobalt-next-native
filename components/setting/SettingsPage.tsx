@@ -12,11 +12,11 @@ import {
 import Animated, { FadeInDown } from "react-native-reanimated";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import NotificationSetting from "@/components/setting/NotificationSetting";
-import LocationSetting from "@/components/setting/LocationSetting";
-import DeviceScreen from "@/components/setting/DeviceInfo";
-import ThemeSetting from "@/components/setting/ThemeSetting";
-import GeneralSetting from "@/components/setting/GeneralSetting";
+import NotificationSetting from "./NotificationSetting";
+import LocationSetting from "./LocationSetting";
+import DeviceScreen from "./DeviceInfo";
+import ThemeSetting from "./ThemeSetting";
+import GeneralSetting from "./GeneralSetting";
 
 type SettingSection =
   | "notification"
@@ -68,35 +68,35 @@ const SettingsPage: React.FC = () => {
                   variant={
                     activeSection === "notification" ? "default" : "outline"
                   }
-                  className="m-1 flex-row items-center"
+                  className="m-1"
                   onPress={() => setActiveSection("notification")}
                 >
-                  <Bell size={16} className="mr-2 text-white" />
-                  <Text className="text-white">通知设置</Text>
+                  <Bell size={16} className="mr-2" />
+                  通知设置
                 </Button>
                 <Button
                   variant={activeSection === "location" ? "default" : "outline"}
-                  className="m-1 flex-row items-center"
+                  className="m-1"
                   onPress={() => setActiveSection("location")}
                 >
-                  <MapPin size={16} className="mr-2 text-white" />
-                  <Text className="text-white">位置设置</Text>
+                  <MapPin size={16} className="mr-2" />
+                  位置设置
                 </Button>
                 <Button
                   variant={activeSection === "device" ? "default" : "outline"}
-                  className="m-1 flex-row items-center"
+                  className="m-1"
                   onPress={() => setActiveSection("device")}
                 >
-                  <Smartphone size={16} className="mr-2 text-white" />
-                  <Text className="text-white">设备信息</Text>
+                  <Smartphone size={16} className="mr-2" />
+                  设备信息
                 </Button>
                 <Button
                   variant={activeSection === "general" ? "default" : "outline"}
-                  className="m-1 flex-row items-center"
+                  className="m-1"
                   onPress={() => setActiveSection("general")}
                 >
-                  <Settings size={16} className="mr-2 text-white" />
-                  <Text className="text-white">常规设置</Text>
+                  <Settings size={16} className="mr-2" />
+                  常规设置
                 </Button>
               </CardContent>
             </Card>
@@ -114,10 +114,10 @@ const SettingsPage: React.FC = () => {
               <CardContent>
                 <Button
                   variant={activeSection === "theme" ? "default" : "outline"}
-                  className="m-1 flex-row items-center"
+                  className="m-1"
                   onPress={() => setActiveSection("theme")}
                 >
-                  <Text className="text-white">主题设置</Text>
+                  主题设置
                 </Button>
               </CardContent>
             </Card>
@@ -135,10 +135,10 @@ const SettingsPage: React.FC = () => {
               <CardContent>
                 <Button
                   variant={activeSection === "privacy" ? "default" : "outline"}
-                  className="m-1 flex-row items-center"
+                  className="m-1"
                   onPress={() => setActiveSection("privacy")}
                 >
-                  <Text className="text-white">隐私设置</Text>
+                  隐私设置
                 </Button>
               </CardContent>
             </Card>

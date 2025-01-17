@@ -1,6 +1,11 @@
 import { Link, Stack } from "expo-router";
-import { View } from "react-native";
-import { HeartCrack, QrCode } from "lucide-react-native";
+import { View, Text } from "react-native";
+import {
+  HeartCrack,
+  QrCode,
+  Home as HomeIcon,
+  Scan as ScanIcon,
+} from "lucide-react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import Animated, {
   useAnimatedStyle,
@@ -26,7 +31,7 @@ import { useEffect } from "react";
 
 const AnimatedHeartCrack = Animated.createAnimatedComponent(HeartCrack);
 const AnimatedView = Animated.createAnimatedComponent(View);
-const AnimatedText = Animated.createAnimatedComponent(H2);
+const AnimatedText = Animated.createAnimatedComponent(Text);
 
 export default function NotFoundScreen() {
   const errorCode = ":( 404";
@@ -82,9 +87,9 @@ export default function NotFoundScreen() {
             ))}
           </View>
 
-          <View className="flex-1 justify-center p-6">
+          <View className="flex-1 justify-center px-6">
             <Animated.View style={cardStyle}>
-              <Card className="bg-blue-600/80 backdrop-blur-lg border border-white/20 shadow-2xl">
+              <Card className="bg-white/20 backdrop-blur-lg border-white/20 shadow-lg">
                 <CardHeader>
                   <CardTitle className="flex-row items-center space-x-2">
                     <AnimatedHeartCrack
@@ -92,10 +97,7 @@ export default function NotFoundScreen() {
                       className="text-white"
                       style={iconStyle}
                     />
-                    <AnimatedText
-                      style={textStyle}
-                      className="text-white font-mono"
-                    >
+                    <AnimatedText className="text-white font-mono">
                       {errorCode}
                     </AnimatedText>
                   </CardTitle>
@@ -124,16 +126,18 @@ export default function NotFoundScreen() {
                   <Link href="/" asChild>
                     <Button
                       variant="secondary"
-                      className="flex-1 bg-white/10 backdrop-blur-lg active:scale-95 transform"
+                      className="flex-1 bg-white/10 backdrop-blur-lg transform scale-95"
                     >
+                      <HomeIcon size={16} className="mr-2 text-white" />
                       返回首页
                     </Button>
                   </Link>
                   <Link href="/scanner" asChild>
                     <Button
                       variant="secondary"
-                      className="flex-1 bg-white/10 backdrop-blur-lg active:scale-95 transform"
+                      className="flex-1 bg-white/10 backdrop-blur-lg transform scale-95"
                     >
+                      <ScanIcon size={16} className="mr-2 text-white" />
                       去扫描
                     </Button>
                   </Link>

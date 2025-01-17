@@ -6,6 +6,7 @@ import {
   PermissionsAndroid,
   View,
   Text,
+  Alert,
 } from "react-native";
 import * as Location from "expo-location";
 import {
@@ -18,8 +19,14 @@ import {
   History,
 } from "lucide-react-native";
 import Animated, {
-  useAnimatedStyle
+  useAnimatedStyle,
+  withSpring,
+  withTiming,
+  Easing,
+  useSharedValue,
+  interpolate,
 } from "react-native-reanimated";
+import Toast from "react-native-toast-message";
 import {
   Dialog,
   DialogContent,
@@ -42,7 +49,7 @@ import {
   setNeedAddress,
   setLocatingWithReGeocode,
 } from "react-native-amap-geolocation";
-import { useLocationStore } from '@/stores/useLocationStore';
+import { useLocationStore } from "@/stores/useLocationStore";
 
 const LocationDialog: React.FC = () => {
   const { config, location: storeLocation, setLocation } = useLocationStore();
@@ -51,35 +58,73 @@ const LocationDialog: React.FC = () => {
   const { width, height } = useWindowDimensions();
   const isLandscape = width > height;
 
+  const scale = useSharedValue(1);
+  const rotate = useSharedValue(0);
+  const progress = useSharedValue(0);
+
   const fadeAnim = useAnimatedStyle(() => ({
-    opacity: 1,
+    opacity: progress.value,
   }));
+
   const slideAnim = useAnimatedStyle(() => ({
-    transform: [{ translateY: 0 }],
+    transform: [
+      { translateY: interpolate(progress.value, [0, 1], [50, 0]) },
+      { scale: withSpring(scale.value) },
+      { rotate: `${rotate.value}deg` },
+    ],
   }));
+
+  const showToast = (
+    type: "success" | "error",
+    text1: string,
+    text2?: string
+  ) => {
+    Toast.show({
+      type,
+      text1,
+      text2,
+      position: "bottom",
+      visibilityTime: 3000,
+      autoHide: true,
+    });
+  };
 
   // 初始化高德地图与定位
   useEffect(() => {
-    // 初始化高德地图
-    AMapSdk.init(
-      Platform.select({
-        android: config.androidMapKey, // 替换成你的 Android 地图 App Key
-        ios: config.iosMapKey, // 替换成你的 iOS 地图 App Key
-      })
-    );
+    const initializeMap = async () => {
+      try {
+        // 初始化高德地图
+        await AMapSdk.init(
+          Platform.select({
+            android: config.androidMapKey, // 替换成你的 Android 地图 App Key
+            ios: config.iosMapKey, // 替换成你的 iOS 地图 App Key
+          })
+        );
 
-    // 初始化高德定位
-    initGeolocation({
-      ios: config.iosLocationKey, // 替换成你的 iOS 定位 App Key
-      android: config.androidLocationKey, // 替换成你的 Android 定位 App Key
-    });
+        // 初始化高德定位
+        await initGeolocation({
+          ios: config.iosLocationKey, // 替换成你的 iOS 定位 App Key
+          android: config.androidLocationKey, // 替换成你的 Android 定位 App Key
+        });
 
-    // 开启逆地理信息
-    if (Platform.OS === "android") {
-      setNeedAddress(true);
-    } else {
-      setLocatingWithReGeocode(true);
-    }
+        // 开启逆地理信息
+        if (Platform.OS === "android") {
+          setNeedAddress(true);
+        } else {
+          setLocatingWithReGeocode(true);
+        }
+      } catch (error) {
+        console.error("地图初始化失败:", error);
+        Alert.alert(
+          "初始化错误",
+          "地图服务无法初始化，请检查您的网络连接或API密钥设置。",
+          [{ text: "确定" }]
+        );
+        showToast("error", "初始化失败", "地图服务无法正常运行");
+      }
+    };
+
+    initializeMap();
   }, [config]);
 
   // 请求权限
@@ -112,9 +157,14 @@ const LocationDialog: React.FC = () => {
   // 获取当前定位
   const getCurrentLocation = useCallback(async () => {
     setLoading(true);
+    scale.value = 0.9;
+    rotate.value = 0;
+    progress.value = 0;
+
     const permissionGranted = await requestLocationPermissions();
     if (!permissionGranted) {
       setLoading(false);
+      showToast("error", "权限被拒绝", "无法访问位置信息");
       return;
     }
 
@@ -128,20 +178,30 @@ const LocationDialog: React.FC = () => {
               timestamp: Date.now(),
             });
             setErrorMsg(null);
+            scale.value = withSpring(1.1);
+            rotate.value = withTiming(360, {
+              duration: 800,
+              easing: Easing.bezier(0.25, 0.1, 0.25, 1),
+            });
+            progress.value = withTiming(1, { duration: 500 });
+            showToast("success", "定位成功", "已获取最新位置信息");
             resolve(position);
           },
           (error) => {
             setErrorMsg("获取位置失败: " + error.message);
+            showToast("error", "定位失败", error.message);
             reject(error);
           }
         );
       });
     } catch (error) {
       setErrorMsg("获取位置失败: " + (error as Error).message);
+      showToast("error", "定位失败", (error as Error).message);
     } finally {
       setLoading(false);
+      scale.value = withSpring(1);
     }
-  }, [setLocation]);
+  }, [setLocation, scale, rotate, progress]);
 
   // 启动持续定位
   useEffect(() => {
@@ -169,16 +229,20 @@ const LocationDialog: React.FC = () => {
   return (
     <Dialog>
       <DialogTrigger asChild>
-        <Button variant="default" size="default">
-          <MapPin size={20} className="mr-2" />
-          打开位置获取
+        <Button
+          variant="default"
+          size="default"
+          className="flex-row items-center"
+        >
+          <MapPin size={20} className="mr-2 text-gray-800 dark:text-gray-200" />
+          <Text className="text-gray-800 dark:text-gray-200">打开位置获取</Text>
         </Button>
       </DialogTrigger>
       <DialogContent>
         <Animated.View
           className={`w-full ${
-            isLandscape ? "flex-row" : "flex-col"
-          } space-y-4`}
+            isLandscape ? "flex-row space-x-4" : "flex-col space-y-4"
+          }`}
           style={[fadeAnim, slideAnim]}
         >
           {/* 左侧卡片：显示定位信息 */}
@@ -186,35 +250,47 @@ const LocationDialog: React.FC = () => {
             <CardHeader>
               <CardTitle className="flex-row items-center">
                 <Map size={24} className="mr-2 text-blue-500" />
-                当前位置
+                <Text className="text-lg font-semibold text-gray-800 dark:text-gray-200">
+                  当前位置
+                </Text>
               </CardTitle>
-              <CardContent>
-                {loading ? (
-                  <ActivityIndicator size="small" color="#3b82f6" />
-                ) : errorMsg ? (
-                  <Label className="text-red-500 flex-row items-center">
-                    <AlertTriangle size={16} className="mr-1" />
-                    {errorMsg}
-                  </Label>
-                ) : storeLocation ? (
-                  <Label className="flex-row items-center">
-                    <Target size={16} className="mr-1 text-green-500" />
+            </CardHeader>
+            <CardContent>
+              {loading ? (
+                <ActivityIndicator size="small" color="#3b82f6" />
+              ) : errorMsg ? (
+                <Label className="text-red-500 flex-row items-center">
+                  <AlertTriangle size={16} className="mr-1" />
+                  <Text className="text-red-500">{errorMsg}</Text>
+                </Label>
+              ) : storeLocation ? (
+                <Label className="flex-row items-center">
+                  <Target size={16} className="mr-1 text-green-500" />
+                  <Text className="text-green-500">
                     纬度: {storeLocation.latitude.toFixed(4)}, 经度:{" "}
                     {storeLocation.longitude.toFixed(4)}
-                  </Label>
-                ) : (
-                  <Label className="text-gray-500">未获取位置</Label>
-                )}
-              </CardContent>
-            </CardHeader>
+                  </Text>
+                </Label>
+              ) : (
+                <Label className="text-gray-500 flex-row items-center">
+                  <AlertTriangle size={16} className="mr-1" />
+                  <Text className="text-gray-500">未获取位置</Text>
+                </Label>
+              )}
+            </CardContent>
             <CardFooter>
               <Button
                 variant="outline"
                 onPress={getCurrentLocation}
                 className="flex-row items-center"
               >
-                <RefreshCw size={16} className="mr-1" />
-                重新定位
+                <RefreshCw
+                  size={16}
+                  className="mr-1 text-gray-800 dark:text-gray-200"
+                />
+                <Text className="text-gray-800 dark:text-gray-200">
+                  重新定位
+                </Text>
               </Button>
             </CardFooter>
           </Card>
@@ -224,7 +300,9 @@ const LocationDialog: React.FC = () => {
             <CardHeader>
               <CardTitle className="flex-row items-center">
                 <History size={24} className="mr-2 text-green-500" />
-                地图定位
+                <Text className="text-lg font-semibold text-gray-800 dark:text-gray-200">
+                  地图定位
+                </Text>
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -247,17 +325,9 @@ const LocationDialog: React.FC = () => {
                         longitude: storeLocation.longitude,
                       }}
                     >
-                      <Text
-                        style={{
-                          color: "#fff",
-                          backgroundColor: "#f87171",
-                          padding: 4,
-                          borderRadius: 4,
-                          textAlign: "center",
-                        }}
-                      >
-                        当前位置
-                      </Text>
+                      <View className="bg-red-500 p-2 rounded">
+                        <Text className="text-white text-center">当前位置</Text>
+                      </View>
                     </Marker>
                   )}
                 </MapView>
@@ -272,8 +342,11 @@ const LocationDialog: React.FC = () => {
             size="default"
             className="flex-row items-center mt-4"
           >
-            <XCircle size={20} className="mr-2" />
-            关闭
+            <XCircle
+              size={20}
+              className="mr-2 text-gray-800 dark:text-gray-200"
+            />
+            <Text className="text-gray-800 dark:text-gray-200">关闭</Text>
           </Button>
         </DialogClose>
       </DialogContent>

@@ -1,8 +1,18 @@
 import React, { useEffect, useState, useCallback } from "react";
 import { View, useWindowDimensions } from "react-native";
 import * as StoreReview from "expo-store-review";
-import Animated, { FadeIn, FadeOut } from "react-native-reanimated";
-import { Star, StarHalf, StarOff, Award, Heart } from "lucide-react-native";
+import Animated, { FadeIn, FadeOut, BounceIn } from "react-native-reanimated";
+import {
+  Star,
+  StarHalf,
+  StarOff,
+  Award,
+  Heart,
+  Smile,
+  ThumbsUp,
+  MessageCircle,
+} from "lucide-react-native";
+import Toast from "react-native-toast-message";
 
 import {
   AlertDialog,
@@ -45,13 +55,26 @@ const RateAppPrompt: React.FC<RateAppPromptProps> = ({
   const [canPrompt, setCanPrompt] = useState(false);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [currentRating, setCurrentRating] = useState(rating);
+  const [isSubmitted, setIsSubmitted] = useState(false);
   const { width, height } = useWindowDimensions();
   const isLandscape = width > height;
+
+  const showSuccessToast = useCallback(() => {
+    Toast.show({
+      type: "success",
+      text1: "感谢您的评分！",
+      text2: "您的反馈对我们非常重要",
+      position: "bottom",
+      bottomOffset: 80,
+    });
+  }, []);
 
   const requestReview = useCallback(async () => {
     try {
       if (await StoreReview.hasAction()) {
         await StoreReview.requestReview();
+        setIsSubmitted(true);
+        showSuccessToast();
       } else {
         setIsDialogOpen(true);
       }
@@ -59,8 +82,8 @@ const RateAppPrompt: React.FC<RateAppPromptProps> = ({
       console.error("Failed to request review:", error);
       setIsDialogOpen(true);
     }
-  }, []);
-  
+  }, [showSuccessToast]);
+
   const checkAvailability = useCallback(async () => {
     const available = await StoreReview.isAvailableAsync();
     setCanPrompt(available);
@@ -73,6 +96,19 @@ const RateAppPrompt: React.FC<RateAppPromptProps> = ({
     checkAvailability();
   }, [checkAvailability]);
 
+  const handleStarPress = useCallback((rating: number) => {
+    setCurrentRating(rating);
+    if (rating >= 4) {
+      Toast.show({
+        type: "info",
+        text1: "感谢您的支持！",
+        text2: "请继续享受我们的应用",
+        position: "bottom",
+        bottomOffset: 80,
+      });
+    }
+  }, []);
+
   const renderStars = () => {
     return (
       <View className="flex-row justify-center items-center gap-2">
@@ -83,11 +119,23 @@ const RateAppPrompt: React.FC<RateAppPromptProps> = ({
             exiting={FadeOut}
           >
             {star <= currentRating ? (
-              <Star size={32} className="text-yellow-400" />
+              <Star
+                size={32}
+                className="text-yellow-400"
+                onPress={() => handleStarPress(star)}
+              />
             ) : star - 0.5 <= currentRating ? (
-              <StarHalf size={32} className="text-yellow-400" />
+              <StarHalf
+                size={32}
+                className="text-yellow-400"
+                onPress={() => handleStarPress(star - 0.5)}
+              />
             ) : (
-              <StarOff size={32} className="text-muted-foreground" />
+              <StarOff
+                size={32}
+                className="text-muted-foreground"
+                onPress={() => handleStarPress(star)}
+              />
             )}
           </Animated.View>
         ))}
@@ -109,7 +157,7 @@ const RateAppPrompt: React.FC<RateAppPromptProps> = ({
       )}
 
       <AlertDialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <AlertDialogContent className="sm:max-w-md">
+        <AlertDialogContent className={isLandscape ? "w-[80%]" : "sm:max-w-md"}>
           <AlertDialogHeader>
             <AlertDialogTitle>应用评分</AlertDialogTitle>
             <AlertDialogDescription>{promptMessage}</AlertDialogDescription>
@@ -122,13 +170,33 @@ const RateAppPrompt: React.FC<RateAppPromptProps> = ({
                 请为我们评分
               </CardTitle>
             </CardHeader>
-            <CardContent>{renderStars()}</CardContent>
+            <CardContent>
+              {renderStars()}
+              {currentRating > 0 && (
+                <Animated.View
+                  entering={BounceIn.delay(600)}
+                  className="mt-4 flex-row items-center justify-center gap-2"
+                >
+                  {currentRating >= 4 ? (
+                    <>
+                      <Smile className="text-green-500" size={24} />
+                      <ThumbsUp className="text-green-500" size={24} />
+                    </>
+                  ) : (
+                    <MessageCircle className="text-yellow-500" size={24} />
+                  )}
+                </Animated.View>
+              )}
+            </CardContent>
             <Separator className="my-4" />
             <CardFooter className="justify-between">
               <AlertDialogCancel>稍后再说</AlertDialogCancel>
               <AlertDialogAction
                 disabled={currentRating === 0}
-                onPress={requestReview}
+                onPress={() => {
+                  requestReview();
+                  setIsDialogOpen(false);
+                }}
               >
                 提交评分
               </AlertDialogAction>
@@ -136,6 +204,8 @@ const RateAppPrompt: React.FC<RateAppPromptProps> = ({
           </Card>
         </AlertDialogContent>
       </AlertDialog>
+
+      <Toast />
     </>
   );
 };
