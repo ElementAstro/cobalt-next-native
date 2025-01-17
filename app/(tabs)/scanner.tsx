@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback } from "react";
+import React, { useCallback, useMemo } from "react";
 import {
   View,
   Alert as RNAlert,
@@ -7,6 +7,7 @@ import {
 } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import * as Notifications from "expo-notifications";
+import useScannerStore from "@/stores/useScannerStore";
 import { z } from "zod";
 import SettingsSection from "@/components/scanner/SettingsSection";
 import ScanResultItem from "@/components/scanner/ScanResultItem";
@@ -22,11 +23,23 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import type { Option } from "@/components/ui/select";
+import ScanButton from "@/components/scanner/ScanButton";
+import AdvancedSettings from "@/components/scanner/AdvancedSettings";
+import ScanHistory from "@/components/scanner/ScanHistory";
 
 interface ScanResult {
   port: number;
   status: string;
   service?: string;
+}
+
+interface ScanHistoryItem {
+  id: string;
+  timestamp: Date;
+  ipAddress: string;
+  portRange: string;
+  openPorts: number;
+  totalPorts: number;
 }
 
 const ScannerSettings = React.memo(
@@ -107,29 +120,40 @@ const ScannerSettings = React.memo(
 ScannerSettings.displayName = "ScannerSettings";
 
 const ScannerPage: React.FC = () => {
-  const [ipAddress, setIpAddress] = useState<string>("");
-  const [portRange, setPortRange] = useState<string>("common");
-  const [customPortRange, setCustomPortRange] = useState<string>("");
-  const [scanSpeed, setScanSpeed] = useState<string>("normal");
-  const [timeout, setTimeoutValue] = useState<number>(500);
-  const [showClosedPorts, setShowClosedPorts] = useState<boolean>(false);
-  const [scanResults, setScanResults] = useState<ScanResult[]>([]);
-  const [isScanning, setIsScanning] = useState<boolean>(false);
-  const [scanMethod, setScanMethod] = useState<string>("tcp");
-  const [saveResults, setSaveResults] = useState<boolean>(false);
-  const [autoReconnect, setAutoReconnect] = useState<boolean>(false);
-  const [notificationsEnabled, setNotificationsEnabled] =
-    useState<boolean>(true);
+  const {
+    ipAddress,
+    portRange,
+    customPortRange,
+    scanSpeed,
+    timeout,
+    showClosedPorts,
+    scanResults,
+    isScanning,
+    scanMethod,
+    autoReconnect,
+    notificationsEnabled,
+    scanProgress,
+    isDarkTheme,
+    scanHistory,
+    layout,
+    startScanning,
+    stopScanning,
+    updateScanProgress,
+    updateScanResults,
+    addScanHistory,
+    setPortRange,
+    setCustomPortRange,
+    setScanSpeed,
+    setIpAddress,
+    setTimeout: setTimeoutValue,
+    setShowClosedPorts,
+    setScanMethod,
+    setAutoReconnect,
+    setNotificationsEnabled,
+  } = useScannerStore();
 
   const { width, height } = useWindowDimensions();
   const isLandscape = width > height;
-
-  const scanMethods = {
-    tcp: "TCP 连接扫描",
-    syn: "SYN 扫描",
-    udp: "UDP 扫描",
-    ack: "ACK 扫描",
-  };
 
   const ipSchema = z
     .string()
@@ -253,54 +277,63 @@ const ScannerPage: React.FC = () => {
     [autoReconnect, scanPort]
   );
 
-  const updateScanResults = useCallback((newResults: ScanResult[]) => {
-    setScanResults((prev) => {
-      const uniqueResults = new Map(prev.map((r) => [r.port, r]));
-      newResults.forEach((r) => uniqueResults.set(r.port, r));
-      return Array.from(uniqueResults.values());
-    });
-  }, []);
-
   const processScanBatch = useCallback(
     async (ports: number[]) => {
-      const batchSize = 10; // 增加批量大小以提高性能
+      const batchSize = isLandscape ? 20 : 10;
       const results: ScanResult[] = [];
+      const totalPorts = ports.length;
 
       for (let i = 0; i < ports.length; i += batchSize) {
-        if (!isScanning) break; // 允许中断扫描
+        if (!isScanning) break;
 
         const batch = ports.slice(i, i + batchSize);
         const batchResults = await Promise.all(
           batch.map((port) => scanPortWithRetry(ipAddress, port))
         );
         results.push(...batchResults);
+        updateScanProgress(i + batchSize, totalPorts);
 
         if (results.length >= 50 || i + batchSize >= ports.length) {
           updateScanResults(results);
           results.length = 0;
-          // 添加小延时以避免UI阻塞
           await new Promise((resolve) => setTimeout(resolve, 10));
         }
       }
     },
-    [ipAddress, scanPortWithRetry, isScanning, updateScanResults]
+    [
+      isLandscape,
+      isScanning,
+      updateScanProgress,
+      scanPortWithRetry,
+      ipAddress,
+      updateScanResults,
+    ]
   );
 
   const startScan = useCallback(async () => {
     if (!validateInputs()) return;
 
     try {
-      setIsScanning(true);
-      setScanResults([]);
+      startScanning();
       await sendNotification("扫描开始", "端口扫描已启动");
 
       const ports = getPorts();
       await processScanBatch(ports);
 
-      setIsScanning(false);
+      // 保存扫描历史
+      addScanHistory({
+        id: Date.now().toString(),
+        timestamp: new Date(),
+        ipAddress,
+        portRange: portRange === "custom" ? customPortRange : portRange,
+        openPorts: scanResults.filter((r) => r.status === "open").length,
+        totalPorts: scanResults.length,
+      });
+
+      stopScanning();
       await sendNotification("扫描完成", `成功扫描了 ${ports.length} 个端口`);
     } catch (error) {
-      setIsScanning(false);
+      stopScanning();
       RNAlert.alert(
         "扫描错误",
         `扫描过程中发生错误: ${
@@ -308,7 +341,32 @@ const ScannerPage: React.FC = () => {
         }`
       );
     }
-  }, [validateInputs, getPorts, processScanBatch, sendNotification]);
+  }, [
+    validateInputs,
+    startScanning,
+    sendNotification,
+    getPorts,
+    processScanBatch,
+    addScanHistory,
+    ipAddress,
+    portRange,
+    customPortRange,
+    scanResults,
+    stopScanning,
+  ]);
+
+  const handleHistorySelect = useCallback(
+    (item: ScanHistoryItem) => {
+      setIpAddress(item.ipAddress);
+      if (item.portRange.includes("-")) {
+        setPortRange("custom");
+        setCustomPortRange(item.portRange);
+      } else {
+        setPortRange(item.portRange);
+      }
+    },
+    [setCustomPortRange, setIpAddress, setPortRange]
+  );
 
   const renderHeader = useMemo(
     () => (
@@ -322,10 +380,18 @@ const ScannerPage: React.FC = () => {
         isScanning={isScanning}
       />
     ),
-    [ipAddress, portRange, customPortRange, isScanning]
+    [
+      ipAddress,
+      setIpAddress,
+      portRange,
+      setPortRange,
+      customPortRange,
+      setCustomPortRange,
+      isScanning,
+    ]
   );
 
-  const renderEmptyComponent = () => {
+  const renderEmptyComponent = useCallback(() => {
     if (isScanning) return null;
     return (
       <View className="mt-4">
@@ -334,7 +400,7 @@ const ScannerPage: React.FC = () => {
         </Text>
       </View>
     );
-  };
+  }, [isScanning]);
 
   const renderItem = useCallback(
     ({ item, index }: { item: ScanResult; index: number }) => (
@@ -347,33 +413,129 @@ const ScannerPage: React.FC = () => {
     []
   );
 
+  const renderSettings = useMemo(
+    () => (
+      <View className={isLandscape ? "w-1/3 p-4" : "w-full p-4"}>
+        <View className="space-y-4">
+          {renderHeader}
+
+          <SettingsSection title="高级设置" collapsible>
+            <AdvancedSettings
+              scanSpeed={scanSpeed}
+              setScanSpeed={setScanSpeed}
+              timeout={timeout}
+              setTimeoutValue={setTimeoutValue}
+              showClosedPorts={showClosedPorts}
+              setShowClosedPorts={setShowClosedPorts}
+              scanMethod={scanMethod}
+              setScanMethod={setScanMethod}
+              autoReconnect={autoReconnect}
+              setAutoReconnect={setAutoReconnect}
+              notificationsEnabled={notificationsEnabled}
+              setNotificationsEnabled={setNotificationsEnabled}
+              isScanning={isScanning}
+            />
+          </SettingsSection>
+
+          <ScanButton
+            isScanning={isScanning}
+            onPress={startScan}
+            progress={scanProgress}
+          />
+        </View>
+      </View>
+    ),
+    [
+      isLandscape,
+      renderHeader,
+      scanSpeed,
+      setScanSpeed,
+      timeout,
+      setTimeoutValue,
+      showClosedPorts,
+      setShowClosedPorts,
+      scanMethod,
+      setScanMethod,
+      autoReconnect,
+      setAutoReconnect,
+      notificationsEnabled,
+      setNotificationsEnabled,
+      isScanning,
+      startScan,
+      scanProgress,
+    ]
+  );
+
+  const keyExtractor = useCallback(
+    (_item: ScanResult, index: number) => index.toString(),
+    []
+  );
+
+  const getItemLayout = useCallback(
+    (_data: ArrayLike<ScanResult> | null | undefined, index: number) => ({
+      length: 60, // 假设每个项的高度为60
+      offset: 60 * index,
+      index,
+    }),
+    []
+  );
+
+  const renderScanResults = useMemo(
+    () => (
+      <View className={`${isLandscape ? "w-2/3" : "w-full"} p-4`}>
+        <FlatList
+          key={layout}
+          numColumns={layout === "grid" && isLandscape ? 2 : 1}
+          data={filteredResults}
+          keyExtractor={keyExtractor}
+          renderItem={renderItem}
+          className="p-4"
+          ListEmptyComponent={renderEmptyComponent}
+          removeClippedSubviews={true}
+          maxToRenderPerBatch={10}
+          windowSize={5}
+          getItemLayout={getItemLayout}
+          maintainVisibleContentPosition={{
+            minIndexForVisible: 0,
+          }}
+          columnWrapperStyle={
+            layout === "grid" && isLandscape
+              ? { justifyContent: "space-between" }
+              : undefined
+          }
+        />
+      </View>
+    ),
+    [
+      isLandscape,
+      layout,
+      filteredResults,
+      renderItem,
+      keyExtractor,
+      renderEmptyComponent,
+      getItemLayout,
+    ]
+  );
+
   return (
-    <GestureHandlerRootView className="flex-1 bg-gray-100 dark:bg-gray-900">
-      <FlatList
-        ListHeaderComponent={renderHeader}
-        data={filteredResults}
-        keyExtractor={useCallback(
-          (_item: ScanResult, index: number) => index.toString(),
-          []
-        )}
-        renderItem={renderItem}
-        className="p-4"
-        ListEmptyComponent={renderEmptyComponent}
-        removeClippedSubviews={true}
-        maxToRenderPerBatch={10}
-        windowSize={5}
-        getItemLayout={useCallback(
-          (_data: ArrayLike<ScanResult> | null | undefined, index: number) => ({
-            length: 60, // 假设每个项的高度为60
-            offset: 60 * index,
-            index,
-          }),
-          []
-        )}
-        maintainVisibleContentPosition={{
-          minIndexForVisible: 0,
-        }}
-      />
+    <GestureHandlerRootView
+      className={`flex-1 ${isDarkTheme ? "bg-gray-900" : "bg-gray-100"}`}
+    >
+      <View className={`flex-1 ${isLandscape ? "flex-row" : "flex-col"}`}>
+        {renderSettings}
+        <View className={`${isLandscape ? "w-2/3" : "w-full"}`}>
+          {scanHistory.length > 0 && (
+            <View className="mb-4">
+              <Label className="text-lg font-bold px-4 mb-2">最近扫描</Label>
+              <ScanHistory
+                history={scanHistory}
+                onSelectHistory={handleHistorySelect}
+              />
+            </View>
+          )}
+          {renderScanResults}
+        </View>
+      </View>
     </GestureHandlerRootView>
   );
 };

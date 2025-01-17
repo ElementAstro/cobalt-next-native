@@ -1,6 +1,6 @@
 import React, { memo } from "react";
-import { View, Pressable } from "react-native";
-import Animated, { FadeInLeft } from "react-native-reanimated";
+import { View, Pressable, useWindowDimensions } from "react-native";
+import Animated, { FadeInLeft, Layout } from "react-native-reanimated";
 import { Label } from "@/components/ui/label";
 import * as Haptics from 'expo-haptics';
 
@@ -16,15 +16,18 @@ interface ScanResultItemProps {
 }
 
 const ScanResultItem: React.FC<ScanResultItemProps> = memo(({ item, index }) => {
+  const { width } = useWindowDimensions();
+  const isLandscape = width > 768;
+
   const handlePress = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
   };
 
   return (
     <Animated.View
-      entering={FadeInLeft.delay(index * 50)
-        .duration(400)
-        .springify()}
+      entering={FadeInLeft.delay(index * 50).duration(400).springify()}
+      layout={Layout.springify()}
+      className={`${isLandscape ? "mx-1 w-[48%]" : "w-full"}`}
     >
       <Pressable
         onPress={handlePress}

@@ -4,7 +4,6 @@ import {
   SafeAreaView,
   TouchableOpacity,
   Dimensions,
-  Animated,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { BlurView } from "expo-blur";
@@ -24,8 +23,18 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { NetworkInfoModal } from "@/components/connection/NetworkInfoModal";
+import { useNetworkStore } from "@/stores/useNetworkStore";
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withTiming,
+  withRepeat,
+  Easing,
+  withSequence,
+} from "react-native-reanimated";
 
 const WalkthroughCard = walkthroughable(Card);
 const WalkthroughButton = walkthroughable(Button);
@@ -38,9 +47,10 @@ function HomeScreenContent() {
   const [isConnected, setIsConnected] = useState(false);
   const [isScanning, setIsScanning] = useState(false);
   const [ipAddress] = useState("10.42.0.1");
+  const { modalVisible, setModalVisible } = useNetworkStore();
 
-  const scanAnimation = useRef(new Animated.Value(0)).current;
-  const connectionScale = useRef(new Animated.Value(1)).current;
+  const scanAnimation = useSharedValue(0);
+  const connectionScale = useSharedValue(1);
 
   useEffect(() => {
     start();
@@ -48,39 +58,42 @@ function HomeScreenContent() {
 
   useEffect(() => {
     if (isScanning) {
-      Animated.loop(
-        Animated.sequence([
-          Animated.timing(scanAnimation, {
-            toValue: 1,
-            duration: 1500,
-            useNativeDriver: true,
-          }),
-          Animated.timing(scanAnimation, {
-            toValue: 0,
-            duration: 1500,
-            useNativeDriver: true,
-          }),
-        ])
-      ).start();
+      scanAnimation.value = withRepeat(
+        withTiming(1, {
+          duration: 1500,
+          easing: Easing.linear,
+        }),
+        -1,
+        true
+      );
     } else {
-      scanAnimation.setValue(0);
+      scanAnimation.value = withTiming(0, { duration: 500 });
     }
-  }, [isScanning]);
+  }, [isScanning, scanAnimation]);
 
   useEffect(() => {
-    Animated.sequence([
-      Animated.timing(connectionScale, {
-        toValue: 1.1,
-        duration: 200,
-        useNativeDriver: true,
-      }),
-      Animated.timing(connectionScale, {
-        toValue: 1,
-        duration: 200,
-        useNativeDriver: true,
-      }),
-    ]).start();
-  }, [isConnected]);
+    connectionScale.value = withSequence(
+      withTiming(1.1, { duration: 200 }),
+      withTiming(1, { duration: 200 })
+    );
+  }, [connectionScale, isConnected]);
+
+  const animatedScanStyle = useAnimatedStyle(() => {
+    return {
+      opacity: scanAnimation.value,
+      transform: [
+        {
+          rotate: `${scanAnimation.value * 360}deg`,
+        },
+      ],
+    };
+  });
+
+  const animatedConnectionStyle = useAnimatedStyle(() => {
+    return {
+      transform: [{ scale: connectionScale.value }],
+    };
+  });
 
   const handleScan = async () => {
     setIsScanning(true);
@@ -205,32 +218,34 @@ function HomeScreenContent() {
                 order={3}
                 name="status"
               >
-                <Animated.View
-                  style={{ transform: [{ scale: connectionScale }] }}
-                >
-                  <WalkthroughCard className="shadow-lg">
-                    <CardHeader>
-                      <View className="flex-row items-center space-x-2">
-                        <MaterialCommunityIcons
-                          name={isConnected ? "lan-connect" : "lan-disconnect"}
-                          size={24}
-                          color={isConnected ? "#22c55e" : "#ef4444"}
-                        />
-                        <CardTitle>状态</CardTitle>
-                      </View>
-                    </CardHeader>
-                    <CardContent className="items-center space-y-3">
-                      <Label className="text-xl font-semibold">
-                        {isConnected ? "已连接" : "未连接设备"}
-                      </Label>
-                      <Label className="text-xl text-primary">
-                        {ipAddress}
-                      </Label>
-                      <Text className="text-sm text-muted-foreground">
-                        {activeMode === "hotspot" ? "热点模式" : "局域网模式"}
-                      </Text>
-                    </CardContent>
-                  </WalkthroughCard>
+                <Animated.View style={animatedConnectionStyle}>
+                  <TouchableOpacity onPress={() => setModalVisible(true)}>
+                    <WalkthroughCard className="shadow-lg">
+                      <CardHeader>
+                        <View className="flex-row items-center space-x-2">
+                          <MaterialCommunityIcons
+                            name={
+                              isConnected ? "lan-connect" : "lan-disconnect"
+                            }
+                            size={24}
+                            color={isConnected ? "#22c55e" : "#ef4444"}
+                          />
+                          <CardTitle>状态</CardTitle>
+                        </View>
+                      </CardHeader>
+                      <CardContent className="items-center space-y-3">
+                        <Label className="text-xl font-semibold">
+                          {isConnected ? "已连接" : "未连接设备"}
+                        </Label>
+                        <Label className="text-xl text-primary">
+                          {ipAddress}
+                        </Label>
+                        <Text className="text-sm text-muted-foreground">
+                          {activeMode === "hotspot" ? "热点模式" : "局域网模式"}
+                        </Text>
+                      </CardContent>
+                    </WalkthroughCard>
+                  </TouchableOpacity>
                 </Animated.View>
               </CopilotStep>
 
@@ -247,19 +262,7 @@ function HomeScreenContent() {
                   disabled={isScanning}
                 >
                   <View className="flex-row items-center justify-center space-x-2">
-                    <Animated.View
-                      style={{
-                        opacity: scanAnimation,
-                        transform: [
-                          {
-                            rotate: scanAnimation.interpolate({
-                              inputRange: [0, 1],
-                              outputRange: ["0deg", "360deg"],
-                            }),
-                          },
-                        ],
-                      }}
-                    >
+                    <Animated.View style={animatedScanStyle}>
                       <MaterialCommunityIcons
                         name="refresh"
                         size={20}
@@ -274,6 +277,10 @@ function HomeScreenContent() {
               </CopilotStep>
             </View>
           </View>
+          <NetworkInfoModal
+            visible={modalVisible}
+            onClose={() => setModalVisible(false)}
+          />
         </BlurView>
       </LinearGradient>
     </SafeAreaView>
