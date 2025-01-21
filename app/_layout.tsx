@@ -10,10 +10,12 @@ import * as ScreenOrientation from "expo-screen-orientation";
 import { StatusBar } from "expo-status-bar";
 import { useEffect } from "react";
 import "react-native-reanimated";
+import { Text } from "react-native";
 
 import "../global.css";
 
 import { useColorScheme } from "@/hooks/useColorScheme";
+import { Toaster } from "sonner-native";
 
 // 防止资源加载完成前自动隐藏启动屏幕
 SplashScreen.preventAutoHideAsync();
@@ -32,7 +34,7 @@ export default function RootLayout() {
         await ScreenOrientation.lockAsync(
           ScreenOrientation.OrientationLock.LANDSCAPE_LEFT
         );
-        
+
         // 如果字体已加载，隐藏启动屏幕
         if (loaded) {
           await SplashScreen.hideAsync();
@@ -61,6 +63,26 @@ export default function RootLayout() {
         <Stack.Screen name="+not-found" />
       </Stack>
       <StatusBar style="auto" />
+      <Toaster
+        position="top-center"
+        // offset={100}
+        duration={3000}
+        swipeToDismissDirection="up"
+        visibleToasts={4}
+        closeButton
+        autoWiggleOnUpdate="toast-change"
+        theme="system"
+        icons={{
+          error: <Text>💥</Text>,
+          loading: <Text>🔄</Text>,
+        }}
+        toastOptions={{
+          actionButtonStyle: {
+            paddingHorizontal: 20,
+          },
+        }}
+        pauseWhenPageIsHidden
+      />
     </ThemeProvider>
   );
 }
