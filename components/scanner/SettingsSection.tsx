@@ -67,7 +67,7 @@ const SettingsSection: React.FC<SettingsSectionProps> = ({
       className={`rounded-lg p-4 ${
         isLandscape ? "mx-2" : "mb-4"
       } ${className} ${
-        isError ? "border border-red-500" : "bg-white dark:bg-gray-800"
+        isError ? "border border-red-500" : "bg-white dark:text-white dark:bg-gray-950"
       }`}
       style={{
         flex: isLandscape ? 1 : undefined,

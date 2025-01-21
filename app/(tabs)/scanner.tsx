@@ -4,6 +4,7 @@ import {
   Alert as RNAlert,
   FlatList,
   useWindowDimensions,
+  ScrollView
 } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import * as Notifications from "expo-notifications";
@@ -19,6 +20,7 @@ import {
   SelectContent,
   SelectGroup,
   SelectItem,
+  SelectLabel,
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
@@ -62,56 +64,85 @@ const ScannerSettings = React.memo(
     isScanning: boolean;
   }) => {
     return (
-      <SettingsSection title="基本设置">
-        <View className="flex-1">
-          <Input
-            placeholder="输入IP地址 (如: 192.168.1.1)"
-            value={ipAddress}
-            onChangeText={setIpAddress}
-            editable={!isScanning}
-            keyboardType="numeric"
-            className="mb-4"
-          />
-          <Label htmlFor="port-range" className="text-lg mb-2">
-            端口范围
-          </Label>
-
-          <Select
-            value={portRange as unknown as Option}
-            onValueChange={(value: Option) =>
-              setPortRange(value as unknown as string)
-            }
-            disabled={isScanning}
-          >
-            <SelectTrigger id="port-range">
-              <SelectValue placeholder="选择扫描端口范围" />
-            </SelectTrigger>
-
-            <SelectContent>
-              <SelectGroup>
-                <SelectItem value="common" label="常用端口 (1-1000)">
-                  常用端口 (1-1000)
-                </SelectItem>
-                <SelectItem value="all" label="所有端口 (1-65535)">
-                  所有端口 (1-65535)
-                </SelectItem>
-                <SelectItem value="custom" label="自定义">
-                  自定义
-                </SelectItem>
-              </SelectGroup>
-            </SelectContent>
-          </Select>
-
-          {portRange === "custom" && (
+      <SettingsSection title="基本设置" className="pb-2 w-full text-white">
+        <View className="space-y-4">
+          <View>
+            <Label
+              htmlFor="ip-address"
+              className="text-base font-medium mb-1.5"
+            >
+              IP 地址
+            </Label>
             <Input
-              placeholder="自定义范围 (如: 1-100,200-300)"
-              value={customPortRange}
-              onChangeText={setCustomPortRange}
+              id="ip-address"
+              placeholder="输入IP地址 (如: 192.168.1.1)"
+              value={ipAddress}
+              onChangeText={setIpAddress}
               editable={!isScanning}
               keyboardType="numeric"
-              className="mt-4"
+              className="h-10"
             />
-          )}
+          </View>
+
+          <View>
+            <Label
+              htmlFor="port-range"
+              className="text-base font-medium mb-1.5"
+            >
+              端口范围
+            </Label>
+            <Select
+              value={portRange as unknown as Option}
+              onValueChange={(value: Option) =>
+                setPortRange(value as unknown as string)
+              }
+              disabled={isScanning}
+            >
+              <SelectTrigger id="port-range" className="h-10">
+                <SelectValue placeholder="选择扫描端口范围" />
+              </SelectTrigger>
+
+              <SelectContent>
+                <SelectGroup>
+                  <SelectItem
+                    value="common"
+                    className="h-10 flex items-center"
+                    label="常用端口 (1-1000)"
+                  />
+                  <SelectItem
+                    value="all"
+                    className="h-10 flex items-center"
+                    label="所有端口 (1-65535)"
+                  ></SelectItem>
+                  <SelectItem
+                    value="custom"
+                    className="h-10 flex items-center"
+                    label="自定义"
+                  />
+                </SelectGroup>
+              </SelectContent>
+            </Select>
+
+            {portRange === "custom" && (
+              <View className="mt-4">
+                <Label
+                  htmlFor="custom-range"
+                  className="text-base font-medium mb-1.5"
+                >
+                  自定义范围
+                </Label>
+                <Input
+                  id="custom-range"
+                  placeholder="如: 1-100,200-300"
+                  value={customPortRange}
+                  onChangeText={setCustomPortRange}
+                  editable={!isScanning}
+                  keyboardType="numeric"
+                  className="h-10"
+                />
+              </View>
+            )}
+          </View>
         </View>
       </SettingsSection>
     );
@@ -449,7 +480,7 @@ const ScannerPage: React.FC = () => {
 
   const renderSettings = useMemo(
     () => (
-      <View className={isLandscape ? "w-1/3 p-4" : "w-full p-4"}>
+      <ScrollView className={isLandscape ? "w-full p-4" : "w-full p-4"}>
         <View className="space-y-4">
           {renderHeader}
 
@@ -477,7 +508,7 @@ const ScannerPage: React.FC = () => {
             progress={scanProgress}
           />
         </View>
-      </View>
+      </ScrollView>
     ),
     [
       isLandscape,
@@ -573,9 +604,7 @@ const ScannerPage: React.FC = () => {
   }, [scanHistory, handleHistorySelect]);
 
   return (
-    <GestureHandlerRootView
-      className={`flex-1 ${isDarkTheme ? "bg-gray-900" : "bg-gray-100"}`}
-    >
+    <GestureHandlerRootView className={`flex-1`}>
       <View
         className={`flex-1 ${isLandscape ? "flex-row" : "flex-col"}`}
         style={{ height: contentHeight }}
@@ -583,7 +612,7 @@ const ScannerPage: React.FC = () => {
         <View
           className={`${
             isLandscape
-              ? "w-1/3 border-r border-gray-200 dark:border-gray-700"
+              ? "w-1/2 border-r border-gray-200 dark:border-gray-700"
               : "w-full"
           }`}
           style={{
@@ -594,7 +623,7 @@ const ScannerPage: React.FC = () => {
         </View>
 
         <View
-          className={`${isLandscape ? "w-2/3" : "w-full"}`}
+          className={`${isLandscape ? "w-1/2" : "w-full"}`}
           style={{
             height: isLandscape ? contentHeight : contentHeight * 0.6,
           }}

@@ -4,6 +4,7 @@ import {
   SafeAreaView,
   TouchableOpacity,
   Dimensions,
+  ScrollView,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { BlurView } from "expo-blur";
@@ -112,187 +113,174 @@ function HomeScreenContent() {
 
   return (
     <SafeAreaView className="flex-1">
-      <LinearGradient colors={["#1a1f25", "#2d3748"]} className="flex-1">
-        <BlurView intensity={20} className="flex-1">
-          <View
-            className={`flex-1 p-6 ${
-              isLandscape
-                ? "flex-row justify-between"
-                : "flex-col justify-between"
-            } pb-15`}
-          >
-            {/* Mode Selection */}
-            <View
-              className={`space-y-4 ${isLandscape ? "flex-1 mr-3" : "mb-3"}`}
+      <BlurView intensity={20} className="flex-1">
+        <ScrollView
+          className="flex-1 p-6"
+          contentContainerStyle={{
+            flexDirection: isLandscape ? "row" : "column",
+            justifyContent: "space-between",
+            paddingBottom: 60, // 替代 pb-15
+          }}
+        >
+          {/* Mode Selection */}
+          <View className={`space-y-4 ${isLandscape ? "flex-1 mr-3" : "mb-3"}`}>
+            <CopilotStep
+              text="选择热点模式可以快速建立设备间连接"
+              order={1}
+              name="hotspot-mode"
             >
-              <CopilotStep
-                text="选择热点模式可以快速建立设备间连接"
-                order={1}
-                name="hotspot-mode"
+              <TouchableOpacity
+                onPress={() => handleModeChange("hotspot")}
+                className="transform active:scale-95"
               >
-                <TouchableOpacity
-                  onPress={() => handleModeChange("hotspot")}
-                  className="transform active:scale-95"
+                <WalkthroughCard
+                  className={`border-2 shadow-lg ${
+                    activeMode === "hotspot"
+                      ? "border-primary bg-primary/10"
+                      : "border-gray-300 bg-gray-900"
+                  }`}
                 >
-                  <WalkthroughCard
-                    className={`border-2 shadow-lg ${
-                      activeMode === "hotspot"
-                        ? "border-primary bg-primary/10"
-                        : "border-gray-300 bg-white"
-                    }`}
-                  >
-                    <CardHeader>
-                      <View className="flex-row items-center space-x-2">
-                        <MaterialCommunityIcons
-                          name="wifi"
-                          size={24}
-                          color={
-                            activeMode === "hotspot" ? "#60a5fa" : "#6b7280"
-                          }
-                        />
-                        <CardTitle>会议热点模式</CardTitle>
-                      </View>
-                      <CardDescription>
-                        • 手机WiFi搜索附近WIFI即可使用QUARCS电话{"\n"}•
-                        请确保设备在自动连接状态并切换到QUARCS电话
-                      </CardDescription>
-                    </CardHeader>
-                    <CardFooter>
-                      <Text
-                        className={`text-sm ${
-                          activeMode === "hotspot"
-                            ? "text-primary"
-                            : "text-gray-500"
-                        }`}
-                      >
-                        {activeMode === "hotspot" ? "当前模式" : "点击切换"}
-                      </Text>
-                    </CardFooter>
-                  </WalkthroughCard>
-                </TouchableOpacity>
-              </CopilotStep>
-
-              <CopilotStep
-                text="局域网模式适用于已有网络环境"
-                order={2}
-                name="lan-mode"
-              >
-                <TouchableOpacity
-                  onPress={() => handleModeChange("lan")}
-                  className="transform active:scale-95"
-                >
-                  <WalkthroughCard
-                    className={`border-2 shadow-lg ${
-                      activeMode === "lan"
-                        ? "border-primary bg-primary/10"
-                        : "border-gray-300 bg-white"
-                    }`}
-                  >
-                    <CardHeader>
-                      <View className="flex-row items-center space-x-2">
-                        <MaterialCommunityIcons
-                          name="lan"
-                          size={24}
-                          color={activeMode === "lan" ? "#60a5fa" : "#6b7280"}
-                        />
-                        <CardTitle>局域网模式</CardTitle>
-                      </View>
-                      <CardDescription>
-                        • 设置设备找附近手持设备WLAN即可使用QUARCS电话
-                      </CardDescription>
-                    </CardHeader>
-                    <CardFooter>
-                      <Text
-                        className={`text-sm ${
-                          activeMode === "lan"
-                            ? "text-primary"
-                            : "text-gray-500"
-                        }`}
-                      >
-                        {activeMode === "lan" ? "当前模式" : "点击切换"}
-                      </Text>
-                    </CardFooter>
-                  </WalkthroughCard>
-                </TouchableOpacity>
-              </CopilotStep>
-            </View>
-
-            {/* Status and Scan */}
-            <View className={`space-y-4 ${isLandscape ? "flex-1" : "w-full"}`}>
-              <CopilotStep
-                text="此处显示当前连接状态和IP地址"
-                order={3}
-                name="status"
-              >
-                <Animated.View style={animatedConnectionStyle}>
-                  <TouchableOpacity onPress={() => setModalVisible(true)}>
-                    <WalkthroughCard className="shadow-lg">
-                      <CardHeader>
-                        <View className="flex-row items-center space-x-2">
-                          <MaterialCommunityIcons
-                            name={
-                              isConnected ? "lan-connect" : "lan-disconnect"
-                            }
-                            size={24}
-                            color={isConnected ? "#22c55e" : "#ef4444"}
-                          />
-                          <CardTitle>状态</CardTitle>
-                        </View>
-                      </CardHeader>
-                      <CardContent className="items-center space-y-3">
-                        <Label className="text-xl font-semibold">
-                          {isConnected ? "已连接" : "未连接设备"}
-                        </Label>
-                        <Label className="text-xl text-blue-500">
-                          {ipAddress}
-                        </Label>
-                        <Text className="text-sm text-gray-400">
-                          {activeMode === "hotspot" ? "热点模式" : "局域网模式"}
-                        </Text>
-                      </CardContent>
-                    </WalkthroughCard>
-                  </TouchableOpacity>
-                </Animated.View>
-              </CopilotStep>
-
-              <CopilotStep
-                text="点击扫描开始搜索附近设备"
-                order={4}
-                name="scan"
-              >
-                <WalkthroughButton
-                  variant="default"
-                  size="lg"
-                  className="w-full shadow-lg"
-                  onPress={handleScan}
-                  disabled={isScanning}
-                >
-                  <View className="flex-row items-center justify-center space-x-2">
-                    <Animated.View style={animatedScanStyle}>
+                  <CardHeader>
+                    <View className="flex-row items-center space-x-2">
                       <MaterialCommunityIcons
-                        name="refresh"
-                        size={20}
-                        color="#fff"
+                        name="wifi"
+                        size={24}
+                        color={activeMode === "hotspot" ? "#60a5fa" : "#6b7280"}
                       />
-                    </Animated.View>
-                    <Text className="text-white font-semibold text-lg">
-                      {isScanning ? "扫描中..." : "扫描"}
+                      <CardTitle>会议热点模式</CardTitle>
+                    </View>
+                    <CardDescription>
+                      • 手机WiFi搜索附近WIFI即可使用QUARCS电话{"\n"}•
+                      请确保设备在自动连接状态并切换到QUARCS电话
+                    </CardDescription>
+                  </CardHeader>
+                  <CardFooter>
+                    <Text
+                      className={`text-sm ${
+                        activeMode === "hotspot"
+                          ? "text-primary"
+                          : "text-gray-500"
+                      }`}
+                    >
+                      {activeMode === "hotspot" ? "当前模式" : "点击切换"}
                     </Text>
-                  </View>
-                </WalkthroughButton>
-              </CopilotStep>
-            </View>
+                  </CardFooter>
+                </WalkthroughCard>
+              </TouchableOpacity>
+            </CopilotStep>
+
+            <CopilotStep
+              text="局域网模式适用于已有网络环境"
+              order={2}
+              name="lan-mode"
+            >
+              <TouchableOpacity
+                onPress={() => handleModeChange("lan")}
+                className="transform active:scale-95"
+              >
+                <WalkthroughCard
+                  className={`border-2 shadow-lg ${
+                    activeMode === "lan"
+                      ? "border-primary bg-primary/10"
+                      : "border-gray-300 bg-gray-900"
+                  }`}
+                >
+                  <CardHeader>
+                    <View className="flex-row items-center space-x-2">
+                      <MaterialCommunityIcons
+                        name="lan"
+                        size={24}
+                        color={activeMode === "lan" ? "#60a5fa" : "#6b7280"}
+                      />
+                      <CardTitle>局域网模式</CardTitle>
+                    </View>
+                    <CardDescription>
+                      • 设置设备找附近手持设备WLAN即可使用QUARCS电话
+                    </CardDescription>
+                  </CardHeader>
+                  <CardFooter>
+                    <Text
+                      className={`text-sm ${
+                        activeMode === "lan" ? "text-primary" : "text-gray-500"
+                      }`}
+                    >
+                      {activeMode === "lan" ? "当前模式" : "点击切换"}
+                    </Text>
+                  </CardFooter>
+                </WalkthroughCard>
+              </TouchableOpacity>
+            </CopilotStep>
           </View>
 
-          {/* Reserved Space for Bottom Tab Bar */}
-          <View className="h-15" />
+          {/* Status and Scan */}
+          <View className={`space-y-4 ${isLandscape ? "flex-1" : "w-full"}`}>
+            <CopilotStep
+              text="此处显示当前连接状态和IP地址"
+              order={3}
+              name="status"
+            >
+              <Animated.View style={animatedConnectionStyle}>
+                <TouchableOpacity onPress={() => setModalVisible(true)}>
+                  <WalkthroughCard className="shadow-lg">
+                    <CardHeader>
+                      <View className="flex-row items-center space-x-2">
+                        <MaterialCommunityIcons
+                          name={isConnected ? "lan-connect" : "lan-disconnect"}
+                          size={24}
+                          color={isConnected ? "#22c55e" : "#ef4444"}
+                        />
+                        <CardTitle>状态</CardTitle>
+                      </View>
+                    </CardHeader>
+                    <CardContent className="items-center space-y-3">
+                      <Label className="text-xl font-semibold">
+                        {isConnected ? "已连接" : "未连接设备"}
+                      </Label>
+                      <Label className="text-xl text-blue-500">
+                        {ipAddress}
+                      </Label>
+                      <Text className="text-sm text-gray-400">
+                        {activeMode === "hotspot" ? "热点模式" : "局域网模式"}
+                      </Text>
+                    </CardContent>
+                  </WalkthroughCard>
+                </TouchableOpacity>
+              </Animated.View>
+            </CopilotStep>
 
-          <NetworkInfoModal
-            visible={modalVisible}
-            onClose={() => setModalVisible(false)}
-          />
-        </BlurView>
-      </LinearGradient>
+            <CopilotStep text="点击扫描开始搜索附近设备" order={4} name="scan">
+              <WalkthroughButton
+                variant="default"
+                size="lg"
+                className="w-full shadow-lg"
+                onPress={handleScan}
+                disabled={isScanning}
+              >
+                <View className="flex-row items-center justify-center space-x-2">
+                  <Animated.View style={animatedScanStyle}>
+                    <MaterialCommunityIcons
+                      name="refresh"
+                      size={20}
+                      color="#fff"
+                    />
+                  </Animated.View>
+                  <Text className="text-white font-semibold text-lg">
+                    {isScanning ? "扫描中..." : "扫描"}
+                  </Text>
+                </View>
+              </WalkthroughButton>
+            </CopilotStep>
+          </View>
+        </ScrollView>
+
+        {/* Reserved Space for Bottom Tab Bar */}
+        <View className="h-15" />
+
+        <NetworkInfoModal
+          visible={modalVisible}
+          onClose={() => setModalVisible(false)}
+        />
+      </BlurView>
     </SafeAreaView>
   );
 }

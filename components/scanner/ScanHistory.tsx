@@ -82,7 +82,7 @@ const ScanHistory: React.FC<ScanHistoryProps> = ({
               Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
               onSelectHistory(item);
             }}
-            className={`bg-white dark:bg-gray-800 rounded-lg p-4 w-64 shadow-sm ${
+            className={`bg-white rounded-lg p-4 w-64 shadow-sm ${
               item.status === "error" ? "border border-red-500" : ""
             }`}
           >
