@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import * as Network from "expo-network";
 
-interface NetworkState {
+export interface NetworkState {
   ipAddress: string;
   networkState: {
     isConnected?: boolean;
@@ -35,8 +35,18 @@ export const useNetworkStore = create<NetworkState>((set, get) => ({
   isTestingSpeed: false,
   networkHistory: [],
   modalVisible: false,
+  error: null,
+  isConnected: false,
+  connectionType: null,
 
   setModalVisible: (visible) => set({ modalVisible: visible }),
+  clearError: () => set((state) => ({ ...state, error: null })),
+  setConnectionStatus: (isConnected: boolean, connectionType: string | null) =>
+    set((state) => ({
+      ...state,
+      isConnected,
+      connectionType,
+    })),
 
   fetchNetworkInfo: async () => {
     try {

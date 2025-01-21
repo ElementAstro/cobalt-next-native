@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { ScrollView, View, Text, useWindowDimensions, SafeAreaView } from "react-native";
+import { View, Text, useWindowDimensions, SafeAreaView } from "react-native";
 import {
   Settings,
   Bell,
@@ -51,7 +51,7 @@ const SettingsPage: React.FC = () => {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-gray-50">
+    <SafeAreaView className="flex-1 bg-gray-800">
       <View className={`flex-1 p-4 ${isLandscape ? 'flex-row' : ''}`}>
         <View className={`${isLandscape ? 'w-1/3 mr-4' : ''} space-y-4`}>
           <Text className="text-2xl font-bold mb-4">设置</Text>

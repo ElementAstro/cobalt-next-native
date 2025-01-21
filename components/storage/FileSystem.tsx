@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { View, ScrollView, useWindowDimensions } from "react-native";
+import { z } from "zod";
+import { View, ScrollView, useWindowDimensions, ActivityIndicator, Text } from "react-native";
 import * as FileSystem from "expo-file-system";
 import * as Sharing from "expo-sharing";
 import { useIsFocused } from "@react-navigation/native";
@@ -11,6 +12,18 @@ import ConfirmDialog from "./ConfirmDialog";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Animated, { FadeIn, Layout } from "react-native-reanimated";
 
+// Zod schema for directory validation
+const directorySchema = z.object({
+  path: z.string().min(1),
+  files: z.array(z.object({
+    name: z.string().min(1),
+    uri: z.string().url(),
+    isDirectory: z.boolean(),
+    size: z.number().optional(),
+    modificationTime: z.number().optional(),
+  }))
+});
+
 const FileManager: React.FC = () => {
   const [files, setFiles] = useState<FileItemType[]>([]);
   const [currentPath, setCurrentPath] = useState(
@@ -20,12 +33,14 @@ const FileManager: React.FC = () => {
   const [showDialog, setShowDialog] = useState(false);
   const [dialogType, setDialogType] = useState<DialogType>(null);
   const [dialogMessage, setDialogMessage] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
 
   const { width, height } = useWindowDimensions();
   const isLandscape = width > height;
   const isFocused = useIsFocused();
 
   const loadDirectory = useCallback(async (path: string) => {
+    setIsLoading(true);
     try {
       const fileList = await FileSystem.readDirectoryAsync(path);
       const fileDetails = await Promise.all(
@@ -38,9 +53,23 @@ const FileManager: React.FC = () => {
           };
         })
       );
+
+      // Validate directory data
+      const validationResult = directorySchema.safeParse({
+        path,
+        files: fileDetails
+      });
+
+      if (!validationResult.success) {
+        console.error("Directory validation failed:", validationResult.error);
+        throw new Error("Invalid directory data");
+      }
+
       setFiles(fileDetails);
     } catch (error: any) {
       showError(error.message || "无法读取目录");
+    } finally {
+      setIsLoading(false);
     }
   }, []);
 
@@ -57,19 +86,25 @@ const FileManager: React.FC = () => {
           if (file.isDirectory) {
             setCurrentPath(`${file.uri}/`);
           } else {
-            await Sharing.shareAsync(file.uri);
-            Toast.show({
-              type: "success",
-              text1: "分享成功",
-            });
+            if (await Sharing.isAvailableAsync()) {
+              await Sharing.shareAsync(file.uri);
+              Toast.show({
+                type: "success",
+                text1: "分享成功",
+              });
+            } else {
+              showError("分享功能不可用");
+            }
           }
           break;
+
         case "delete":
           setDialogType("delete");
           setDialogMessage(`确定要删除 ${file.name} 吗？`);
           setSelectedFiles([file.uri]);
           setShowDialog(true);
           break;
+
         case "share":
           if (await Sharing.isAvailableAsync()) {
             await Sharing.shareAsync(file.uri);
@@ -77,48 +112,59 @@ const FileManager: React.FC = () => {
               type: "success",
               text1: "分享成功",
             });
+          } else {
+            showError("分享功能不可用");
           }
           break;
+
         case "rename":
-          // 这里可以添加重命名功能的代码
+          // TODO: 实现重命名功能
           Toast.show({
             type: "info",
             text1: "重命名功能尚未实现",
           });
           break;
+
         case "download":
-          // 假设下载功能
+          // TODO: 实现下载功能
           Toast.show({
             type: "success",
             text1: "下载成功",
           });
           break;
+
         case "info":
           Toast.show({
             type: "info",
             text1: `文件信息: ${file.name}`,
             text2: `大小: ${
               file.size ? (file.size / 1024).toFixed(2) : "N/A"
-            } KB`,
+            } KB\n修改时间: ${
+              file.modificationTime
+                ? new Date(file.modificationTime).toLocaleString()
+                : "N/A"
+            }`,
           });
           break;
+
         case "lock":
+          // TODO: 实现锁定功能
           Toast.show({
             type: "warn",
             text1: `锁定 ${file.name} 功能尚未实现`,
           });
           break;
+
         case "star":
+          // TODO: 实现收藏功能
           Toast.show({
             type: "success",
             text1: `${file.name} 已标记为收藏`,
           });
           break;
+
         default:
-          Toast.show({
-            type: "error",
-            text1: "未知操作",
-          });
+          showError("未知操作");
       }
     } catch (error: any) {
       showError(error.message || "操作失败");
@@ -141,7 +187,7 @@ const FileManager: React.FC = () => {
         await Promise.all(
           selectedFiles.map((uri) => FileSystem.deleteAsync(uri))
         );
-        loadDirectory(currentPath);
+        await loadDirectory(currentPath);
         Toast.show({
           type: "success",
           text1: "删除成功",
@@ -164,38 +210,52 @@ const FileManager: React.FC = () => {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-white">
+    <SafeAreaView className="flex-1 bg-background">
       <FileHeader
         onNavigateUp={navigateUp}
         isDisabled={currentPath === FileSystem.documentDirectory}
         isLandscape={isLandscape}
+        currentPath={currentPath}
       />
 
-      <ScrollView 
-        className="flex-1"
-        contentContainerStyle={{ 
-          flexGrow: 1,
-          padding: 16
-        }}
-      >
-        <View className={`flex-1 ${isLandscape ? "flex-row flex-wrap" : ""} gap-4`}>
-          {files.map((file, index) => (
-            <Animated.View
-              key={file.uri}
-              entering={FadeIn.delay(index * 50).springify()}
-              layout={Layout.springify()}
-              className={isLandscape ? "w-[30%]" : "w-full"}
-            >
-              <FileItem
-                file={file}
-                index={index}
-                isLandscape={isLandscape}
-                onFileAction={handleFileAction}
-              />
-            </Animated.View>
-          ))}
+      {isLoading ? (
+        <View className="flex-1 justify-center items-center">
+          <ActivityIndicator size="large" color="#3b82f6" />
+          <Text className="mt-4 text-muted-foreground">加载中...</Text>
         </View>
-      </ScrollView>
+      ) : (
+        <ScrollView
+          className="flex-1"
+          contentContainerStyle={{
+            flexGrow: 1,
+            padding: 16
+          }}
+        >
+          {files.length > 0 ? (
+            <View className={`flex-1 ${isLandscape ? "flex-row flex-wrap" : ""} gap-4`}>
+              {files.map((file, index) => (
+                <Animated.View
+                  key={file.uri}
+                  entering={FadeIn.delay(index * 50).springify()}
+                  layout={Layout.springify()}
+                  className={isLandscape ? "w-[30%]" : "w-full"}
+                >
+                  <FileItem
+                    file={file}
+                    index={index}
+                    isLandscape={isLandscape}
+                    onFileAction={handleFileAction}
+                  />
+                </Animated.View>
+              ))}
+            </View>
+          ) : (
+            <View className="flex-1 justify-center items-center">
+              <Text className="text-muted-foreground">当前目录为空</Text>
+            </View>
+          )}
+        </ScrollView>
+      )}
 
       <ConfirmDialog
         showDialog={showDialog}

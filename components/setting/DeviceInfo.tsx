@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import {
   ActivityIndicator,
   useWindowDimensions,
@@ -7,6 +7,7 @@ import {
 } from "react-native";
 import * as Device from "expo-device";
 import * as Network from "expo-network";
+import { z } from "zod";
 import {
   Card,
   CardContent,
@@ -26,32 +27,51 @@ import {
   WifiOff,
   AlertCircle,
   Info,
+  HardDrive,
+  Tablet,
+  Phone,
+  Server,
+  Laptop,
+  Monitor,
 } from "lucide-react-native";
 import { Badge } from "@/components/ui/badge";
 import Animated, { FadeIn, FadeOut } from "react-native-reanimated";
 import Toast from "react-native-toast-message";
 
-interface DeviceInfo {
-  brand: string | null;
-  manufacturer: string | null;
-  modelName: string | null;
-  osName: string | null;
-  osVersion: string | null;
-  isDevice: boolean;
-  deviceType: number | null;
-  deviceYearClass: number | null;
-  totalMemory: number | null;
-  deviceName: string | null;
-  designName: string | null;
-  modelId: string | null;
-  productName: string | null;
-}
+// Zod 数据验证
+const DeviceInfoSchema = z.object({
+  brand: z.string().nullable(),
+  manufacturer: z.string().nullable(),
+  modelName: z.string().nullable(),
+  osName: z.string().nullable(),
+  osVersion: z.string().nullable(),
+  isDevice: z.boolean(),
+  deviceType: z.number().nullable(),
+  deviceYearClass: z.number().nullable(),
+  totalMemory: z.number().nullable(),
+  deviceName: z.string().nullable(),
+  designName: z.string().nullable(),
+  modelId: z.string().nullable(),
+  productName: z.string().nullable(),
+});
 
-interface NetworkInfo {
-  ipAddress: string | null;
-  networkType: string | null;
-  isConnected: boolean;
-}
+const NetworkInfoSchema = z.object({
+  ipAddress: z.string().nullable(),
+  networkType: z.string().nullable(),
+  isConnected: z.boolean(),
+});
+
+type DeviceInfo = z.infer<typeof DeviceInfoSchema>;
+type NetworkInfo = z.infer<typeof NetworkInfoSchema>;
+
+// 设备类型图标映射
+const deviceTypeIcons = {
+  [Device.DeviceType.PHONE]: Phone,
+  [Device.DeviceType.TABLET]: Tablet,
+  [Device.DeviceType.DESKTOP]: Monitor,
+  [Device.DeviceType.TV]: Monitor,
+  [Device.DeviceType.UNKNOWN]: Server,
+};
 
 const DeviceItem = ({
   label,
@@ -87,6 +107,15 @@ const DeviceScreen = () => {
   const { width, height } = useWindowDimensions();
   const isLandscape = width > height;
 
+  // 使用 useMemo 优化设备类型图标
+  const DeviceTypeIcon = useMemo(() => {
+    if (!deviceInfo.deviceType) return Cpu;
+    return (
+      deviceTypeIcons[deviceInfo.deviceType as keyof typeof deviceTypeIcons] ||
+      Cpu
+    );
+  }, [deviceInfo.deviceType]);
+
   useEffect(() => {
     const fetchDeviceAndNetworkInfo = async () => {
       try {
@@ -96,7 +125,7 @@ const DeviceScreen = () => {
           text2: "正在获取设备信息...",
         });
 
-        const deviceData: DeviceInfo = {
+        const deviceData = {
           brand: Device.brand,
           manufacturer: Device.manufacturer,
           modelName: Device.modelName,
@@ -114,14 +143,18 @@ const DeviceScreen = () => {
 
         const networkState = await Network.getNetworkStateAsync();
         const ipAddress = await Network.getIpAddressAsync();
-        const networkData: NetworkInfo = {
+        const networkData = {
           ipAddress: ipAddress,
           networkType: networkState.type ?? null,
           isConnected: networkState.isConnected ?? false,
         };
 
-        setDeviceInfo(deviceData);
-        setNetworkInfo(networkData);
+        // 数据验证
+        const validatedDevice = DeviceInfoSchema.parse(deviceData);
+        const validatedNetwork = NetworkInfoSchema.parse(networkData);
+
+        setDeviceInfo(validatedDevice);
+        setNetworkInfo(validatedNetwork);
 
         Toast.hide();
       } catch (err) {
@@ -234,7 +267,7 @@ const DeviceScreen = () => {
                     : "其他"
                   : "未知"
               }
-              icon={<Cpu size={20} />}
+              icon={<DeviceTypeIcon size={20} />}
             />
             <DeviceItem
               label="设备年份"
@@ -248,7 +281,7 @@ const DeviceScreen = () => {
                   ? `${(deviceInfo.totalMemory / (1024 * 1024)).toFixed(2)} MB`
                   : "未知"
               }
-              icon={<MemoryStick size={20} />}
+              icon={<HardDrive size={20} />}
             />
           </CardContent>
         </Card>

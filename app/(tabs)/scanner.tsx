@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo } from "react";
+import React, { useCallback, useMemo, useEffect, useRef } from "react";
 import {
   View,
   Alert as RNAlert,
@@ -278,26 +278,49 @@ const ScannerPage: React.FC = () => {
     [autoReconnect, scanPort]
   );
 
+  const scanAbortController = useRef<AbortController | null>(null);
+
+  useEffect(() => {
+    // 清理函数
+    return () => {
+      if (scanAbortController.current) {
+        scanAbortController.current.abort();
+      }
+    };
+  }, []);
+
   const processScanBatch = useCallback(
     async (ports: number[]) => {
-      const batchSize = isLandscape ? 20 : 10;
-      const results: ScanResult[] = [];
-      const totalPorts = ports.length;
+      scanAbortController.current = new AbortController();
+      const signal = scanAbortController.current.signal;
 
-      for (let i = 0; i < ports.length; i += batchSize) {
-        if (!isScanning) break;
+      try {
+        const batchSize = isLandscape ? 20 : 10;
+        const results: ScanResult[] = [];
+        const totalPorts = ports.length;
 
-        const batch = ports.slice(i, i + batchSize);
-        const batchResults = await Promise.all(
-          batch.map((port) => scanPortWithRetry(ipAddress, port))
-        );
-        results.push(...batchResults);
-        updateScanProgress(i + batchSize, totalPorts);
+        for (let i = 0; i < ports.length; i += batchSize) {
+          if (signal.aborted || !isScanning) break;
 
-        if (results.length >= 50 || i + batchSize >= ports.length) {
-          updateScanResults(results);
-          results.length = 0;
-          await new Promise((resolve) => setTimeout(resolve, 10));
+          const batch = ports.slice(i, i + batchSize);
+          const batchResults = await Promise.all(
+            batch.map((port) => scanPortWithRetry(ipAddress, port))
+          );
+
+          if (!signal.aborted) {
+            results.push(...batchResults);
+            updateScanProgress(i + batchSize, totalPorts);
+
+            if (results.length >= 50 || i + batchSize >= ports.length) {
+              updateScanResults(results);
+              results.length = 0;
+              await new Promise((resolve) => setTimeout(resolve, 10));
+            }
+          }
+        }
+      } catch (error) {
+        if (!signal.aborted) {
+          throw error;
         }
       }
     },
@@ -315,32 +338,42 @@ const ScannerPage: React.FC = () => {
     if (!validateInputs()) return;
 
     try {
+      // 清理之前的扫描
+      if (scanAbortController.current) {
+        scanAbortController.current.abort();
+      }
+
       startScanning();
       await sendNotification("扫描开始", "端口扫描已启动");
 
       const ports = getPorts();
       await processScanBatch(ports);
 
-      // 保存扫描历史
-      addScanHistory({
-        id: Date.now().toString(),
-        timestamp: new Date(),
-        ipAddress,
-        portRange: portRange === "custom" ? customPortRange : portRange,
-        openPorts: scanResults.filter((r) => r.status === "open").length,
-        totalPorts: scanResults.length,
-      });
+      if (!scanAbortController.current?.signal.aborted) {
+        const openPorts = scanResults.filter((r) => r.status === "open").length;
 
-      stopScanning();
-      await sendNotification("扫描完成", `成功扫描了 ${ports.length} 个端口`);
+        addScanHistory({
+          id: Date.now().toString(),
+          timestamp: new Date(),
+          ipAddress,
+          portRange: portRange === "custom" ? customPortRange : portRange,
+          openPorts,
+          totalPorts: scanResults.length,
+        });
+
+        stopScanning();
+        await sendNotification("扫描完成", `成功扫描了 ${ports.length} 个端口`);
+      }
     } catch (error) {
-      stopScanning();
-      RNAlert.alert(
-        "扫描错误",
-        `扫描过程中发生错误: ${
-          error instanceof Error ? error.message : "未知错误"
-        }`
-      );
+      if (!scanAbortController.current?.signal.aborted) {
+        stopScanning();
+        RNAlert.alert(
+          "扫描错误",
+          `扫描过程中发生错误: ${
+            error instanceof Error ? error.message : "未知错误"
+          }`
+        );
+      }
     }
   }, [
     validateInputs,
@@ -526,6 +559,19 @@ const ScannerPage: React.FC = () => {
     return windowHeight - headerHeight - historyHeight;
   }, [windowHeight, scanHistory.length]);
 
+  // 优化历史记录渲染
+  const memoizedHistory = useMemo(() => {
+    return scanHistory.length > 0 ? (
+      <Animated.View entering={FadeIn.duration(500)} className="mb-2">
+        <Label className="text-lg font-bold px-4 mb-1">最近扫描</Label>
+        <ScanHistory
+          history={scanHistory}
+          onSelectHistory={handleHistorySelect}
+        />
+      </Animated.View>
+    ) : null;
+  }, [scanHistory, handleHistorySelect]);
+
   return (
     <GestureHandlerRootView
       className={`flex-1 ${isDarkTheme ? "bg-gray-900" : "bg-gray-100"}`}
@@ -553,15 +599,7 @@ const ScannerPage: React.FC = () => {
             height: isLandscape ? contentHeight : contentHeight * 0.6,
           }}
         >
-          {scanHistory.length > 0 && (
-            <Animated.View entering={FadeIn.duration(500)} className="mb-2">
-              <Label className="text-lg font-bold px-4 mb-1">最近扫描</Label>
-              <ScanHistory
-                history={scanHistory}
-                onSelectHistory={handleHistorySelect}
-              />
-            </Animated.View>
-          )}
+          {memoizedHistory}
           {renderScanResults}
         </View>
       </View>
