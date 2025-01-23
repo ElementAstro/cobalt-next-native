@@ -1,12 +1,15 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
+import { View, TouchableOpacity, useWindowDimensions } from "react-native";
 import {
-  View,
-  Text,
-  TouchableOpacity,
-  useWindowDimensions,
-  ActivityIndicator,
-} from "react-native";
-import { Wifi, Gauge, Signal, RefreshCw, History } from "lucide-react-native";
+  Wifi,
+  Gauge,
+  Signal,
+  RefreshCw,
+  History,
+  WifiOff,
+  AlertCircle,
+  Loader2,
+} from "lucide-react-native";
 import {
   useAnimatedStyle,
   withTiming,
@@ -17,6 +20,18 @@ import { useNetworkStore } from "@/stores/useNetworkStore";
 import { useColorScheme } from "@/hooks/useColorScheme";
 import RNEChartsPro from "react-native-echarts-pro";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Progress } from "@/components/ui/progress";
+import { Text } from "@/components/ui/text";
+import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
+import { toast } from "sonner-native";
+import { z } from "zod";
+
+// Zod 验证模式
+const NetworkSpeedSchema = z.object({
+  download: z.number().min(0),
+  upload: z.number().min(0),
+  quality: z.number().min(0).max(100),
+});
 
 interface NetworkInfoModalProps {
   visible: boolean;
@@ -43,6 +58,9 @@ export const NetworkInfoModal: React.FC<NetworkInfoModalProps> = ({
 
   const fadeAnim = useSharedValue(0);
   const slideAnim = useSharedValue(-300);
+
+  const [error, setError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
     if (visible) {
@@ -128,14 +146,63 @@ export const NetworkInfoModal: React.FC<NetworkInfoModalProps> = ({
     ],
   };
 
+  const handleSpeedTest = async () => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      const result = await testNetworkSpeed();
+
+      // 验证结果
+      const validated = NetworkSpeedSchema.parse(result);
+
+      toast.success("网络速度测试完成");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "网络测试失败");
+      toast.error("网络速度测试失败");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const NetworkStatusIndicator = () => (
+    <View className="flex-row items-center space-x-2 bg-gray-100 dark:bg-gray-700 p-3 rounded-lg">
+      {networkState?.isConnected ? (
+        <Wifi size={24} color="#22c55e" />
+      ) : (
+        <WifiOff size={24} color="#ef4444" />
+      )}
+      <Text
+        className={`flex-1 ${
+          colorScheme === "dark" ? "text-white" : "text-black"
+        }`}
+      >
+        {networkState?.type || "未知网络"}
+      </Text>
+      <Progress
+        value={networkSpeed?.quality || 0}
+        className="w-20"
+        indicatorClassName={`${
+          networkSpeed?.quality || 0 > 70 ? "bg-green-500" : "bg-yellow-500"
+        }`}
+      />
+    </View>
+  );
+
   return (
     <Dialog open={visible} onOpenChange={onClose}>
       <DialogContent
-        className={`w-full max-w-3xl bg-white dark:bg-gray-800 rounded-xl p-4 shadow-lg flex ${
-          isLandscape ? "flex-row space-x-4" : "flex-col"
-        }`}
+        className={`w-full max-w-3xl bg-white dark:bg-gray-800 rounded-xl p-4 shadow-lg`}
         style={modalStyle}
       >
+        {error && (
+          <Alert className="mb-4" variant="destructive" icon={AlertCircle}>
+            <AlertTitle>出错了</AlertTitle>
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
+        )}
+
+        <NetworkStatusIndicator />
+
         {/* 左侧：网络信息 */}
         <View className={`flex-1 space-y-4`}>
           {/* IP 地址 */}
@@ -217,11 +284,11 @@ export const NetworkInfoModal: React.FC<NetworkInfoModalProps> = ({
           <View className="space-y-2">
             <TouchableOpacity
               className={`py-3 rounded-lg flex-row justify-center items-center bg-blue-500 dark:bg-blue-600 transform active:scale-95 disabled:opacity-50`}
-              onPress={testNetworkSpeed}
-              disabled={isTestingSpeed}
+              onPress={handleSpeedTest}
+              disabled={isLoading}
             >
-              {isTestingSpeed ? (
-                <ActivityIndicator size="small" color="#fff" />
+              {isLoading ? (
+                <Loader2 size={20} className="animate-spin" color="#fff" />
               ) : (
                 <>
                   <RefreshCw size={16} color="#fff" className="mr-2" />

@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from "react";
+import React from "react";
 import { Input } from "@/components/ui/input";
 import { useDebouncedCallback } from "use-debounce";
 import { z } from "zod";
@@ -11,7 +11,7 @@ import { View } from "react-native";
 
 // Zod schema for validation
 const inputSchema = z.object({
-  value: z.string().min(1, "不能为空").max(100, "超过最大长度限制")
+  value: z.string().min(1, "不能为空").max(100, "超过最大长度限制"),
 });
 
 type InputForm = z.infer<typeof inputSchema>;
@@ -33,13 +33,16 @@ const InputField: React.FC<InputFieldProps> = ({
   disabled = false,
   keyboardType = "default",
   className = "",
-  validationSchema = inputSchema
+  validationSchema = inputSchema,
 }) => {
-  const { control, formState: { errors } } = useForm<InputForm>({
+  const {
+    control,
+    formState: { errors },
+  } = useForm<InputForm>({
     resolver: zodResolver(validationSchema),
     defaultValues: {
-      value: externalValue
-    }
+      value: externalValue,
+    },
   });
 
   const debouncedOnChange = useDebouncedCallback((text: string) => {
@@ -65,7 +68,7 @@ const InputField: React.FC<InputFieldProps> = ({
               className={`${className} ${errors.value ? "border-red-500" : ""}`}
             />
             {errors.value && (
-              <Animated.View 
+              <Animated.View
                 entering={FadeInDown.duration(200)}
                 exiting={FadeOutUp.duration(200)}
                 className="absolute right-2 top-1/2 -translate-y-1/2"
@@ -77,7 +80,7 @@ const InputField: React.FC<InputFieldProps> = ({
         )}
       />
       {errors.value && (
-        <Animated.View 
+        <Animated.View
           entering={FadeInDown.duration(200)}
           exiting={FadeOutUp.duration(200)}
         >

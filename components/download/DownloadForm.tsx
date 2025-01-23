@@ -1,16 +1,14 @@
 import React, { useState, useCallback, useMemo } from "react";
-import {
-  View,
-  TextInput,
-  TouchableOpacity,
-  Text,
-  ActivityIndicator,
-} from "react-native";
+import { View, ActivityIndicator } from "react-native";
 import { downloadManager } from "./download";
 import { z } from "zod";
 import { toast } from "sonner-native";
 import { Link, FileDown, AlertCircle, Check } from "lucide-react-native";
 import { useDebouncedCallback } from "use-debounce";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Text } from "@/components/ui/text";
 
 const urlSchema = z.string().url("请输入有效的下载链接");
 const filenameSchema = z
@@ -83,67 +81,64 @@ export const DownloadForm: React.FC = React.memo(() => {
   );
 
   return (
-    <View className="p-4 bg-white dark:bg-gray-800 shadow-sm rounded-lg mb-4">
-      <Text className="text-lg font-semibold mb-2 dark:text-white">
-        添加下载任务
-      </Text>
-
-      <View className="space-y-4">
-        <View>
-          <View className="flex-row items-center border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 focus-within:border-blue-500">
-            <Link size={20} className="text-gray-400 mr-2" />
-            <TextInput
-              className="flex-1 text-base dark:text-white"
-              placeholder="输入下载链接"
-              placeholderTextColor="#9CA3AF"
-              value={url}
-              onChangeText={(text) => {
-                setUrl(text);
-                validateUrl(text);
-              }}
-            />
+    <View className="p-4 bg-card shadow-sm rounded-lg mb-4 space-y-6">
+      <View>
+        <Label className="mb-2">下载链接</Label>
+        <View className="relative">
+          <View className="absolute left-3 top-3 z-10">
+            <Link size={20} className="text-muted-foreground" />
           </View>
+          <Input
+            placeholder="输入下载链接"
+            value={url}
+            onChangeText={(text) => {
+              setUrl(text);
+              validateUrl(text);
+            }}
+            className="pl-10"
+          />
           {urlError && (
-            <Text className="text-red-500 text-sm mt-1">{urlError}</Text>
+            <Text className="text-destructive text-sm mt-1">{urlError}</Text>
           )}
         </View>
-
-        <View>
-          <View className="flex-row items-center border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 focus-within:border-blue-500">
-            <FileDown size={20} className="text-gray-400 mr-2" />
-            <TextInput
-              className="flex-1 text-base dark:text-white"
-              placeholder="文件名（可选）"
-              placeholderTextColor="#9CA3AF"
-              value={filename}
-              onChangeText={(text) => {
-                setFilename(text);
-                validateFilename(text);
-              }}
-            />
-          </View>
-          {filenameError && (
-            <Text className="text-red-500 text-sm mt-1">{filenameError}</Text>
-          )}
-        </View>
-
-        <TouchableOpacity
-          className={`p-3 rounded-lg flex-row justify-center items-center space-x-2 ${
-            isValid ? "bg-blue-500" : "bg-gray-300 dark:bg-gray-700"
-          }`}
-          onPress={handleSubmit}
-          disabled={!isValid || isLoading}
-        >
-          {isLoading ? (
-            <ActivityIndicator color="#fff" />
-          ) : (
-            <>
-              <FileDown size={20} color="#fff" />
-              <Text className="text-white font-medium">添加下载任务</Text>
-            </>
-          )}
-        </TouchableOpacity>
       </View>
+
+      <View>
+        <Label className="mb-2">文件名 (可选)</Label>
+        <View className="relative">
+          <View className="absolute left-3 top-3 z-10">
+            <FileDown size={20} className="text-muted-foreground" />
+          </View>
+          <Input
+            placeholder="留空将使用默认文件名"
+            value={filename}
+            onChangeText={(text) => {
+              setFilename(text);
+              validateFilename(text);
+            }}
+            className="pl-10"
+          />
+          {filenameError && (
+            <Text className="text-destructive text-sm mt-1">
+              {filenameError}
+            </Text>
+          )}
+        </View>
+      </View>
+
+      <Button
+        variant={isValid ? "default" : "secondary"}
+        disabled={!isValid || isLoading}
+        onPress={handleSubmit}
+        className="w-full"
+      >
+        {isLoading ? (
+          <ActivityIndicator color="#fff" className="mr-2" />
+        ) : (
+          <FileDown size={20} className="mr-2" />
+        )}
+        添加下载任务
+      </Button>
     </View>
   );
 });

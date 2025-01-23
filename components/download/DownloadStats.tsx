@@ -1,45 +1,59 @@
-import React from 'react';
-import { View, Text } from 'react-native';
-import { formatBytes } from './format';
-import type { DownloadStats as DownloadStatsType } from './types';
+import React from "react";
+import { View } from "react-native";
+import { formatBytes } from "./format";
+import type { DownloadStats as DownloadStatsType } from "./types";
+import { Text } from "../ui/text";
+import { Badge } from "../ui/badge";
+import { Label } from "../ui/label";
+import Animated, {
+  useAnimatedStyle,
+  withSpring,
+} from "react-native-reanimated";
 
 interface DownloadStatsProps {
   stats: DownloadStatsType;
 }
 
 export const DownloadStats: React.FC<DownloadStatsProps> = ({ stats }) => {
+  const progressStyle = useAnimatedStyle(() => ({
+    width: withSpring(`${stats.totalProgress * 100}%`, {
+      damping: 20,
+      stiffness: 90,
+    }),
+  }));
+
   return (
-    <View className="bg-white p-4 mb-4 shadow-sm">
-      <View className="flex-row justify-between mb-4">
-        <Text className="text-base font-medium">总进度</Text>
-        <Text className="text-sm text-gray-600">
+    <View className="bg-card p-4 mb-4 rounded-lg shadow-sm space-y-4">
+      <View className="flex-row justify-between items-center">
+        <Label className="text-base">总进度</Label>
+        <Badge variant="secondary">
           {Math.round(stats.totalProgress * 100)}%
-        </Text>
+        </Badge>
       </View>
-      
-      <View className="h-2 bg-gray-100 rounded-full overflow-hidden mb-4">
-        <View
-          className="h-full bg-blue-500"
-          style={{ width: `${stats.totalProgress * 100}%` }}
-        />
+
+      <View className="h-2 bg-muted rounded-full overflow-hidden">
+        <Animated.View className="h-full bg-primary" style={progressStyle} />
       </View>
 
       <View className="flex-row justify-between">
-        <View>
-          <Text className="text-sm text-gray-500">
+        <View className="space-y-1">
+          <Text className="text-sm text-muted-foreground">
             {formatBytes(stats.downloadedSize)} / {formatBytes(stats.totalSize)}
           </Text>
-          <Text className="text-sm text-gray-500 mt-1">
+          <Text className="text-sm text-muted-foreground">
             总速度: {formatBytes(stats.totalSpeed)}/s
           </Text>
         </View>
-        <View>
-          <Text className="text-sm text-gray-500">
-            活跃: {stats.active} / 总计: {stats.total}
-          </Text>
-          <Text className="text-sm text-gray-500 mt-1">
-            完成: {stats.completed} / 错误: {stats.error}
-          </Text>
+
+        <View className="space-y-1">
+          <View className="flex-row space-x-2">
+            <Badge variant="secondary">活跃: {stats.active}</Badge>
+            <Badge variant="outline">总计: {stats.total}</Badge>
+          </View>
+          <View className="flex-row space-x-2">
+            <Badge variant="default">完成: {stats.completed}</Badge>
+            <Badge variant="destructive">错误: {stats.error}</Badge>
+          </View>
         </View>
       </View>
     </View>

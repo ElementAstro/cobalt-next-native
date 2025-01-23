@@ -1,8 +1,20 @@
 // components/DownloadSettings.tsx
 import React, { useState } from "react";
-import { View, Modal, Text, Switch, TouchableOpacity } from "react-native";
+import { View } from "react-native";
 import { downloadManager } from "./download";
 import Slider from "@react-native-community/slider";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+
 interface DownloadSettingsProps {
   visible: boolean;
   onClose: () => void;
@@ -26,40 +38,47 @@ export const DownloadSettings: React.FC<DownloadSettingsProps> = ({
   };
 
   return (
-    <Modal
-      visible={visible}
-      animationType="slide"
-      transparent={true}
-      onRequestClose={onClose}
-    >
-      <View className="flex-1 bg-white p-4">
-        <Text className="text-xl font-bold mb-4">下载设置</Text>
+    <Dialog open={visible} onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="w-[90%] max-w-md">
+        <DialogHeader>
+          <DialogTitle>下载设置</DialogTitle>
+        </DialogHeader>
 
-        <View className="mb-4">
-          <Text className="text-base mb-2">最大同时下载数</Text>
-          <Slider
-            value={maxDownloads}
-            onValueChange={handleMaxDownloadsChange}
-            minimumValue={1}
-            maximumValue={5}
-            step={1}
-            className="w-full"
-          />
-          <Text className="text-sm text-gray-500">{maxDownloads}</Text>
+        <View className="space-y-6">
+          <View className="space-y-4">
+            <Label>最大同时下载数</Label>
+            <View className="flex-row items-center space-x-2">
+              <Slider
+                value={maxDownloads}
+                onValueChange={handleMaxDownloadsChange}
+                minimumValue={1}
+                maximumValue={5}
+                step={1}
+                className="flex-1"
+              />
+              <Badge variant="secondary">{maxDownloads}</Badge>
+            </View>
+          </View>
+
+          <View className="flex-row justify-between items-center">
+            <Label>网络恢复时自动继续下载</Label>
+            <Switch
+              checked={autoResume}
+              onCheckedChange={handleAutoResumeChange}
+            />
+          </View>
         </View>
 
-        <View className="flex-row justify-between items-center mb-4">
-          <Text className="text-base">网络恢复时自动继续下载</Text>
-          <Switch value={autoResume} onValueChange={handleAutoResumeChange} />
-        </View>
-
-        <TouchableOpacity
-          className="bg-gray-200 p-4 rounded-lg"
-          onPress={onClose}
-        >
-          <Text className="text-center">关闭</Text>
-        </TouchableOpacity>
-      </View>
-    </Modal>
+        <DialogFooter>
+          <Button
+            variant="secondary"
+            onPress={onClose}
+            className="w-full sm:w-auto"
+          >
+            关闭
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 };

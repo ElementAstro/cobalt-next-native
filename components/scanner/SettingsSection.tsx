@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { View, Pressable, useWindowDimensions } from "react-native";
 import { Label } from "@/components/ui/label";
-import { ChevronDown, ChevronUp, Info } from "lucide-react-native";
+import { ChevronDown, ChevronUp, AlertTriangle, Settings2 } from "lucide-react-native";
 import Animated, {
   withTiming,
   useAnimatedStyle,
@@ -11,6 +11,7 @@ import Animated, {
   Layout,
 } from "react-native-reanimated";
 import * as Haptics from "expo-haptics";
+import { toast } from "sonner-native";
 
 interface SettingsSectionProps {
   title: string;
@@ -55,6 +56,9 @@ const SettingsSection: React.FC<SettingsSectionProps> = ({
   const handlePress = () => {
     if (collapsible) {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      if (isError) {
+        toast.error("存在配置错误，请检查设置");
+      }
       setIsCollapsed(!isCollapsed);
     }
   };
@@ -79,21 +83,26 @@ const SettingsSection: React.FC<SettingsSectionProps> = ({
       >
         <View className="flex-1">
           <View className="flex-row items-center space-x-2">
+            <Settings2 size={20} className="text-gray-600 dark:text-gray-300" />
             <Label className="text-xl font-bold text-gray-900 dark:text-gray-100">
               {title}
             </Label>
-            {isError && <Info size={16} className="text-red-500" />}
+            {isError && <AlertTriangle size={16} className="text-red-500" />}
           </View>
           {description && (
-            <Label className="text-sm text-gray-500 mt-1">{description}</Label>
+            <Label className="text-sm text-gray-500 mt-1 ml-7">{description}</Label>
           )}
         </View>
-        {collapsible && (isCollapsed ? <ChevronDown /> : <ChevronUp />)}
+        {collapsible && (
+          <Animated.View>
+            {isCollapsed ? <ChevronDown size={20} /> : <ChevronUp size={20} />}
+          </Animated.View>
+        )}
       </Pressable>
-
+      
       <Animated.View
         style={collapsible ? contentStyle : undefined}
-        className={collapsible ? "overflow-hidden" : ""}
+        className={`${collapsible ? "overflow-hidden" : ""} pl-7`}
       >
         {children}
       </Animated.View>
@@ -101,4 +110,4 @@ const SettingsSection: React.FC<SettingsSectionProps> = ({
   );
 };
 
-export default SettingsSection;
+export default React.memo(SettingsSection);

@@ -6,11 +6,23 @@ import Animated, {
   useAnimatedStyle,
   withSpring,
   withTiming,
-  withSequence
+  withSequence,
 } from "react-native-reanimated";
 import { Label } from "@/components/ui/label";
 import * as Haptics from "expo-haptics";
-import { CheckCircle, AlertCircle, Info } from "lucide-react-native";
+import {
+  CheckCircle2,
+  XCircle,
+  AlertTriangle,
+  Globe,
+  Lock,
+  Shield,
+  Server,
+  AlertCircle,
+  CheckCircle,
+  Info,
+} from "lucide-react-native";
+import { toast } from "sonner-native";
 
 interface ScanResult {
   port: number;
@@ -49,14 +61,39 @@ const ScanResultItem: React.FC<ScanResultItemProps> = memo(
             withTiming(-5, { duration: 50 }),
             withTiming(5, { duration: 50 }),
             withTiming(0, { duration: 50 })
-          )
-        }
-      ]
+          ),
+        },
+      ],
     }));
 
     const handlePress = () => {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      if (item.status === "error") {
+        toast.error(`端口 ${item.port} 扫描出错: ${item.details}`);
+      } else if (item.status === "open") {
+        toast.success(
+          `端口 ${item.port} ${item.service ? `(${item.service})` : ""} 开放`
+        );
+      }
       onPress?.();
+    };
+
+    const StatusIcon = () => {
+      const iconProps = { size: 20 };
+      switch (item.status) {
+        case "open":
+          return item.service?.includes("http") ? (
+            <Globe {...iconProps} className="text-green-500" />
+          ) : (
+            <Server {...iconProps} className="text-green-500" />
+          );
+        case "error":
+          return <AlertTriangle {...iconProps} className="text-red-500" />;
+        case "closed":
+          return <Lock {...iconProps} className="text-gray-400" />;
+        default:
+          return <Shield {...iconProps} className="text-gray-400" />;
+      }
     };
 
     return (
@@ -73,27 +110,26 @@ const ScanResultItem: React.FC<ScanResultItemProps> = memo(
         <Pressable
           onPress={handlePress}
           className={`flex-row items-center justify-between p-3 mb-2 rounded-lg border ${
-            item.isSelected 
+            item.isSelected
               ? "border-blue-500 bg-blue-50 dark:bg-blue-900/20"
               : "bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700"
           }`}
         >
           <View className="flex-1">
             <View className="flex-row items-center space-x-2 mb-1">
+              <StatusIcon />
               <Label className="text-base font-medium">
                 端口 {item.port}
                 {item.service && ` - ${item.service}`}
               </Label>
-              {item.details && (
-                <Info size={14} className="text-gray-400" />
-              )}
+              {item.details && <Info size={14} className="text-gray-400" />}
             </View>
 
             <View className="flex-row items-center space-x-2">
               <View
                 className={`w-3 h-3 rounded-full ${
-                  item.status === "open" 
-                    ? "bg-green-500" 
+                  item.status === "open"
+                    ? "bg-green-500"
                     : item.status === "error"
                     ? "bg-red-500"
                     : "bg-gray-500"
@@ -108,8 +144,8 @@ const ScanResultItem: React.FC<ScanResultItemProps> = memo(
                     : "text-gray-600 dark:text-gray-400"
                 } text-sm`}
               >
-                {item.status === "open" 
-                  ? "开放" 
+                {item.status === "open"
+                  ? "开放"
                   : item.status === "error"
                   ? "错误"
                   : "关闭"}

@@ -1,5 +1,11 @@
 import React, { useState } from "react";
-import { View, Text, useWindowDimensions, SafeAreaView } from "react-native";
+import {
+  View,
+  Text,
+  useWindowDimensions,
+  SafeAreaView,
+  ScrollView,
+} from "react-native";
 import {
   Settings,
   Bell,
@@ -52,12 +58,12 @@ const SettingsPage: React.FC = () => {
 
   return (
     <SafeAreaView className="flex-1">
-      <View className={`flex-1 p-4 ${isLandscape ? 'flex-row' : ''}`}>
-        <View className={`${isLandscape ? 'w-1/3 mr-4' : ''} space-y-4`}>
+      <View className={`flex-1 p-4 ${isLandscape ? "flex-row" : ""}`}>
+        <ScrollView className={`${isLandscape ? "w-1/3 mr-4" : ""} space-y-4`}>
           <Text className="text-2xl font-bold mb-4">设置</Text>
 
           {/* 常用设置卡片 */}
-          <Animated.View 
+          <Animated.View
             entering={FadeInDown.delay(100).duration(300)}
             className="flex-1"
           >
@@ -163,21 +169,28 @@ const SettingsPage: React.FC = () => {
               </CardContent>
             </Card>
           </Animated.View>
-        </View>
-
-        {/* 设置内容区域 */}
-        {activeSection ? (
-          <Animated.View 
-            entering={FadeInDown.duration(300)} 
-            className={`${isLandscape ? 'flex-1' : 'mt-4'}`}
-          >
-            {renderSettingContent()}
-          </Animated.View>
-        ) : (
-          <View className={`${isLandscape ? 'flex-1' : ''} justify-center items-center`}>
-            <Text className="text-gray-500">请选择一个设置项</Text>
-          </View>
-        )}
+        </ScrollView>
+        <ScrollView
+          className={`${isLandscape ? "w-2/3 mr-4" : "w-1/3"} space-y-4`}
+        >
+          {/* 设置内容区域 */}
+          {activeSection ? (
+            <Animated.View
+              entering={FadeInDown.duration(300)}
+              className={`${isLandscape ? "flex-1" : "mt-4"}`}
+            >
+              {renderSettingContent()}
+            </Animated.View>
+          ) : (
+            <View
+              className={`${
+                isLandscape ? "flex-1" : ""
+              } justify-center items-center`}
+            >
+              <Text className="text-gray-500">请选择一个设置项</Text>
+            </View>
+          )}
+        </ScrollView>
       </View>
     </SafeAreaView>
   );

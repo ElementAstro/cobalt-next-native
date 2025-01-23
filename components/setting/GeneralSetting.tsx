@@ -1,6 +1,21 @@
-import React, { useMemo } from "react";
-import { View, useWindowDimensions, Text } from "react-native";
+import React, { useMemo, useCallback } from "react";
+import { useWindowDimensions } from "react-native";
 import { z } from "zod";
+import { toast } from "sonner-native";
+import {
+  Settings,
+  Languages,
+  Shapes,
+  Volume,
+  Moon,
+  Sun,
+  CheckCircle2,
+  AlertCircle,
+  RefreshCw,
+  LucideIcon,
+} from "lucide-react-native";
+import Animated, { FadeInDown, SlideInRight } from "react-native-reanimated";
+import { useGeneralSettings } from "@/hooks/useGeneralSettings";
 import {
   Card,
   CardContent,
@@ -8,151 +23,151 @@ import {
   CardTitle,
   CardDescription,
 } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
+import { Text } from "@/components/ui/text";
 import { Switch } from "@/components/ui/switch";
-import {
-  Settings,
-  Globe,
-  Phone,
-  Volume2,
-  Sun,
-  Moon,
-  Languages,
-  Shapes,
-  Volume,
-  Save,
-} from "lucide-react-native";
-import Animated, { FadeInDown } from "react-native-reanimated";
-import Toast from "react-native-toast-message";
-import { useGeneralSettings } from "@/hooks/useGeneralSettings";
+import { Label } from "@/components/ui/label";
+import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 
-// Zod 数据验证
-const GeneralSettingsSchema = z.object({
-  autoLanguage: z.boolean(),
-  vibration: z.boolean(),
-  sound: z.boolean(),
-  darkMode: z.boolean(),
-});
+// 类型定义
+interface GeneralSettings {
+  autoLanguage: boolean;
+  vibration: boolean;
+  sound: boolean;
+  darkMode: boolean;
+}
 
-type GeneralSettings = z.infer<typeof GeneralSettingsSchema>;
+interface SettingItemProps {
+  icon: LucideIcon;
+  label: string;
+  value: boolean;
+  onToggle: (checked: boolean) => void;
+}
+
+// Zod Schema
+const GeneralSettingsSchema = z
+  .object({
+    autoLanguage: z.boolean(),
+    vibration: z.boolean(),
+    sound: z.boolean(),
+    darkMode: z.boolean(),
+  })
+  .refine((data) => {
+    if (data.sound && !data.vibration) {
+      throw new Error("启用声音时需要同时启用振动");
+    }
+    return true;
+  });
+
+const SettingItem = ({
+  icon: Icon,
+  label,
+  value,
+  onToggle,
+}: SettingItemProps) => (
+  <Animated.View
+    entering={SlideInRight}
+    className="flex-row justify-between items-center py-3 border-b border-border"
+  >
+    <Label className="flex-row items-center space-x-2">
+      <Icon size={18} className="text-foreground" />
+      <Text>{label}</Text>
+    </Label>
+    <Switch checked={value} onCheckedChange={onToggle} />
+  </Animated.View>
+);
 
 const GeneralSetting = () => {
   const { settings, updateSetting } = useGeneralSettings();
   const { width, height } = useWindowDimensions();
   const isLandscape = width > height;
 
-  // 使用 useMemo 优化设置项
   const settingsItems = useMemo(
     () => [
       {
         label: "自动语言",
         value: settings.autoLanguage,
-        icon: <Languages size={16} />,
+        icon: Languages,
         settingKey: "autoLanguage",
       },
       {
         label: "震动反馈",
         value: settings.vibration,
-        icon: <Shapes size={16} />,
+        icon: Shapes,
         settingKey: "vibration",
+        description: "开启以获得更好的触觉反馈",
       },
       {
         label: "声音效果",
         value: settings.sound,
-        icon: <Volume size={16} />,
+        icon: Volume,
         settingKey: "sound",
+        description: "操作时播放提示音",
       },
       {
         label: "夜间模式",
         value: settings.darkMode,
-        icon: settings.darkMode ? <Moon size={16} /> : <Sun size={16} />,
+        icon: settings.darkMode ? Moon : Sun,
         settingKey: "darkMode",
+        description: "切换深色/浅色主题",
       },
     ],
     [settings]
   );
 
-  const handleSettingChange = async (key: keyof GeneralSettings, value: boolean) => {
-    try {
-      // 验证数据
-      const updatedSettings = { ...settings, [key]: value };
-      GeneralSettingsSchema.parse(updatedSettings);
+  const handleSettingChange = useCallback(
+    async (key: keyof GeneralSettings, value: boolean) => {
+      try {
+        const updatedSettings = { ...settings, [key]: value };
+        GeneralSettingsSchema.parse(updatedSettings);
 
-      updateSetting(key, value);
-      Toast.show({
-        type: "success",
-        text1: "设置更新",
-        text2: `${key} 已${value ? "启用" : "禁用"}`,
-      });
-    } catch (error) {
-      Toast.show({
-        type: "error",
-        text1: "设置失败",
-        text2: error instanceof Error ? error.message : "未知错误",
-      });
-    }
-  };
-
-  const handleSaveSettings = async () => {
-    try {
-      // 验证所有设置
-      GeneralSettingsSchema.parse(settings);
-      
-      Toast.show({
-        type: "success",
-        text1: "设置已保存",
-        text2: "所有设置已成功保存",
-      });
-    } catch (error) {
-      Toast.show({
-        type: "error",
-        text1: "保存失败",
-        text2: error instanceof Error ? error.message : "未知错误",
-      });
-    }
-  };
+        updateSetting(key as keyof GeneralSettings, value);
+        toast.success("设置已更新", {
+          description: `${String(key)} 已${value ? "启用" : "禁用"}`,
+          icon: <CheckCircle2 size={20} />,
+        });
+      } catch (error) {
+        toast.error("设置失败", {
+          description: error instanceof Error ? error.message : "未知错误",
+          icon: <AlertCircle size={20} />,
+        });
+      }
+    },
+    [settings, updateSetting]
+  );
 
   return (
-    <Animated.View entering={FadeInDown} className="flex-1 p-4">
-      <Card className={`${isLandscape ? "w-1/2 mr-2" : "w-full"}`}>
+    <Animated.View entering={FadeInDown.duration(500)} className="flex-1 p-4">
+      <Card className={isLandscape ? "w-1/2" : "w-full"}>
         <CardHeader>
-          <CardTitle className="flex-row items-center">
-            <Settings size={20} className="mr-2" />
-            <Text className="text-lg font-semibold">常规设置</Text>
+          <CardTitle className="flex-row items-center space-x-2">
+            <Settings size={24} className="text-primary" />
+            <Text className="text-xl font-bold">常规设置</Text>
           </CardTitle>
-          <CardDescription>管理应用的常规设置</CardDescription>
+          <CardDescription>管理应用的基本设置选项</CardDescription>
         </CardHeader>
-        <CardContent className="space-y-6">
+
+        <CardContent className="space-y-4">
           {settingsItems.map((item) => (
-            <View
+            <SettingItem
               key={item.settingKey}
-              className="flex-row justify-between items-center"
-            >
-              <Label className="flex-row items-center">
-                {item.icon}
-                <Text className="ml-2">{item.label}</Text>
-              </Label>
-              <Switch
-                checked={item.value}
-                onCheckedChange={(checked) =>
-                  handleSettingChange(item.settingKey as keyof GeneralSettings, checked)
-                }
-              />
-            </View>
+              icon={item.icon}
+              label={item.label}
+              value={item.value}
+              onToggle={(checked: boolean) =>
+                handleSettingChange(
+                  item.settingKey as keyof GeneralSettings,
+                  checked
+                )
+              }
+            />
           ))}
 
-          <Button
-            onPress={handleSaveSettings}
-            className="mt-4"
-            variant="default"
-          >
-            <Save size={16} className="mr-2" />
-            <Text>保存设置</Text>
-          </Button>
+          <Alert variant="default" icon={RefreshCw}>
+            <AlertTitle>自动保存</AlertTitle>
+            <AlertDescription>设置会自动保存,无需手动操作</AlertDescription>
+          </Alert>
         </CardContent>
       </Card>
-      <Toast />
     </Animated.View>
   );
 };

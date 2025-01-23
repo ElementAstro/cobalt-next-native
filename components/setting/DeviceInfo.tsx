@@ -3,11 +3,12 @@ import {
   ActivityIndicator,
   useWindowDimensions,
   SafeAreaView,
-  View,
+  ViewProps,
 } from "react-native";
 import * as Device from "expo-device";
 import * as Network from "expo-network";
 import { z } from "zod";
+import { toast } from "sonner-native";
 import {
   Card,
   CardContent,
@@ -15,7 +16,6 @@ import {
   CardTitle,
   CardDescription,
 } from "@/components/ui/card";
-import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
 import {
   Home,
@@ -30,13 +30,13 @@ import {
   HardDrive,
   Tablet,
   Phone,
-  Server,
-  Laptop,
   Monitor,
+  Server,
+  LucideIcon,
 } from "lucide-react-native";
 import { Badge } from "@/components/ui/badge";
 import Animated, { FadeIn, FadeOut } from "react-native-reanimated";
-import Toast from "react-native-toast-message";
+import { Text } from "@/components/ui/text";
 
 // Zod 数据验证
 const DeviceInfoSchema = z.object({
@@ -73,26 +73,48 @@ const deviceTypeIcons = {
   [Device.DeviceType.UNKNOWN]: Server,
 };
 
-const DeviceItem = ({
-  label,
-  value,
-  icon,
-}: {
+interface DeviceItemProps {
   label: string;
   value: string | number | null;
-  icon: React.ReactNode;
-}) => (
-  <Animated.View entering={FadeIn} exiting={FadeOut}>
-    <ThemedView className="flex-row justify-between items-center py-2 border-b border-gray-200 dark:border-gray-700">
-      <ThemedView className="flex-row items-center">
-        {icon}
-        <ThemedText className="text-base ml-2">{label}</ThemedText>
-      </ThemedView>
-      <Badge variant="secondary">
-        <ThemedText>{value ?? "未知"}</ThemedText>
-      </Badge>
+  icon: LucideIcon;
+}
+
+interface InfoCardProps extends ViewProps {
+  title: string;
+  description: string;
+  children: React.ReactNode;
+  className?: string;
+}
+
+const DeviceItem = ({ label, value, icon: Icon }: DeviceItemProps) => (
+  <Animated.View
+    entering={FadeIn}
+    exiting={FadeOut}
+    className="flex-row justify-between items-center py-3 border-b border-border"
+  >
+    <ThemedView className="flex-row items-center space-x-3">
+      <Icon size={20} className="text-foreground" />
+      <Text className="text-base font-medium">{label}</Text>
     </ThemedView>
+    <Badge variant="secondary" className="px-3">
+      <Text className="text-sm">{value ?? "未知"}</Text>
+    </Badge>
   </Animated.View>
+);
+
+const InfoCard = ({
+  title,
+  description,
+  children,
+  className,
+}: InfoCardProps) => (
+  <Card className={`overflow-hidden ${className}`}>
+    <CardHeader className="space-y-1.5">
+      <CardTitle className="text-xl">{title}</CardTitle>
+      <CardDescription>{description}</CardDescription>
+    </CardHeader>
+    <CardContent className="space-y-2">{children}</CardContent>
+  </Card>
 );
 
 const DeviceScreen = () => {
@@ -117,13 +139,9 @@ const DeviceScreen = () => {
   }, [deviceInfo.deviceType]);
 
   useEffect(() => {
-    const fetchDeviceAndNetworkInfo = async () => {
+    const fetchInfo = async () => {
       try {
-        Toast.show({
-          type: "info",
-          text1: "加载中",
-          text2: "正在获取设备信息...",
-        });
+        toast.loading("正在获取设备信息...");
 
         const deviceData = {
           brand: Device.brand,
@@ -156,210 +174,161 @@ const DeviceScreen = () => {
         setDeviceInfo(validatedDevice);
         setNetworkInfo(validatedNetwork);
 
-        Toast.hide();
+        toast.success("加载完成");
       } catch (err) {
-        const errorMessage =
-          err instanceof Error ? err.message : "加载设备信息失败";
-        setError(errorMessage);
-        Toast.show({
-          type: "error",
-          text1: "错误",
-          text2: errorMessage,
-        });
+        const message = err instanceof Error ? err.message : "加载失败";
+        toast.error("错误", { description: message });
+        setError(message);
       } finally {
         setIsLoading(false);
       }
     };
 
-    fetchDeviceAndNetworkInfo();
+    fetchInfo();
   }, []);
 
   if (isLoading) {
     return (
       <ThemedView className="flex-1 justify-center items-center">
-        <ActivityIndicator size="large" />
-        <Toast />
+        <ActivityIndicator size="large" className="mb-4" />
+        <Text className="text-muted-foreground">加载中...</Text>
       </ThemedView>
     );
   }
 
   if (error) {
     return (
-      <ThemedView className="flex-1 justify-center items-center p-5">
-        <ThemedText className="text-red-500 text-center">{error}</ThemedText>
-        <Toast />
+      <ThemedView className="flex-1 justify-center items-center p-6">
+        <AlertCircle size={40} className="text-destructive mb-4" />
+        <Text className="text-destructive text-center">{error}</Text>
       </ThemedView>
     );
   }
 
+  const cardStyles = isLandscape ? "w-[48%] mb-4" : "w-full mb-4";
+
   return (
     <SafeAreaView className="flex-1">
-      <View
+      <ThemedView
         className={`flex-1 p-4 ${
           isLandscape ? "flex-row flex-wrap justify-between" : ""
         }`}
       >
-        {/* 设备概览卡片 */}
-        <Card className={isLandscape ? "w-[48%] mb-4" : "w-full mb-4"}>
-          <CardHeader>
-            <CardTitle>设备概览</CardTitle>
-            <CardDescription>基本的设备信息一览</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <DeviceItem
-              label="品牌"
-              value={deviceInfo.brand}
-              icon={<Home size={20} />}
-            />
-            <DeviceItem
-              label="制造商"
-              value={deviceInfo.manufacturer}
-              icon={<Cpu size={20} />}
-            />
-            <DeviceItem
-              label="型号"
-              value={deviceInfo.modelName}
-              icon={<Smartphone size={20} />}
-            />
-          </CardContent>
-        </Card>
+        <InfoCard
+          title="设备概览"
+          description="基本的设备信息一览"
+          className={cardStyles}
+        >
+          <DeviceItem label="品牌" value={deviceInfo.brand} icon={Home} />
+          <DeviceItem
+            label="制造商"
+            value={deviceInfo.manufacturer}
+            icon={Cpu}
+          />
+          <DeviceItem
+            label="型号"
+            value={deviceInfo.modelName}
+            icon={Smartphone}
+          />
+        </InfoCard>
 
-        {/* 系统信息卡片 */}
-        <Card className={isLandscape ? "w-[48%] mb-4" : "w-full mb-4"}>
-          <CardHeader>
-            <CardTitle>系统信息</CardTitle>
-            <CardDescription>设备操作系统相关信息</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <DeviceItem
-              label="操作系统"
-              value={deviceInfo.osName}
-              icon={<MemoryStick size={20} />}
-            />
-            <DeviceItem
-              label="版本"
-              value={deviceInfo.osVersion}
-              icon={<Info size={20} />}
-            />
-            <DeviceItem
-              label="是否是真实设备"
-              value={deviceInfo.isDevice ? "是" : "否"}
-              icon={<Smartphone size={20} />}
-            />
-          </CardContent>
-        </Card>
+        <InfoCard
+          title="系统信息"
+          description="设备操作系统相关信息"
+          className={cardStyles}
+        >
+          <DeviceItem
+            label="操作系统"
+            value={deviceInfo.osName}
+            icon={MemoryStick}
+          />
+          <DeviceItem label="版本" value={deviceInfo.osVersion} icon={Info} />
+          <DeviceItem
+            label="是否是真实设备"
+            value={deviceInfo.isDevice ? "是" : "否"}
+            icon={Smartphone}
+          />
+        </InfoCard>
 
-        {/* 硬件信息卡片 */}
-        <Card className={isLandscape ? "w-[48%] mb-4" : "w-full mb-4"}>
-          <CardHeader>
-            <CardTitle>硬件信息</CardTitle>
-            <CardDescription>设备硬件相关信息</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <DeviceItem
-              label="设备类型"
-              value={
-                deviceInfo.deviceType !== null
-                  ? deviceInfo.deviceType === Device.DeviceType.PHONE
-                    ? "手机"
-                    : deviceInfo.deviceType === Device.DeviceType.TABLET
-                    ? "平板"
-                    : "其他"
-                  : "未知"
-              }
-              icon={<DeviceTypeIcon size={20} />}
-            />
-            <DeviceItem
-              label="设备年份"
-              value={deviceInfo.deviceYearClass}
-              icon={<Home size={20} />}
-            />
-            <DeviceItem
-              label="总内存"
-              value={
-                deviceInfo.totalMemory
-                  ? `${(deviceInfo.totalMemory / (1024 * 1024)).toFixed(2)} MB`
-                  : "未知"
-              }
-              icon={<HardDrive size={20} />}
-            />
-          </CardContent>
-        </Card>
+        <InfoCard
+          title="硬件信息"
+          description="设备硬件相关信息"
+          className={cardStyles}
+        >
+          <DeviceItem
+            label="设备类型"
+            value={
+              deviceInfo.deviceType !== null
+                ? deviceInfo.deviceType === Device.DeviceType.PHONE
+                  ? "手机"
+                  : deviceInfo.deviceType === Device.DeviceType.TABLET
+                  ? "平板"
+                  : "其他"
+                : "未知"
+            }
+            icon={DeviceTypeIcon}
+          />
+          <DeviceItem
+            label="设备年份"
+            value={deviceInfo.deviceYearClass}
+            icon={Home}
+          />
+          <DeviceItem
+            label="总内存"
+            value={
+              deviceInfo.totalMemory
+                ? `${(deviceInfo.totalMemory / (1024 * 1024)).toFixed(2)} MB`
+                : "未知"
+            }
+            icon={HardDrive}
+          />
+        </InfoCard>
 
-        {/* 标识信息卡片 */}
-        <Card className={isLandscape ? "w-[48%] mb-4" : "w-full mb-4"}>
-          <CardHeader>
-            <CardTitle>标识信息</CardTitle>
-            <CardDescription>设备的标识相关信息</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <DeviceItem
-              label="设备名称"
-              value={deviceInfo.deviceName}
-              icon={<Smartphone size={20} />}
-            />
-            <DeviceItem
-              label="设计名称"
-              value={deviceInfo.designName}
-              icon={<Home size={20} />}
-            />
-            <DeviceItem
-              label="型号 ID"
-              value={deviceInfo.modelId}
-              icon={<Cpu size={20} />}
-            />
-            <DeviceItem
-              label="产品名称"
-              value={deviceInfo.productName}
-              icon={<Home size={20} />}
-            />
-          </CardContent>
-        </Card>
+        <InfoCard
+          title="标识信息"
+          description="设备的标识相关信息"
+          className={cardStyles}
+        >
+          <DeviceItem
+            label="设备名称"
+            value={deviceInfo.deviceName}
+            icon={Smartphone}
+          />
+          <DeviceItem
+            label="设计名称"
+            value={deviceInfo.designName}
+            icon={Home}
+          />
+          <DeviceItem label="型号 ID" value={deviceInfo.modelId} icon={Cpu} />
+          <DeviceItem
+            label="产品名称"
+            value={deviceInfo.productName}
+            icon={Home}
+          />
+        </InfoCard>
 
-        {/* 网络信息卡片 */}
-        <Card className={isLandscape ? "w-[48%]" : "w-full"}>
-          <CardHeader>
-            <CardTitle>网络信息</CardTitle>
-            <CardDescription>设备的网络相关信息</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <DeviceItem
-              label="IP 地址"
-              value={networkInfo.ipAddress}
-              icon={
-                networkInfo.isConnected ? (
-                  <Wifi size={20} />
-                ) : (
-                  <WifiOff size={20} />
-                )
-              }
-            />
-            <DeviceItem
-              label="网络类型"
-              value={networkInfo.networkType}
-              icon={
-                networkInfo.isConnected ? (
-                  <Signal size={20} />
-                ) : (
-                  <AlertCircle size={20} />
-                )
-              }
-            />
-            <DeviceItem
-              label="是否连接"
-              value={networkInfo.isConnected ? "已连接" : "未连接"}
-              icon={
-                networkInfo.isConnected ? (
-                  <Wifi size={20} />
-                ) : (
-                  <WifiOff size={20} />
-                )
-              }
-            />
-          </CardContent>
-        </Card>
-      </View>
-      <Toast />
+        <InfoCard
+          title="网络信息"
+          description="设备的网络相关信息"
+          className={cardStyles}
+        >
+          <DeviceItem
+            label="IP 地址"
+            value={networkInfo.ipAddress}
+            icon={networkInfo.isConnected ? Wifi : WifiOff}
+          />
+          <DeviceItem
+            label="网络类型"
+            value={networkInfo.networkType}
+            icon={networkInfo.isConnected ? Signal : AlertCircle}
+          />
+          <DeviceItem
+            label="是否连接"
+            value={networkInfo.isConnected ? "已连接" : "未连接"}
+            icon={networkInfo.isConnected ? Wifi : WifiOff}
+          />
+        </InfoCard>
+      </ThemedView>
     </SafeAreaView>
   );
 };

@@ -24,7 +24,7 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { NetworkInfoModal } from "@/components/connection/NetworkInfoModal";
 import { useNetworkStore } from "@/stores/useNetworkStore";
@@ -36,6 +36,9 @@ import Animated, {
   Easing,
   withSequence,
 } from "react-native-reanimated";
+import UpdateDialog from "@/components/home/UpdateDialog";
+import { CustomWebView } from "@/components/home/WebView";
+import { toast } from "sonner-native";
 
 const WalkthroughCard = walkthroughable(Card);
 const WalkthroughButton = walkthroughable(Button);
@@ -49,6 +52,8 @@ function HomeScreenContent() {
   const [isScanning, setIsScanning] = useState(false);
   const [ipAddress] = useState("10.42.0.1");
   const { modalVisible, setModalVisible } = useNetworkStore();
+  const [showWebView, setShowWebView] = useState(false);
+  const [webViewUrl, setWebViewUrl] = useState("");
 
   const scanAnimation = useSharedValue(0);
   const connectionScale = useSharedValue(1);
@@ -98,11 +103,35 @@ function HomeScreenContent() {
 
   const handleScan = async () => {
     setIsScanning(true);
-    setTimeout(() => {
+    try {
+      // 模拟扫描过程
+      await new Promise((resolve) => setTimeout(resolve, 2000));
       setIsScanning(false);
       setIsConnected(true);
-    }, 2000);
+
+      // 构建WebView URL
+      const protocol = "http";
+      const port = "8080"; // 根据实际情况设置端口
+      const url = `${protocol}://${ipAddress}:${port}`;
+      setWebViewUrl(url);
+      setShowWebView(true);
+
+      toast.success("连接成功");
+    } catch (error) {
+      setIsScanning(false);
+      toast.error("扫描失败", {
+        description: error instanceof Error ? error.message : "未知错误",
+      });
+    }
   };
+
+  const handleWebViewError = useCallback((error: any) => {
+    setShowWebView(false);
+    setIsConnected(false);
+    toast.error("连接失败", {
+      description: "请确保设备在同一网络下",
+    });
+  }, []);
 
   const handleModeChange = (mode: "hotspot" | "lan") => {
     setActiveMode(mode);
@@ -110,6 +139,19 @@ function HomeScreenContent() {
   };
 
   const isLandscape = SCREEN_WIDTH > SCREEN_HEIGHT;
+
+  if (showWebView) {
+    return (
+      <CustomWebView
+        url={webViewUrl}
+        onError={handleWebViewError}
+        customParams={{
+          mode: activeMode,
+          timestamp: Date.now().toString(),
+        }}
+      />
+    );
+  }
 
   return (
     <SafeAreaView className="flex-1">
@@ -119,7 +161,7 @@ function HomeScreenContent() {
           contentContainerStyle={{
             flexDirection: isLandscape ? "row" : "column",
             justifyContent: "space-between",
-            paddingBottom: 60, // 替代 pb-15
+            paddingBottom: 120, // 增加底部间距以容纳更新组件
           }}
         >
           {/* Mode Selection */}
@@ -270,6 +312,11 @@ function HomeScreenContent() {
                 </View>
               </WalkthroughButton>
             </CopilotStep>
+          </View>
+
+          {/* Update Dialog */}
+          <View className={`mt-4 ${isLandscape ? "flex-1" : "w-full"}`}>
+            <UpdateDialog />
           </View>
         </ScrollView>
 

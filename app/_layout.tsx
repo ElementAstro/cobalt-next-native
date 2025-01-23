@@ -11,11 +11,13 @@ import { StatusBar } from "expo-status-bar";
 import { useEffect } from "react";
 import "react-native-reanimated";
 import { Text } from "react-native";
+import { PortalHost } from "@rn-primitives/portal";
 
 import "../global.css";
 
 import { useColorScheme } from "@/hooks/useColorScheme";
 import { Toaster } from "sonner-native";
+import ErrorBoundary from "@/components/error/ErrorBoundary";
 
 // 防止资源加载完成前自动隐藏启动屏幕
 SplashScreen.preventAutoHideAsync();
@@ -57,32 +59,35 @@ export default function RootLayout() {
   }
 
   return (
-    <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
-      <Stack>
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen name="+not-found" />
-      </Stack>
-      <StatusBar style="auto" />
-      <Toaster
-        position="top-center"
-        // offset={100}
-        duration={3000}
-        swipeToDismissDirection="up"
-        visibleToasts={4}
-        closeButton
-        autoWiggleOnUpdate="toast-change"
-        theme="system"
-        icons={{
-          error: <Text>💥</Text>,
-          loading: <Text>🔄</Text>,
-        }}
-        toastOptions={{
-          actionButtonStyle: {
-            paddingHorizontal: 20,
-          },
-        }}
-        pauseWhenPageIsHidden
-      />
-    </ThemeProvider>
+    <ErrorBoundary>
+      <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
+        <Stack>
+          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+          <Stack.Screen name="+not-found" />
+        </Stack>
+        <PortalHost />
+        <StatusBar style="auto" />
+        <Toaster
+          position="top-center"
+          // offset={100}
+          duration={3000}
+          swipeToDismissDirection="up"
+          visibleToasts={4}
+          closeButton
+          autoWiggleOnUpdate="toast-change"
+          theme="system"
+          icons={{
+            error: <Text>💥</Text>,
+            loading: <Text>🔄</Text>,
+          }}
+          toastOptions={{
+            actionButtonStyle: {
+              paddingHorizontal: 20,
+            },
+          }}
+          pauseWhenPageIsHidden
+        />
+      </ThemeProvider>
+    </ErrorBoundary>
   );
 }

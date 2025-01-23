@@ -1,24 +1,76 @@
-import React, { useState, useEffect } from "react";
-import {
-  View,
-  Text,
-  Dimensions,
-  Animated,
-  useColorScheme,
-  TouchableOpacity,
-  Alert,
-} from "react-native";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
+import { View, useColorScheme, useWindowDimensions } from "react-native";
 import {
   Accelerometer,
   DeviceMotion,
   DeviceMotionMeasurement,
 } from "expo-sensors";
 import * as Haptics from "expo-haptics";
+import { z } from "zod";
+import { toast } from "sonner-native";
+import {
+  Compass,
+  AlertTriangle,
+  RefreshCw,
+  CheckCircle2,
+  Ruler,
+  RotateCcw,
+  Settings,
+} from "lucide-react-native";
+import Animated, {
+  FadeIn,
+  SlideInRight,
+  useAnimatedStyle,
+  useSharedValue,
+  withSpring,
+} from "react-native-reanimated";
+import { Button } from "../ui/button";
+import { Progress } from "../ui/progress";
+import { Alert, AlertTitle, AlertDescription } from "../ui/alert";
+import { Text } from "../ui/text";
 import { EventSubscription } from "expo-notifications";
 
-const { width, height } = Dimensions.get("window");
+// Props 接口
+interface LevelDisplayProps {
+  angle: number;
+  isLevel: boolean;
+}
 
-const LevelIndicator: React.FC = () => {
+// Validation Schema
+const AccelerationSchema = z.object({
+  x: z.number(),
+  y: z.number(),
+  z: z.number(),
+});
+
+const MotionSchema = z.object({
+  rotation: z.object({
+    alpha: z.number(),
+    beta: z.number(),
+    gamma: z.number(),
+    timestamp: z.number(),
+  }),
+  orientation: z.number(),
+});
+
+// Components
+const LevelDisplay = React.memo(({ angle, isLevel }: LevelDisplayProps) => {
+  const colorScheme = useColorScheme();
+  const textColor = colorScheme === "dark" ? "white" : "black";
+
+  return (
+    <View className="items-center space-y-4">
+      <Text className={`text-2xl font-bold ${textColor}`}>
+        {isLevel ? "水平" : "不水平"}
+      </Text>
+      <Text className={`text-lg font-medium ${textColor}`}>
+        {angle.toFixed(1)}° 偏离水平
+      </Text>
+    </View>
+  );
+});
+
+const LevelIndicator = () => {
   const [acceleration, setAcceleration] = useState({ x: 0, y: 0, z: 0 });
   const [deviceMotion, setDeviceMotion] =
     useState<DeviceMotionMeasurement | null>(null);
@@ -32,10 +84,9 @@ const LevelIndicator: React.FC = () => {
   const [hasPermission, setHasPermission] = useState<boolean | null>(null);
   const [isAvailable, setIsAvailable] = useState<boolean>(true);
 
-  const levelIndicatorPosition = new Animated.ValueXY({
-    x: width / 2,
-    y: height / 2,
-  });
+  const { width, height } = useWindowDimensions();
+  const levelIndicatorX = useSharedValue(width / 2);
+  const levelIndicatorY = useSharedValue(height / 2);
 
   const colorScheme = useColorScheme();
   const textColor = colorScheme === "dark" ? "white" : "black";
@@ -47,8 +98,11 @@ const LevelIndicator: React.FC = () => {
       setHasPermission(
         status === "granted" && motionStatus.status === "granted"
       );
+
       if (status !== "granted" || motionStatus.status !== "granted") {
-        Alert.alert("权限未授予", "请在设置中授予加速度计和设备运动权限。");
+        toast.error("权限未授予", {
+          description: "请在设置中授予加速度计和设备运动权限",
+        });
       }
     } catch (error) {
       console.error("请求权限失败:", error);
@@ -59,46 +113,72 @@ const LevelIndicator: React.FC = () => {
     const available = await Accelerometer.isAvailableAsync();
     const motionAvailable = await DeviceMotion.isAvailableAsync();
     setIsAvailable(available && motionAvailable);
+
     if (!available || !motionAvailable) {
-      Alert.alert("传感器不可用", "您的设备不支持加速度计或设备运动传感器。");
+      toast.error("传感器不可用", {
+        description: "您的设备不支持加速度计或设备运动传感器",
+      });
     }
   };
 
-  const _subscribe = () => {
-    const sub = Accelerometer.addListener((data) => {
-      setAcceleration(data);
-
-      const angleInDegrees = Math.atan2(data.y, data.x) * (180 / Math.PI);
-      setAngle(Math.abs(angleInDegrees));
-
-      if (Math.abs(data.x) < 0.1 && Math.abs(data.y) < 0.1) {
-        setIsLevel(true);
-      } else {
-        setIsLevel(false);
-      }
-
-      Animated.spring(levelIndicatorPosition, {
-        toValue: {
-          x: width / 2 + data.x * width * 0.4,
-          y: height / 2 + data.y * height * 0.2,
+  const handleMotionUpdate = useCallback((data: DeviceMotionMeasurement) => {
+    try {
+      const validatedMotion = MotionSchema.parse(data);
+      setDeviceMotion({
+        ...validatedMotion,
+        acceleration: data.acceleration,
+        accelerationIncludingGravity: data.accelerationIncludingGravity,
+        rotationRate: data.rotationRate,
+        interval: data.interval,
+        rotation: {
+          ...validatedMotion.rotation,
         },
-        useNativeDriver: true,
-        friction: 5,
-        tension: 40,
-      }).start();
+      });
+    } catch (error) {
+      toast.error("传感器数据无效", {
+        description: "请检查设备传感器状态",
+        icon: <AlertTriangle size={20} />,
+      });
+    }
+  }, []);
 
-      if (Math.abs(data.x) > 0.5 || Math.abs(data.y) > 0.5) {
-        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+  const handleAccelerationUpdate = useCallback(
+    (data: { x: number; y: number; z: number }) => {
+      try {
+        const validatedData = AccelerationSchema.parse(data);
+
+        const angleInDegrees = Math.atan2(data.y, data.x) * (180 / Math.PI);
+        setAngle(Math.abs(angleInDegrees));
+
+        if (Math.abs(data.x) < 0.1 && Math.abs(data.y) < 0.1) {
+          setIsLevel(true);
+          toast.success("设备已水平", {
+            icon: <CheckCircle2 size={20} />,
+          });
+        } else {
+          setIsLevel(false);
+        }
+
+        if (Math.abs(data.x) > 0.5 || Math.abs(data.y) > 0.5) {
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+        }
+      } catch (error) {
+        toast.error("加速度数据无效", {
+          description: "请检查设备传感器状态",
+          icon: <AlertTriangle size={20} />,
+        });
       }
-    });
+    },
+    []
+  );
+
+  const _subscribe = () => {
+    const sub = Accelerometer.addListener(handleAccelerationUpdate);
     setSubscription(sub);
   };
 
   const _subscribeMotion = () => {
-    const sub = DeviceMotion.addListener((data) => {
-      setDeviceMotion(data);
-      // 可以根据设备运动数据进行更多处理
-    });
+    const sub = DeviceMotion.addListener(handleMotionUpdate);
     setMotionSubscription(sub);
   };
 
@@ -153,88 +233,76 @@ const LevelIndicator: React.FC = () => {
     }
   };
 
+  const indicatorStyle = useAnimatedStyle(() => ({
+    transform: [
+      { translateX: withSpring(levelIndicatorX.value) },
+      { translateY: withSpring(levelIndicatorY.value) },
+      { rotate: `${angle}deg` },
+    ],
+  }));
+
   return (
-    <View
-      className={`flex-1 justify-center items-center p-5 ${
-        colorScheme === "dark" ? "bg-black" : "bg-white"
-      }`}
-    >
+    <Animated.View entering={FadeIn} className="flex-1 p-4">
       {hasPermission === null ? (
-        <Text className={`text-center text-lg ${textColor}`}>
-          正在请求权限...
-        </Text>
-      ) : !hasPermission ? (
-        <View className="justify-center items-center">
-          <Text className={`text-center text-lg ${textColor}`}>
-            加速度计或设备运动权限被拒绝。
-          </Text>
-          <TouchableOpacity
-            className="mt-3 py-2 px-5 bg-blue-500 rounded"
-            onPress={handleRetry}
-          >
-            <Text className="text-white text-lg">重试</Text>
-          </TouchableOpacity>
-        </View>
-      ) : !isAvailable ? (
-        <View className="justify-center items-center">
-          <Text className={`text-center text-lg ${textColor}`}>
-            设备不支持加速度计或设备运动传感器。
-          </Text>
-          <TouchableOpacity
-            className="mt-3 py-2 px-5 bg-blue-500 rounded"
-            onPress={handleRetry}
-          >
-            <Text className="text-white text-lg">重试</Text>
-          </TouchableOpacity>
+        <Alert variant="default" icon={Settings}>
+          <AlertTitle>正在请求权限</AlertTitle>
+          <AlertDescription>请稍候...</AlertDescription>
+        </Alert>
+      ) : !hasPermission || !isAvailable ? (
+        <View className="space-y-4">
+          <Alert variant="destructive" icon={AlertTriangle}>
+            <AlertTitle>
+              {!hasPermission ? "权限被拒绝" : "传感器不可用"}
+            </AlertTitle>
+            <AlertDescription>
+              {!hasPermission
+                ? "请允许访问设备传感器"
+                : "您的设备不支持所需传感器"}
+            </AlertDescription>
+          </Alert>
+          <Button onPress={handleRetry} className="w-full">
+            <RotateCcw size={20} className="mr-2" />
+            <Text>重试</Text>
+          </Button>
         </View>
       ) : (
-        <>
-          <View className="relative w-3/4 h-1/2 border-4 border-gray-500 rounded-full justify-center items-center">
+        <View className="space-y-8">
+          <View className="relative w-full aspect-square border-4 border-gray-500 rounded-full items-center justify-center">
             <Animated.View
-              className={`absolute w-12 h-12 rounded-full`}
-              style={{
-                backgroundColor: getIndicatorColor(angle),
-                transform: [
-                  { translateX: levelIndicatorPosition.x },
-                  { translateY: levelIndicatorPosition.y },
-                  { rotate: `${angle}deg` },
-                ],
-              }}
+              className="absolute w-12 h-12 rounded-full"
+              style={[
+                indicatorStyle,
+                {
+                  backgroundColor: getIndicatorColor(angle),
+                },
+              ]}
             />
-            <Text className={`absolute text-xl font-bold ${textColor}`}>
+            <Compass size={32} className="text-primary" />
+            <Text className="absolute text-xl font-bold">
               {angle.toFixed(1)}°
             </Text>
           </View>
 
-          <Text className={`mt-4 text-2xl font-bold ${textColor}`}>
-            {isLevel ? "水平" : "不水平"}
-          </Text>
+          <LevelDisplay angle={angle} isLevel={isLevel} />
 
-          <Text className={`mt-2 text-lg font-medium ${textColor}`}>
-            {angle.toFixed(1)}° 偏离水平
-          </Text>
-
-          {!isLevel && (
-            <Text className="mt-2 text-lg font-medium text-red-500">
-              请调整设备
-            </Text>
-          )}
+          <Progress
+            value={Math.min(((90 - angle) / 90) * 100, 100)}
+            className="h-2"
+          />
 
           {deviceMotion && (
-            <View className="mt-5 items-center">
-              <Text className={`text-base ${textColor}`}>
-                Orientation: {deviceMotion.orientation}
-              </Text>
-              <Text className={`text-base ${textColor}`}>
-                Rotation Rate - Alpha: {deviceMotion.rotation?.alpha.toFixed(2)}
-                ° , Beta: {deviceMotion.rotation?.beta.toFixed(2)}° , Gamma:{" "}
-                {deviceMotion.rotation?.gamma.toFixed(2)}°
-              </Text>
-            </View>
+            <Alert variant="default" icon={Ruler}>
+              <AlertTitle>设备姿态</AlertTitle>
+              <AlertDescription>
+                Alpha: {deviceMotion.rotation.alpha.toFixed(2)}°{"\n"}
+                Beta: {deviceMotion.rotation.beta.toFixed(2)}°{"\n"}
+                Gamma: {deviceMotion.rotation.gamma.toFixed(2)}°
+              </AlertDescription>
+            </Alert>
           )}
-        </>
+        </View>
       )}
-    </View>
+    </Animated.View>
   );
 };
 

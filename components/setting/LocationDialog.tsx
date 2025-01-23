@@ -5,8 +5,6 @@ import {
   Platform,
   PermissionsAndroid,
   View,
-  Text,
-  Alert,
 } from "react-native";
 import * as Location from "expo-location";
 import {
@@ -14,19 +12,17 @@ import {
   RefreshCw,
   XCircle,
   Target,
-  Map,
   AlertTriangle,
-  History,
 } from "lucide-react-native";
 import Animated, {
   useAnimatedStyle,
   withSpring,
   withTiming,
-  Easing,
   useSharedValue,
   interpolate,
 } from "react-native-reanimated";
-import Toast from "react-native-toast-message";
+import { toast } from "sonner-native";
+import { z } from "zod";
 import {
   Dialog,
   DialogContent,
@@ -40,9 +36,9 @@ import {
   CardTitle,
   CardFooter,
 } from "@/components/ui/card";
-import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { AMapSdk, MapView, Marker, MapType } from "react-native-amap3d";
+import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
+import { AMapSdk, MapView, Marker } from "react-native-amap3d";
 import {
   init as initGeolocation,
   Geolocation,
@@ -50,6 +46,108 @@ import {
   setLocatingWithReGeocode,
 } from "react-native-amap-geolocation";
 import { useLocationStore } from "@/stores/useLocationStore";
+import { Text } from "@/components/ui/text";
+
+// 类型定义
+interface LocationType {
+  latitude: number;
+  longitude: number;
+  timestamp: number;
+}
+
+interface LocationDisplayProps {
+  location: LocationType | null;
+  error: string | null;
+}
+
+interface MapDisplayProps {
+  location: LocationType | null;
+  isLandscape: boolean;
+}
+
+interface GeolocationPosition {
+  coords: {
+    latitude: number;
+    longitude: number;
+    accuracy?: number;
+    altitude?: number | null;
+    heading?: number | null;
+    speed?: number | null;
+  };
+  timestamp: number;
+}
+
+// 位置显示组件
+const LocationDisplay = ({ location, error }: LocationDisplayProps) => {
+  if (error) {
+    return (
+      <Alert variant="destructive" icon={AlertTriangle}>
+        <AlertTitle>定位错误</AlertTitle>
+        <AlertDescription>{error}</AlertDescription>
+      </Alert>
+    );
+  }
+
+  if (!location) {
+    return (
+      <Alert variant="default" icon={AlertTriangle}>
+        <AlertTitle>未获取位置</AlertTitle>
+        <AlertDescription>点击下方按钮开始定位</AlertDescription>
+      </Alert>
+    );
+  }
+
+  return (
+    <Alert variant="default" icon={Target}>
+      <AlertTitle>位置信息</AlertTitle>
+      <AlertDescription>
+        纬度: {location.latitude.toFixed(6)}
+        经度: {location.longitude.toFixed(6)}
+      </AlertDescription>
+    </Alert>
+  );
+};
+
+// 地图显示组件
+const MapDisplay = ({ location, isLandscape }: MapDisplayProps) => {
+  if (!location) return null;
+
+  return (
+    <View className={`flex-1 ${isLandscape ? "ml-4" : "mt-4"}`}>
+      <MapView
+        style={{ flex: 1, borderRadius: 8 }}
+        initialCameraPosition={{
+          target: {
+            latitude: location.latitude,
+            longitude: location.longitude,
+          },
+          zoom: 15,
+        }}
+        myLocationEnabled={true}
+        onPress={(event) => {
+          console.log("Map pressed at:", event.nativeEvent);
+        }}
+        onLoad={() => {
+          console.log("Map loaded");
+        }}
+      >
+        <Marker
+          position={{
+            latitude: location.latitude,
+            longitude: location.longitude,
+          }}
+        />
+      </MapView>
+    </View>
+  );
+};
+
+// 位置数据验证Schema
+const LocationSchema = z.object({
+  latitude: z.number().min(-90).max(90),
+  longitude: z.number().min(-180).max(180),
+  timestamp: z.number(),
+});
 
 const LocationDialog: React.FC = () => {
   const { config, location: storeLocation, setLocation } = useLocationStore();
@@ -58,36 +156,24 @@ const LocationDialog: React.FC = () => {
   const { width, height } = useWindowDimensions();
   const isLandscape = width > height;
 
-  const scale = useSharedValue(1);
-  const rotate = useSharedValue(0);
-  const progress = useSharedValue(0);
+  // 优化动画值
+  const animations = {
+    scale: useSharedValue(1),
+    rotate: useSharedValue(0),
+    progress: useSharedValue(0),
+  };
 
   const fadeAnim = useAnimatedStyle(() => ({
-    opacity: progress.value,
+    opacity: animations.progress.value,
   }));
 
   const slideAnim = useAnimatedStyle(() => ({
     transform: [
-      { translateY: interpolate(progress.value, [0, 1], [50, 0]) },
-      { scale: withSpring(scale.value) },
-      { rotate: `${rotate.value}deg` },
+      { translateY: interpolate(animations.progress.value, [0, 1], [50, 0]) },
+      { scale: withSpring(animations.scale.value) },
+      { rotate: `${animations.rotate.value}deg` },
     ],
   }));
-
-  const showToast = (
-    type: "success" | "error",
-    text1: string,
-    text2?: string
-  ) => {
-    Toast.show({
-      type,
-      text1,
-      text2,
-      position: "bottom",
-      visibilityTime: 3000,
-      autoHide: true,
-    });
-  };
 
   // 初始化高德地图与定位
   useEffect(() => {
@@ -115,12 +201,7 @@ const LocationDialog: React.FC = () => {
         }
       } catch (error) {
         console.error("地图初始化失败:", error);
-        Alert.alert(
-          "初始化错误",
-          "地图服务无法初始化，请检查您的网络连接或API密钥设置。",
-          [{ text: "确定" }]
-        );
-        showToast("error", "初始化失败", "地图服务无法正常运行");
+        toast.error("初始化失败", { description: "地图服务无法正常运行" });
       }
     };
 
@@ -154,54 +235,50 @@ const LocationDialog: React.FC = () => {
     }
   };
 
-  // 获取当前定位
+  // 获取位置信息并验证
   const getCurrentLocation = useCallback(async () => {
     setLoading(true);
-    scale.value = 0.9;
-    rotate.value = 0;
-    progress.value = 0;
-
-    const permissionGranted = await requestLocationPermissions();
-    if (!permissionGranted) {
-      setLoading(false);
-      showToast("error", "权限被拒绝", "无法访问位置信息");
-      return;
-    }
+    animations.scale.value = 0.9;
 
     try {
-      await new Promise((resolve, reject) => {
-        Geolocation.getCurrentPosition(
-          (position) => {
-            setLocation({
-              latitude: position.coords.latitude,
-              longitude: position.coords.longitude,
-              timestamp: Date.now(),
-            });
-            setErrorMsg(null);
-            scale.value = withSpring(1.1);
-            rotate.value = withTiming(360, {
-              duration: 800,
-              easing: Easing.bezier(0.25, 0.1, 0.25, 1),
-            });
-            progress.value = withTiming(1, { duration: 500 });
-            showToast("success", "定位成功", "已获取最新位置信息");
-            resolve(position);
-          },
-          (error) => {
-            setErrorMsg("获取位置失败: " + error.message);
-            showToast("error", "定位失败", error.message);
-            reject(error);
-          }
-        );
-      });
+      const permissionGranted = await requestLocationPermissions();
+      if (!permissionGranted) {
+        toast.error("权限错误", { description: "无法访问位置信息" });
+        return;
+      }
+
+      const position: GeolocationPosition = await new Promise(
+        (resolve, reject) => {
+          Geolocation.getCurrentPosition(
+            (pos: GeolocationPosition) => resolve(pos),
+            reject
+          );
+        }
+      );
+
+      const locationData = {
+        latitude: position.coords.latitude,
+        longitude: position.coords.longitude,
+        timestamp: Date.now(),
+      };
+
+      const validatedLocation = LocationSchema.parse(locationData);
+      setLocation(validatedLocation);
+
+      animations.scale.value = withSpring(1.1);
+      animations.rotate.value = withTiming(360);
+      animations.progress.value = withTiming(1);
+
+      toast.success("定位成功", { description: "已获取最新位置" });
     } catch (error) {
-      setErrorMsg("获取位置失败: " + (error as Error).message);
-      showToast("error", "定位失败", (error as Error).message);
+      const message = error instanceof Error ? error.message : "未知错误";
+      toast.error("定位失败", { description: message });
+      setErrorMsg(message);
     } finally {
       setLoading(false);
-      scale.value = withSpring(1);
+      animations.scale.value = withSpring(1);
     }
-  }, [setLocation, scale, rotate, progress]);
+  }, [setLocation, animations]);
 
   // 启动持续定位
   useEffect(() => {
@@ -229,124 +306,60 @@ const LocationDialog: React.FC = () => {
   return (
     <Dialog>
       <DialogTrigger asChild>
-        <Button
-          variant="default"
-          size="default"
-          className="flex-row items-center"
-        >
-          <MapPin size={20} className="mr-2 text-gray-800 dark:text-gray-200" />
-          <Text className="text-gray-800 dark:text-gray-200">打开位置获取</Text>
+        <Button variant="default" className="flex-row items-center space-x-2">
+          <MapPin size={20} />
+          <Text>打开位置获取</Text>
         </Button>
       </DialogTrigger>
-      <DialogContent>
+
+      <DialogContent className="p-0">
         <Animated.View
-          className={`w-full ${
-            isLandscape ? "flex-row space-x-4" : "flex-col space-y-4"
-          }`}
           style={[fadeAnim, slideAnim]}
+          className={`flex ${isLandscape ? "flex-row" : "flex-col"} p-4`}
         >
-          {/* 左侧卡片：显示定位信息 */}
-          <Card className={`flex-1 ${isLandscape ? "mr-4" : ""}`}>
+          {/* 位置信息卡片 */}
+          <Card className="flex-1">
             <CardHeader>
-              <CardTitle className="flex-row items-center">
-                <Map size={24} className="mr-2 text-blue-500" />
-                <Text className="text-lg font-semibold text-gray-800 dark:text-gray-200">
-                  当前位置
-                </Text>
+              <CardTitle className="flex-row items-center space-x-2">
+                <Target size={24} className="text-primary" />
+                <Text className="text-xl font-bold">当前位置</Text>
               </CardTitle>
             </CardHeader>
+
             <CardContent>
               {loading ? (
-                <ActivityIndicator size="small" color="#3b82f6" />
-              ) : errorMsg ? (
-                <Label className="text-red-500 flex-row items-center">
-                  <AlertTriangle size={16} className="mr-1" />
-                  <Text className="text-red-500">{errorMsg}</Text>
-                </Label>
-              ) : storeLocation ? (
-                <Label className="flex-row items-center">
-                  <Target size={16} className="mr-1 text-green-500" />
-                  <Text className="text-green-500">
-                    纬度: {storeLocation.latitude.toFixed(4)}, 经度:{" "}
-                    {storeLocation.longitude.toFixed(4)}
-                  </Text>
-                </Label>
+                <View className="items-center">
+                  <ActivityIndicator size="large" />
+                  <Text className="mt-2 text-muted-foreground">定位中...</Text>
+                </View>
               ) : (
-                <Label className="text-gray-500 flex-row items-center">
-                  <AlertTriangle size={16} className="mr-1" />
-                  <Text className="text-gray-500">未获取位置</Text>
-                </Label>
+                <LocationDisplay location={storeLocation} error={errorMsg} />
               )}
             </CardContent>
+
             <CardFooter>
               <Button
                 variant="outline"
                 onPress={getCurrentLocation}
-                className="flex-row items-center"
+                disabled={loading}
+                className="w-full flex-row justify-center space-x-2"
               >
                 <RefreshCw
-                  size={16}
-                  className="mr-1 text-gray-800 dark:text-gray-200"
+                  size={18}
+                  className={loading ? "animate-spin" : ""}
                 />
-                <Text className="text-gray-800 dark:text-gray-200">
-                  重新定位
-                </Text>
+                <Text>{loading ? "定位中..." : "重新定位"}</Text>
               </Button>
             </CardFooter>
           </Card>
 
-          {/* 右侧视图：地图显示 */}
-          <Card className={`flex-1 ${isLandscape ? "ml-4" : ""}`}>
-            <CardHeader>
-              <CardTitle className="flex-row items-center">
-                <History size={24} className="mr-2 text-green-500" />
-                <Text className="text-lg font-semibold text-gray-800 dark:text-gray-200">
-                  地图定位
-                </Text>
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <View className={`${isLandscape ? "h-64" : "h-48"} w-full`}>
-                <MapView
-                  mapType={MapType.Standard}
-                  initialCameraPosition={{
-                    target: {
-                      latitude: storeLocation?.latitude || 39.91095,
-                      longitude: storeLocation?.longitude || 116.37296,
-                    },
-                    zoom: 14,
-                  }}
-                  className="w-full h-full"
-                >
-                  {storeLocation && (
-                    <Marker
-                      position={{
-                        latitude: storeLocation.latitude,
-                        longitude: storeLocation.longitude,
-                      }}
-                    >
-                      <View className="bg-red-500 p-2 rounded">
-                        <Text className="text-white text-center">当前位置</Text>
-                      </View>
-                    </Marker>
-                  )}
-                </MapView>
-              </View>
-            </CardContent>
-          </Card>
+          {/* 地图显示 */}
+          <MapDisplay location={storeLocation} isLandscape={isLandscape} />
         </Animated.View>
 
         <DialogClose asChild>
-          <Button
-            variant="ghost"
-            size="default"
-            className="flex-row items-center mt-4"
-          >
-            <XCircle
-              size={20}
-              className="mr-2 text-gray-800 dark:text-gray-200"
-            />
-            <Text className="text-gray-800 dark:text-gray-200">关闭</Text>
+          <Button variant="ghost" className="absolute top-2 right-2">
+            <XCircle size={20} />
           </Button>
         </DialogClose>
       </DialogContent>
