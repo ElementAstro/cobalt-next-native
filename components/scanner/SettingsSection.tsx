@@ -68,14 +68,12 @@ const SettingsSection: React.FC<SettingsSectionProps> = ({
       entering={FadeIn.duration(300).springify()}
       exiting={FadeOut.duration(200)}
       layout={Layout.springify()}
-      className={`rounded-lg p-4 ${
-        isLandscape ? "mx-2" : "mb-4"
-      } ${className} ${
-        isError ? "border border-red-500" : "bg-white dark:text-white dark:bg-gray-950"
-      }`}
-      style={{
-        flex: isLandscape ? 1 : undefined,
-      }}
+      className={`
+        rounded-lg p-4 mx-1 mb-2
+        ${className} 
+        ${isError ? "border border-destructive" : "bg-card"}
+      `}
+      style={{ flex: 1 }}
     >
       <Pressable
         className="flex-row justify-between items-center"

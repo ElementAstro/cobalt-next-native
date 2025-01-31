@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from "react";
-import { View, Dimensions } from "react-native";
+import { View, Dimensions, StyleSheet } from "react-native";
 import { WebView } from "react-native-webview";
 import Animated, {
   FadeIn,
@@ -11,10 +11,13 @@ import {
   AlertCircle,
   Smartphone,
   Monitor,
+  XCircle,
 } from "lucide-react-native";
 import { toast } from "sonner-native";
 import { Button } from "@/components/ui/button";
 import { Text } from "@/components/ui/text";
+import { useAppStore } from "@/stores/useHomeStore";
+import { useOrientation } from "@/hooks/useOrientation";
 
 interface DeviceConfig {
   name: string;
@@ -73,7 +76,9 @@ export const CustomWebView: React.FC<CustomWebViewProps> = ({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
   const [key, setKey] = useState(0);
-  const [currentDevice, setCurrentDevice] = useState(initialDevice);
+
+  const { isFullscreen, currentDevice, setFullscreen, setCurrentDevice } = useAppStore();
+  const isLandscape = useOrientation();
 
   const devices = { ...DEFAULT_DEVICES, ...customDevices };
 
@@ -119,41 +124,78 @@ export const CustomWebView: React.FC<CustomWebViewProps> = ({
   const handleDeviceChange = useCallback((deviceKey: string) => {
     setCurrentDevice(deviceKey);
     setKey((prev) => prev + 1);
-  }, []);
+  }, [setCurrentDevice]);
+
+  const toggleFullscreen = useCallback(() => {
+    setFullscreen(!isFullscreen);
+  }, [isFullscreen, setFullscreen]);
 
   const deviceConfig = devices[currentDevice];
 
   return (
     <View className="flex-1 bg-background">
-      <View className="flex-row p-2 border-b border-border">
-        {Object.entries(devices).map(([key, device]) => (
-          <Button
-            key={key}
-            variant={currentDevice === key ? "default" : "outline"}
-            size="sm"
-            className="mr-2"
-            onPress={() => handleDeviceChange(key)}
-          >
-            {key === "responsive" ? (
-              <Monitor className="mr-1 h-4 w-4" />
-            ) : (
-              <Smartphone className="mr-1 h-4 w-4" />
-            )}
-            <Text>{device.name}</Text>
-          </Button>
-        ))}
-      </View>
+      {!isFullscreen && (
+        <View className={`
+          flex-row flex-wrap p-2 border-b border-border
+          ${isLandscape ? 'items-center justify-center' : ''}
+        `}>
+          {Object.entries(devices).map(([key, device]) => (
+            <Button
+              key={key}
+              variant={currentDevice === key ? "default" : "outline"}
+              size="sm"
+              className={`
+                m-1
+                ${isLandscape ? 'min-w-[120px]' : 'flex-1'}
+              `}
+              onPress={() => handleDeviceChange(key)}
+            >
+              {key === "responsive" ? (
+                <Monitor className="mr-1 h-4 w-4" />
+              ) : (
+                <Smartphone className="mr-1 h-4 w-4" />
+              )}
+              <Text>{device.name}</Text>
+            </Button>
+          ))}
+        </View>
+      )}
 
-      <View className="flex-1 items-center">
+      <View className={`
+        flex-1 items-center justify-center
+        ${isLandscape ? 'px-4' : ''}
+      `}>
         <View
-          style={{
-            width: deviceConfig.width,
-            height: deviceConfig.height,
-            maxWidth: "100%",
-            maxHeight: "100%",
-          }}
-          className="relative bg-background border border-border overflow-hidden"
+          style={[
+            {
+              width: isFullscreen ? '100%' : (
+                isLandscape ? 
+                  Math.min(deviceConfig.width, Dimensions.get('window').width * 0.8) :
+                  deviceConfig.width
+              ),
+              height: isFullscreen ? '100%' : (
+                isLandscape ?
+                  Math.min(deviceConfig.height, Dimensions.get('window').height * 0.9) :
+                  deviceConfig.height
+              ),
+              maxWidth: "100%",
+              maxHeight: "100%",
+            },
+            styles.container
+          ]}
         >
+          {/* Exit Fullscreen Button */}
+          {isFullscreen && (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="absolute right-2 top-2 z-10"
+              onPress={toggleFullscreen}
+            >
+              <XCircle className="h-6 w-6" />
+            </Button>
+          )}
+
           {loading && (
             <Animated.View
               entering={FadeIn}
@@ -192,8 +234,8 @@ export const CustomWebView: React.FC<CustomWebViewProps> = ({
               source={{ uri: getUrlWithParams(url) }}
               className="flex-1"
               style={{
-                width: deviceConfig.width,
-                height: deviceConfig.height,
+                width: isFullscreen ? '100%' : deviceConfig.width,
+                height: isFullscreen ? '100%' : deviceConfig.height,
               }}
               onLoadStart={handleLoadStart}
               onLoad={handleLoadEnd}
@@ -206,7 +248,32 @@ export const CustomWebView: React.FC<CustomWebViewProps> = ({
             />
           )}
         </View>
+
+        {!isFullscreen && (
+          <Button
+            variant="default"
+            size="sm"
+            className={`
+              mt-4
+              ${isLandscape ? 'absolute right-4 top-4' : ''}
+            `}
+            onPress={toggleFullscreen}
+          >
+            <Monitor className="mr-2 h-4 w-4" />
+            <Text>全屏查看</Text>
+          </Button>
+        )}
       </View>
     </View>
   );
 };
+
+const styles = StyleSheet.create({
+  container: {
+    position: 'relative',
+    backgroundColor: 'background',
+    borderWidth: 1,
+    borderColor: 'border',
+    overflow: 'hidden',
+  }
+});

@@ -8,35 +8,46 @@ interface FileHeaderProps {
   onNavigateUp: () => void;
   isDisabled: boolean;
   isLandscape: boolean;
+  currentPath?: string;
 }
 
 const FileHeader: React.FC<FileHeaderProps> = ({
   onNavigateUp,
   isDisabled,
   isLandscape,
+  currentPath,
 }) => {
   return (
     <View
       className={`
-        flex-row justify-between items-center 
-        px-4 py-2 border-b border-gray-200
-        ${isLandscape ? "h-14" : "h-16"}
+        flex-col justify-between
+        border-b border-gray-200
+        ${isLandscape ? 'h-full py-2' : 'h-auto py-3'}
       `}
     >
-      <View className="flex-row items-center space-x-2">
+      <View className="px-4 flex-row items-center space-x-2">
         <Button
           variant="ghost"
           size="icon"
           onPress={onNavigateUp}
           disabled={isDisabled}
+          className={isLandscape ? 'h-8 w-8' : 'h-10 w-10'}
         >
-          <ArrowLeft className="h-6 w-6" />
+          <ArrowLeft className={isLandscape ? 'h-5 w-5' : 'h-6 w-6'} />
         </Button>
-        <Text className="text-xl font-bold">文件管理器</Text>
+        <Text className={`font-bold ${isLandscape ? 'text-lg' : 'text-xl'}`}>
+          文件管理器
+        </Text>
       </View>
-      <Button variant="ghost" size="icon">
-        <MoreHorizontal className="h-6 w-6" />
-      </Button>
+      
+      {currentPath && (
+        <Text 
+          numberOfLines={1} 
+          className="px-4 mt-1 text-xs text-muted-foreground"
+        >
+          {currentPath}
+        </Text>
+      )}
     </View>
   );
 };

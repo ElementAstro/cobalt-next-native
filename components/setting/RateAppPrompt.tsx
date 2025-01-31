@@ -135,7 +135,7 @@ const RateAppPrompt: React.FC<RateAppPromptProps> = ({
       {showButton && canPrompt && (
         <Button
           onPress={requestReview}
-          className="w-full lg:w-auto"
+          className="w-full sm:w-auto"
           variant="default"
         >
           <Award className="mr-2 h-4 w-4" />
@@ -144,13 +144,13 @@ const RateAppPrompt: React.FC<RateAppPromptProps> = ({
       )}
 
       <AlertDialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <AlertDialogContent className="w-full max-w-lg mx-auto">
+        <AlertDialogContent className="w-[95%] sm:w-[80%] md:w-[70%] max-w-lg mx-auto p-2 md:p-4">
           <AlertDialogHeader>
             <AlertDialogTitle>应用评分</AlertDialogTitle>
             <AlertDialogDescription>{promptMessage}</AlertDialogDescription>
           </AlertDialogHeader>
 
-          <Card className="mt-4">
+          <Card className="mt-2 md:mt-4">
             <CardHeader>
               <CardTitle className="text-center flex-row items-center justify-center">
                 <Heart className="mr-2" />
@@ -162,7 +162,7 @@ const RateAppPrompt: React.FC<RateAppPromptProps> = ({
               {currentRating > 0 && (
                 <Animated.View
                   entering={BounceIn.delay(600)}
-                  className="mt-4 flex-row items-center justify-center gap-2"
+                  className="mt-2 md:mt-4 flex-row items-center justify-center gap-2"
                 >
                   {currentRating >= 4 ? (
                     <>
@@ -175,10 +175,11 @@ const RateAppPrompt: React.FC<RateAppPromptProps> = ({
                 </Animated.View>
               )}
             </CardContent>
-            <Separator className="my-4" />
-            <CardFooter className="justify-between">
-              <AlertDialogCancel>稍后再说</AlertDialogCancel>
+            <Separator className="my-2 md:my-4" />
+            <CardFooter className="justify-between space-x-2">
+              <AlertDialogCancel className="flex-1 sm:flex-none">稍后再说</AlertDialogCancel>
               <AlertDialogAction
+                className="flex-1 sm:flex-none"
                 disabled={currentRating === 0}
                 onPress={() => {
                   requestReview();

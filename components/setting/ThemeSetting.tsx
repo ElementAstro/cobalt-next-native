@@ -103,55 +103,57 @@ const ThemeSetting = () => {
   return (
     <Animated.View
       entering={FadeInDown.duration(500)}
-      className="flex-1 p-4 flex-col lg:flex-row lg:space-x-4"
+      className="flex-1 p-2 md:p-4"
     >
-      <Card className="flex-1 lg:w-1/2">
-        <CardHeader>
-          <CardTitle className="flex-row items-center space-x-2">
-            <Settings2 size={24} className="text-primary" />
-            <Text className="text-xl font-bold">主题设置</Text>
-          </CardTitle>
-        </CardHeader>
+      <View className="flex-1 flex-col sm:flex-row sm:space-x-2 space-y-2 sm:space-y-0">
+        <Card className="flex-1">
+          <CardHeader>
+            <CardTitle className="flex-row items-center space-x-2">
+              <Settings2 size={24} className="text-primary" />
+              <Text className="text-xl font-bold">主题设置</Text>
+            </CardTitle>
+          </CardHeader>
 
-        <CardContent className="space-y-6">
-          <Animated.View entering={SlideInRight.delay(200)}>
-            <View className="flex-row justify-between items-center">
-              <Label className="flex-row items-center space-x-2">
-                <Monitor size={18} className="text-foreground" />
-                <Text>跟随系统</Text>
+          <CardContent className="space-y-6">
+            <Animated.View entering={SlideInRight.delay(200)}>
+              <View className="flex-row justify-between items-center">
+                <Label className="flex-row items-center space-x-2">
+                  <Monitor size={18} className="text-foreground" />
+                  <Text>跟随系统</Text>
+                </Label>
+                <Switch
+                  checked={theme === "system"}
+                  onCheckedChange={() => handleThemeChange("system")}
+                />
+              </View>
+            </Animated.View>
+
+            <Animated.View entering={SlideInRight.delay(400)}>
+              <Label className="flex-row items-center space-x-2 mb-4">
+                <Palette size={18} className="text-foreground" />
+                <Text>外观模式</Text>
               </Label>
-              <Switch
-                checked={theme === "system"}
-                onCheckedChange={() => handleThemeChange("system")}
-              />
-            </View>
-          </Animated.View>
 
-          <Animated.View entering={SlideInRight.delay(400)}>
-            <Label className="flex-row items-center space-x-2 mb-4">
-              <Palette size={18} className="text-foreground" />
-              <Text>外观模式</Text>
-            </Label>
+              <View className="flex-row space-x-2">
+                {themeButtons.map(({ value, label, icon: Icon }) => (
+                  <Button
+                    key={value}
+                    variant={theme === value ? "default" : "outline"}
+                    onPress={() => handleThemeChange(value)}
+                    className="flex-1 flex-row items-center justify-center space-x-2"
+                  >
+                    <Icon size={16} />
+                    <Text>{label}</Text>
+                  </Button>
+                ))}
+              </View>
+            </Animated.View>
+          </CardContent>
+        </Card>
 
-            <View className="flex-row space-x-2">
-              {themeButtons.map(({ value, label, icon: Icon }) => (
-                <Button
-                  key={value}
-                  variant={theme === value ? "default" : "outline"}
-                  onPress={() => handleThemeChange(value)}
-                  className="flex-1 flex-row items-center justify-center space-x-2"
-                >
-                  <Icon size={16} />
-                  <Text>{label}</Text>
-                </Button>
-              ))}
-            </View>
-          </Animated.View>
-        </CardContent>
-      </Card>
-
-      <View className="flex-1 mt-4 lg:mt-0 lg:w-1/2">
-        <ThemePreview theme={theme} />
+        <View className="flex-1">
+          <ThemePreview theme={theme} />
+        </View>
       </View>
     </Animated.View>
   );

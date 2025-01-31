@@ -138,13 +138,13 @@ const GeneralSetting = () => {
   return (
     <Animated.View 
       entering={FadeInDown.duration(500)} 
-      className="flex-1 p-4"
+      className="flex-1 p-2 md:p-4"
     >
       <ScrollView
         className="flex-1"
         showsVerticalScrollIndicator={false}
       >
-        <Card className="w-full lg:w-2/3 mx-auto">
+        <Card className="w-full sm:w-[95%] md:w-[90%] mx-auto">
           <CardHeader>
             <CardTitle className="flex-row items-center space-x-2">
               <Settings size={24} className="text-primary" />
@@ -153,7 +153,7 @@ const GeneralSetting = () => {
             <CardDescription>管理应用的基本设置选项</CardDescription>
           </CardHeader>
 
-          <CardContent className="space-y-6">
+          <CardContent className="space-y-4">
             {settingsItems.map((item) => (
               <SettingItem
                 key={item.settingKey}

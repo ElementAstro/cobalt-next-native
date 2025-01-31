@@ -209,17 +209,17 @@ const DeviceScreen = () => {
 
   return (
     <SafeAreaView className="flex-1">
-      <ThemedView className="flex-1 p-4">
+      <ThemedView className="flex-1 p-2 md:p-4">
         <ScrollView 
           className="flex-1"
           showsVerticalScrollIndicator={false}
         >
-          <View className="flex-1 flex-col lg:flex-row lg:flex-wrap">
-            <View className="w-full lg:w-1/2 lg:pr-2">
+          <View className="flex-1 flex-col sm:flex-row sm:space-x-2 space-y-2 sm:space-y-0">
+            <View className="flex-1 sm:w-1/2">
               <InfoCard
                 title="设备概览"
                 description="基本的设备信息一览"
-                className="mb-4"
+                className="mb-2"
               >
                 <DeviceItem label="品牌" value={deviceInfo.brand} icon={Home} />
                 <DeviceItem
@@ -253,7 +253,7 @@ const DeviceScreen = () => {
               </InfoCard>
             </View>
             
-            <View className="w-full lg:w-1/2 lg:pl-2">
+            <View className="flex-1 sm:w-1/2">
               <InfoCard
                 title="硬件信息"
                 description="设备硬件相关信息"

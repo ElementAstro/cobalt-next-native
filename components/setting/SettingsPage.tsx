@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { ScrollView, View, Text } from "react-native";
+import { ScrollView, View, Text, SafeAreaView } from "react-native";
 import {
   Settings,
   Bell,
@@ -49,125 +49,131 @@ const SettingsPage: React.FC = () => {
   };
 
   return (
-    <ScrollView className="flex-1 bg-gray-50">
-      <View className="p-4">
-        <Text className="text-2xl font-bold mb-4">设置</Text>
+    <SafeAreaView className="flex-1 bg-background">
+      <View className="flex-1 p-2 md:p-4 flex-col sm:flex-row">
+        <View className="flex-1 sm:w-1/3 sm:mr-2">
+          <Text className="text-xl md:text-2xl font-bold mb-4">设置</Text>
+          
+          <View className="space-y-2">
+            {/* 常用设置卡片 */}
+            <Animated.View entering={FadeInDown.delay(100).duration(300)}>
+              <Card className="p-2">
+                <CardHeader>
+                  <CardTitle className="flex-row items-center">
+                    <Settings size={20} className="mr-2" />
+                    常用设置
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="flex-row flex-wrap gap-1">
+                  <Button
+                    variant={
+                      activeSection === "notification" ? "default" : "outline"
+                    }
+                    className="m-1"
+                    onPress={() => setActiveSection("notification")}
+                  >
+                    <Bell size={16} className="mr-2" />
+                    通知设置
+                  </Button>
+                  <Button
+                    variant={activeSection === "location" ? "default" : "outline"}
+                    className="m-1"
+                    onPress={() => setActiveSection("location")}
+                  >
+                    <MapPin size={16} className="mr-2" />
+                    位置设置
+                  </Button>
+                  <Button
+                    variant={activeSection === "device" ? "default" : "outline"}
+                    className="m-1"
+                    onPress={() => setActiveSection("device")}
+                  >
+                    <Smartphone size={16} className="mr-2" />
+                    设备信息
+                  </Button>
+                  <Button
+                    variant={activeSection === "general" ? "default" : "outline"}
+                    className="m-1"
+                    onPress={() => setActiveSection("general")}
+                  >
+                    <Settings size={16} className="mr-2" />
+                    常规设置
+                  </Button>
+                </CardContent>
+              </Card>
+            </Animated.View>
 
-        <View className="space-y-4">
-          {/* 常用设置卡片 */}
-          <Animated.View entering={FadeInDown.delay(100).duration(300)}>
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex-row items-center">
-                  <Settings size={20} className="mr-2" />
-                  常用设置
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="flex-row flex-wrap">
-                <Button
-                  variant={
-                    activeSection === "notification" ? "default" : "outline"
-                  }
-                  className="m-1"
-                  onPress={() => setActiveSection("notification")}
-                >
-                  <Bell size={16} className="mr-2" />
-                  通知设置
-                </Button>
-                <Button
-                  variant={activeSection === "location" ? "default" : "outline"}
-                  className="m-1"
-                  onPress={() => setActiveSection("location")}
-                >
-                  <MapPin size={16} className="mr-2" />
-                  位置设置
-                </Button>
-                <Button
-                  variant={activeSection === "device" ? "default" : "outline"}
-                  className="m-1"
-                  onPress={() => setActiveSection("device")}
-                >
-                  <Smartphone size={16} className="mr-2" />
-                  设备信息
-                </Button>
-                <Button
-                  variant={activeSection === "general" ? "default" : "outline"}
-                  className="m-1"
-                  onPress={() => setActiveSection("general")}
-                >
-                  <Settings size={16} className="mr-2" />
-                  常规设置
-                </Button>
-              </CardContent>
-            </Card>
-          </Animated.View>
+            {/* 外观设置卡片 */}
+            <Animated.View entering={FadeInDown.delay(200).duration(300)}>
+              <Card className="p-2">
+                <CardHeader>
+                  <CardTitle className="flex-row items-center">
+                    <Palette size={20} className="mr-2" />
+                    外观设置
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <Button
+                    variant={activeSection === "theme" ? "default" : "outline"}
+                    className="m-1"
+                    onPress={() => setActiveSection("theme")}
+                  >
+                    主题设置
+                  </Button>
+                </CardContent>
+              </Card>
+            </Animated.View>
 
-          {/* 外观设置卡片 */}
-          <Animated.View entering={FadeInDown.delay(200).duration(300)}>
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex-row items-center">
-                  <Palette size={20} className="mr-2" />
-                  外观设置
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <Button
-                  variant={activeSection === "theme" ? "default" : "outline"}
-                  className="m-1"
-                  onPress={() => setActiveSection("theme")}
-                >
-                  主题设置
-                </Button>
-              </CardContent>
-            </Card>
-          </Animated.View>
+            {/* 隐私与安全卡片 */}
+            <Animated.View entering={FadeInDown.delay(300).duration(300)}>
+              <Card className="p-2">
+                <CardHeader>
+                  <CardTitle className="flex-row items-center">
+                    <Lock size={20} className="mr-2" />
+                    隐私与安全
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <Button
+                    variant={activeSection === "privacy" ? "default" : "outline"}
+                    className="m-1"
+                    onPress={() => setActiveSection("privacy")}
+                  >
+                    隐私设置
+                  </Button>
+                </CardContent>
+              </Card>
+            </Animated.View>
 
-          {/* 隐私与安全卡片 */}
-          <Animated.View entering={FadeInDown.delay(300).duration(300)}>
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex-row items-center">
-                  <Lock size={20} className="mr-2" />
-                  隐私与安全
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <Button
-                  variant={activeSection === "privacy" ? "default" : "outline"}
-                  className="m-1"
-                  onPress={() => setActiveSection("privacy")}
-                >
-                  隐私设置
-                </Button>
-              </CardContent>
-            </Card>
-          </Animated.View>
-
-          {/* 帮助与支持卡片 */}
-          <Animated.View entering={FadeInDown.delay(400).duration(300)}>
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex-row items-center">
-                  <HelpCircle size={20} className="mr-2" />
-                  帮助与支持
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <Text className="text-gray-500">版本 1.0.0</Text>
-              </CardContent>
-            </Card>
-          </Animated.View>
+            {/* 帮助与支持卡片 */}
+            <Animated.View entering={FadeInDown.delay(400).duration(300)}>
+              <Card className="p-2">
+                <CardHeader>
+                  <CardTitle className="flex-row items-center">
+                    <HelpCircle size={20} className="mr-2" />
+                    帮助与支持
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <Text className="text-gray-500">版本 1.0.0</Text>
+                </CardContent>
+              </Card>
+            </Animated.View>
+          </View>
         </View>
 
-        {/* 设置内容区域 */}
-        {activeSection && (
-          <Animated.View entering={FadeInDown.duration(300)} className="mt-4">
-            {renderSettingContent()}
-          </Animated.View>
-        )}
+        <View className="flex-1 mt-2 sm:mt-0 sm:w-2/3">
+          {activeSection && (
+            <Animated.View
+              entering={FadeInDown.duration(300)}
+              className="flex-1"
+            >
+              {renderSettingContent()}
+            </Animated.View>
+          )}
+        </View>
       </View>
-    </ScrollView>
+    </SafeAreaView>
   );
 };
 

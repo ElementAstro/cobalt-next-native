@@ -178,8 +178,11 @@ const ScanHistory: React.FC<ScanHistoryProps> = ({
     <ScrollView
       horizontal
       showsHorizontalScrollIndicator={false}
-      className="px-4"
-      contentContainerStyle={{ paddingRight: 16 }}
+      className="px-2 max-h-[120px]"
+      contentContainerStyle={{ 
+        paddingRight: 16,
+        gap: 8
+      }}
     >
       {history.map((item) => (
         <HistoryCard

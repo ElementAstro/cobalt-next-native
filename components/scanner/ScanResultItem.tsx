@@ -103,17 +103,20 @@ const ScanResultItem: React.FC<ScanResultItemProps> = memo(
           .springify()}
         layout={Layout.springify()}
         style={[fadeInStyle, item.status === "error" ? shakeStyle : undefined]}
-        className={`${
-          isLandscape ? "mx-1 w-[48.5%]" : "w-full"
-        } overflow-hidden`}
+        className="mx-1 w-[48%] overflow-hidden"
       >
         <Pressable
           onPress={handlePress}
-          className={`flex-row items-center justify-between p-3 mb-2 rounded-lg border ${
-            item.isSelected
-              ? "border-blue-500 bg-blue-50 dark:bg-blue-900/20"
-              : "bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700"
-          }`}
+          className={`
+            flex-row items-center justify-between 
+            native:p-2 tablet:p-3 
+            native:mb-1 tablet:mb-2 
+            rounded-lg border
+            ${item.isSelected
+              ? "border-primary bg-primary/10"
+              : "bg-card border-border"
+            }
+          `}
         >
           <View className="flex-1">
             <View className="flex-row items-center space-x-2 mb-1">

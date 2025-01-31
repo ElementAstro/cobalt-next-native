@@ -103,217 +103,226 @@ const LocationSetting: React.FC = () => {
   return (
     <SafeAreaView className="flex-1">
       <ScrollView
-        className={`flex-1 ${isLandscape ? "flex-row flex-wrap" : ""}`}
-        contentContainerStyle={{ padding: 16 }}
+        className="flex-1"
+        showsVerticalScrollIndicator={false}
+        contentContainerClassName="p-2 md:p-4"
       >
-        <View className={isLandscape ? "w-1/2 pr-2" : "w-full"}>
-          <Card className="border-t-4 border-t-primary">
-            <CardHeader>
-              <CardTitle>
-                <View className="flex-row items-center">
-                  <MapPin className="mr-2 text-primary" size={24} />
-                  <Text className="text-xl font-bold">位置服务设置</Text>
-                </View>
-              </CardTitle>
-            </CardHeader>
+        <View className="flex-1 flex-col sm:flex-row sm:space-x-2 space-y-2 sm:space-y-0">
+          <View className="flex-1 sm:w-1/2">
+            <Card className="border-t-4 border-t-primary h-full">
+              <CardHeader>
+                <CardTitle>
+                  <View className="flex-row items-center">
+                    <MapPin className="mr-2 text-primary" size={24} />
+                    <Text className="text-xl font-bold">位置服务设置</Text>
+                  </View>
+                </CardTitle>
+              </CardHeader>
 
-            <CardContent className="space-y-6">
-              {/* API Keys */}
-              <Animated.View entering={FadeIn.delay(200)}>
-                <View>
-                  <Label>
-                    Android 地图 Key <Key size={16} />
-                  </Label>
-                  <Input
-                    value={config.androidMapKey}
-                    onChangeText={(text) => setConfig({ androidMapKey: text })}
-                    placeholder="输入 Android 地图 Key"
-                  />
-                </View>
-
-                <View>
-                  <Label>
-                    iOS 地图 Key <Key size={16} />
-                  </Label>
-                  <Input
-                    value={config.iosMapKey}
-                    onChangeText={(text) => setConfig({ iosMapKey: text })}
-                    placeholder="输入 iOS 地图 Key"
-                  />
-                </View>
-
-                <View>
-                  <Label>
-                    Android 定位 Key <Key size={16} />
-                  </Label>
-                  <Input
-                    value={config.androidLocationKey}
-                    onChangeText={(text) =>
-                      setConfig({ androidLocationKey: text })
-                    }
-                    placeholder="输入 Android 定位 Key"
-                  />
-                </View>
-
-                <View>
-                  <Label>
-                    iOS 定位 Key <Key size={16} />
-                  </Label>
-                  <Input
-                    value={config.iosLocationKey}
-                    onChangeText={(text) => setConfig({ iosLocationKey: text })}
-                    placeholder="输入 iOS 定位 Key"
-                  />
-                </View>
-              </Animated.View>
-
-              {/* Location Settings */}
-              <Animated.View entering={FadeIn.delay(400)}>
-                <View className="flex-row items-center justify-between">
-                  <Label>
-                    自动定位 <Globe2 size={16} />
-                  </Label>
-                  <Switch
-                    checked={config.autoLocate}
-                    onCheckedChange={(value: boolean) =>
-                      setConfig({ autoLocate: value })
-                    }
-                  />
-                </View>
-
-                <View className="space-y-4">
-                  <View className="flex-row items-center justify-between">
+              <CardContent className="space-y-6">
+                {/* API Keys */}
+                <Animated.View entering={FadeIn.delay(200)}>
+                  <View>
                     <Label>
-                      定位精度 <Target size={16} />
+                      Android 地图 Key <Key size={16} />
                     </Label>
-                    <View className="flex-row space-x-2">
-                      {accuracyOptions.map((option) => (
-                        <Button
-                          key={option.value}
-                          variant={
-                            config.accuracy === option.value
-                              ? "default"
-                              : "outline"
-                          }
-                          onPress={() =>
-                            setConfig({
-                              accuracy: option.value as
-                                | "high"
-                                | "balanced"
-                                | "low",
-                            })
-                          }
-                        >
-                          {option.label}
-                        </Button>
-                      ))}
-                    </View>
+                    <Input
+                      value={config.androidMapKey}
+                      onChangeText={(text) => setConfig({ androidMapKey: text })}
+                      placeholder="输入 Android 地图 Key"
+                    />
                   </View>
 
                   <View>
                     <Label>
-                      历史位置 <History size={16} />
+                      iOS 地图 Key <Key size={16} />
                     </Label>
-                    <Button
-                      variant="outline"
-                      className="mt-2"
-                      onPress={() =>
-                        toast.info("查看历史位置", {
-                          description: "即将打开历史位置记录",
-                          duration: 1500,
-                        })
+                    <Input
+                      value={config.iosMapKey}
+                      onChangeText={(text) => setConfig({ iosMapKey: text })}
+                      placeholder="输入 iOS 地图 Key"
+                    />
+                  </View>
+
+                  <View>
+                    <Label>
+                      Android 定位 Key <Key size={16} />
+                    </Label>
+                    <Input
+                      value={config.androidLocationKey}
+                      onChangeText={(text) =>
+                        setConfig({ androidLocationKey: text })
                       }
-                    >
-                      查看历史位置记录
-                    </Button>
+                      placeholder="输入 Android 定位 Key"
+                    />
                   </View>
-                </View>
-              </Animated.View>
 
-              {/* Advanced Settings */}
-              <Animated.View entering={FadeIn.delay(600)}>
-                <View className="space-y-4 mt-4">
-                  <View className="flex-row items-center justify-between">
+                  <View>
                     <Label>
-                      指南针功能 <Compass size={16} />
+                      iOS 定位 Key <Key size={16} />
                     </Label>
-                    <View className="flex-row space-x-2">
-                      <Button
-                        variant={config.compassEnabled ? "default" : "outline"}
-                        onPress={handleEnableCompass}
-                      >
-                        启用
-                      </Button>
-                      <Button
-                        variant={!config.compassEnabled ? "default" : "outline"}
-                        onPress={handleDisableCompass}
-                      >
-                        禁用
-                      </Button>
-                    </View>
+                    <Input
+                      value={config.iosLocationKey}
+                      onChangeText={(text) =>
+                        setConfig({ iosLocationKey: text })
+                      }
+                      placeholder="输入 iOS 定位 Key"
+                    />
                   </View>
+                </Animated.View>
 
+                {/* Location Settings */}
+                <Animated.View entering={FadeIn.delay(400)}>
                   <View className="flex-row items-center justify-between">
                     <Label>
-                      实时导航 <Navigation size={16} />
+                      自动定位 <Globe2 size={16} />
                     </Label>
                     <Switch
-                      checked={config.realTimeNavigation}
+                      checked={config.autoLocate}
                       onCheckedChange={(value: boolean) =>
-                        setConfig({ realTimeNavigation: value })
+                        setConfig({ autoLocate: value })
                       }
                     />
                   </View>
 
-                  <Animated.View entering={ZoomIn.duration(300)}>
-                    {config.realTimeNavigation && (
-                      <View className="mt-2 p-2 bg-gray-100 rounded">
-                        <Label>
-                          导航模式 <AlertTriangle size={16} />
-                        </Label>
+                  <View className="space-y-4">
+                    <View className="flex-row items-center justify-between">
+                      <Label>
+                        定位精度 <Target size={16} />
+                      </Label>
+                      <View className="flex-row space-x-2">
+                        {accuracyOptions.map((option) => (
+                          <Button
+                            key={option.value}
+                            variant={
+                              config.accuracy === option.value
+                                ? "default"
+                                : "outline"
+                            }
+                            onPress={() =>
+                              setConfig({
+                                accuracy: option.value as
+                                  | "high"
+                                  | "balanced"
+                                  | "low",
+                              })
+                            }
+                          >
+                            {option.label}
+                          </Button>
+                        ))}
+                      </View>
+                    </View>
+
+                    <View>
+                      <Label>
+                        历史位置 <History size={16} />
+                      </Label>
+                      <Button
+                        variant="outline"
+                        className="mt-2"
+                        onPress={() =>
+                          toast.info("查看历史位置", {
+                            description: "即将打开历史位置记录",
+                            duration: 1500,
+                          })
+                        }
+                      >
+                        查看历史位置记录
+                      </Button>
+                    </View>
+                  </View>
+                </Animated.View>
+
+                {/* Advanced Settings */}
+                <Animated.View entering={FadeIn.delay(600)}>
+                  <View className="space-y-4 mt-4">
+                    <View className="flex-row items-center justify-between">
+                      <Label>
+                        指南针功能 <Compass size={16} />
+                      </Label>
+                      <View className="flex-row space-x-2">
                         <Button
-                          variant="outline"
-                          className="mt-2"
-                          onPress={() =>
-                            toast.info("导航模式", {
-                              description: "导航模式已切换",
-                              duration: 1500,
-                            })
+                          variant={
+                            config.compassEnabled ? "default" : "outline"
                           }
+                          onPress={handleEnableCompass}
                         >
-                          切换导航模式
+                          启用
+                        </Button>
+                        <Button
+                          variant={
+                            !config.compassEnabled ? "default" : "outline"
+                          }
+                          onPress={handleDisableCompass}
+                        >
+                          禁用
                         </Button>
                       </View>
-                    )}
-                  </Animated.View>
+                    </View>
+
+                    <View className="flex-row items-center justify-between">
+                      <Label>
+                        实时导航 <Navigation size={16} />
+                      </Label>
+                      <Switch
+                        checked={config.realTimeNavigation}
+                        onCheckedChange={(value: boolean) =>
+                          setConfig({ realTimeNavigation: value })
+                        }
+                      />
+                    </View>
+
+                    <Animated.View entering={ZoomIn.duration(300)}>
+                      {config.realTimeNavigation && (
+                        <View className="mt-2 p-2 bg-gray-100 rounded">
+                          <Label>
+                            导航模式 <AlertTriangle size={16} />
+                          </Label>
+                          <Button
+                            variant="outline"
+                            className="mt-2"
+                            onPress={() =>
+                              toast.info("导航模式", {
+                                description: "导航模式已切换",
+                                duration: 1500,
+                              })
+                            }
+                          >
+                            切换导航模式
+                          </Button>
+                        </View>
+                      )}
+                    </Animated.View>
+                  </View>
+                </Animated.View>
+
+                {/* Action Buttons */}
+                <View className="flex-row space-x-4">
+                  <Button
+                    variant="default"
+                    className="flex-1"
+                    onPress={handleSaveSettings}
+                  >
+                    <Settings size={18} className="mr-2" />
+                    <Text>保存设置</Text>
+                  </Button>
+                  <Button
+                    variant="outline"
+                    className="flex-1"
+                    onPress={handleRefreshLocation}
+                  >
+                    <RefreshCw size={18} className="mr-2" />
+                    <Text>刷新位置</Text>
+                  </Button>
                 </View>
-              </Animated.View>
+              </CardContent>
+            </Card>
+          </View>
 
-              {/* Action Buttons */}
-              <View className="flex-row space-x-4">
-                <Button
-                  variant="default"
-                  className="flex-1"
-                  onPress={handleSaveSettings}
-                >
-                  <Settings size={18} className="mr-2" />
-                  <Text>保存设置</Text>
-                </Button>
-                <Button
-                  variant="outline"
-                  className="flex-1"
-                  onPress={handleRefreshLocation}
-                >
-                  <RefreshCw size={18} className="mr-2" />
-                  <Text>刷新位置</Text>
-                </Button>
-              </View>
-            </CardContent>
-          </Card>
-        </View>
-
-        <View className={isLandscape ? "w-1/2 pl-2" : "w-full mt-4"}>
-          <LocationDialog />
+          <View className="flex-1 sm:w-1/2">
+            <LocationDialog />
+          </View>
         </View>
       </ScrollView>
     </SafeAreaView>

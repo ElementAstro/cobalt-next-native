@@ -1,4 +1,4 @@
-import React, { memo } from "react";
+import React, { memo, useState } from "react";
 import {
   Folder,
   File,
@@ -12,29 +12,90 @@ import {
   Move,
   Archive,
   Download,
+  Eye,
 } from "lucide-react-native";
-import Animated, { FadeIn } from "react-native-reanimated";
+import Animated, {
+  FadeIn,
+  useAnimatedStyle,
+  useSharedValue,
+  withSpring,
+  withSequence,
+  runOnJS,
+} from "react-native-reanimated";
 import {
-  Card,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+  View,
+  ScrollView,
+  Image,
+  Pressable,
+} from "react-native";
+import { Card, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Text } from "@/components/ui/text";
+import { Checkbox } from "@/components/ui/checkbox";
+import { useFileStore } from "@/stores/useFileStore";
+import { useColorScheme } from "nativewind";
 import { FileItem as FileItemType } from "./types";
-import { TouchableOpacity, View, ScrollView } from "react-native";
 
 interface FileItemProps {
   file: FileItemType;
   index: number;
   isLandscape: boolean;
   onFileAction: (file: FileItemType, action: string) => void;
+  onLongPress?: () => void;
 }
 
 const FileItem: React.FC<FileItemProps> = memo(
-  ({ file, index, isLandscape, onFileAction }) => {
+  ({ file, index, isLandscape, onFileAction, onLongPress }) => {
+    const [thumbnailError, setThumbnailError] = useState(false);
+    const {
+      selectedMode,
+      selectedFiles,
+      setSelectedFiles,
+      setSelectedMode, // 添加这行
+    } = useFileStore();
+    const isSelected = selectedFiles.includes(file.uri);
+    const { colorScheme } = useColorScheme();
+
+    // 动画值
+    const scale = useSharedValue(1);
+    const opacity = useSharedValue(1);
+
+    // 动画样式
+    const animatedStyle = useAnimatedStyle(() => ({
+      transform: [{ scale: scale.value }],
+      opacity: opacity.value,
+    }));
+
+    const toggleSelection = () => {
+      if (isSelected) {
+        setSelectedFiles(selectedFiles.filter((uri) => uri !== file.uri));
+      } else {
+        setSelectedFiles([...selectedFiles, file.uri]);
+      }
+    };
+
+    const handlePress = () => {
+      scale.value = withSequence(
+        withSpring(0.95, { damping: 10, stiffness: 100 }),
+        withSpring(1, { damping: 10, stiffness: 100 })
+      );
+
+      if (selectedMode) {
+        runOnJS(toggleSelection)();
+      } else {
+        runOnJS(onFileAction)(file, "open");
+      }
+    };
+
+    const handleLongPress = () => {
+      scale.value = withSequence(
+        withSpring(1.05, { damping: 5 }),
+        withSpring(1, { damping: 10 })
+      );
+      onLongPress?.();
+    };
+
     const getFileIcon = (file: FileItemType) => {
       if (file.isDirectory) return <Folder className="h-6 w-6 text-primary" />;
       const ext = file.name.split(".").pop()?.toLowerCase();
@@ -54,7 +115,25 @@ const FileItem: React.FC<FileItemProps> = memo(
       }
     };
 
+    const renderThumbnail = () => {
+      const ext = file.name.split(".").pop()?.toLowerCase();
+      const isImage = ["jpg", "jpeg", "png", "gif"].includes(ext || "");
+
+      if (isImage && !thumbnailError) {
+        return (
+          <Image
+            source={{ uri: file.uri }}
+            className="w-12 h-12 rounded"
+            onError={() => setThumbnailError(true)}
+          />
+        );
+      }
+
+      return getFileIcon(file);
+    };
+
     const fileActions = [
+      { icon: <Eye />, action: "open", label: "预览" },
       { icon: <Share2 />, action: "share", label: "分享" },
       { icon: <Edit2 />, action: "rename", label: "重命名" },
       { icon: <Copy />, action: "copy", label: "复制" },
@@ -62,43 +141,83 @@ const FileItem: React.FC<FileItemProps> = memo(
       { icon: <Archive />, action: "compress", label: "压缩" },
       { icon: <Download />, action: "download", label: "下载" },
       { icon: <Trash />, action: "delete", label: "删除" },
-    ];
+    ].filter((action) => {
+      // 只对可预览文件显示预览按钮
+      if (action.action === "open") {
+        const ext = file.name.split(".").pop()?.toLowerCase();
+        const viewableExtensions = ["pdf", "txt", "jpg", "png", "gif"];
+        return viewableExtensions.includes(ext || "");
+      }
+      return true;
+    });
 
     return (
-      <TouchableOpacity
-        onPress={() => onFileAction(file, "open")}
-        activeOpacity={0.7}
+      <Pressable
+        onPress={handlePress}
+        onLongPress={handleLongPress}
+        delayLongPress={300}
       >
-        <Card className="bg-gray-50 overflow-hidden">
-          <CardHeader className="py-3 flex-row items-center space-x-2">
-            <Animated.View entering={FadeIn.delay(index * 100).springify()}>
-              {getFileIcon(file)}
-            </Animated.View>
-            <CardTitle numberOfLines={1} className="flex-1 text-base">
-              {file.name}
-            </CardTitle>
-          </CardHeader>
-          <Separator />
-          <CardFooter className="py-2 px-2">
-            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-              <View className="flex-row gap-1">
-                {fileActions.map(({ icon, action, label }) => (
-                  <Button
-                    key={action}
-                    variant="ghost"
-                    size="sm"
-                    onPress={() => onFileAction(file, action)}
-                    className="flex-row items-center gap-1"
-                  >
-                    {icon}
-                    <Text className="text-xs">{label}</Text>
-                  </Button>
-                ))}
-              </View>
-            </ScrollView>
-          </CardFooter>
-        </Card>
-      </TouchableOpacity>
+        <Animated.View
+          entering={FadeIn.delay(index * 50).springify()}
+          style={animatedStyle}
+        >
+          <Card
+            className={`
+            bg-gray-50 overflow-hidden 
+            ${isLandscape ? "min-h-[120px]" : ""} 
+            ${isSelected ? "border-primary" : ""}
+          `}
+          >
+            <CardHeader className="py-2 flex-row items-center space-x-2">
+              {selectedMode && (
+                <Checkbox
+                  checked={isSelected}
+                  onCheckedChange={toggleSelection}
+                />
+              )}
+              <Animated.View entering={FadeIn.delay(index * 100).springify()}>
+                {renderThumbnail()}
+              </Animated.View>
+              <CardTitle numberOfLines={1} className="flex-1 text-sm">
+                {file.name}
+              </CardTitle>
+            </CardHeader>
+            <Separator />
+            <CardFooter
+              className={`py-1 px-2 ${isLandscape ? "h-[60px]" : ""}`}
+            >
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                className="flex-1"
+              >
+                <View className="flex-row flex-wrap gap-1">
+                  {fileActions.map(({ icon, action, label }) => (
+                    <Button
+                      key={action}
+                      variant="ghost"
+                      size="sm"
+                      onPress={() => onFileAction(file, action)}
+                      className={`flex-row items-center ${
+                        isLandscape ? "px-2 py-1" : "px-3 py-2"
+                      }`}
+                    >
+                      {React.cloneElement(icon, {
+                        className: `h-4 w-4 ${isLandscape ? "mr-1" : "mr-2"}`,
+                      })}
+                      <Text
+                        className={`text-xs ${isLandscape ? "hidden" : ""}`}
+                      >
+                        {label}
+                      </Text>
+                    </Button>
+                  ))}
+                </View>
+              </ScrollView>
+            </CardFooter>
+          </Card>
+        </Animated.View>
+      </Pressable>
     );
   }
 );

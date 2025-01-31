@@ -1,14 +1,35 @@
 import React, { useEffect } from "react";
 import { View } from "react-native";
 import * as Updates from "expo-updates";
+import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
 import { toast } from "sonner-native";
 import { Download, RefreshCw, AlertCircle, Check } from "lucide-react-native";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Text } from "@/components/ui/text";
+import { useOrientation } from "@/hooks/useOrientation";
+
+interface UpdateState {
+  lastCheckTime: number | null;
+  setLastCheckTime: (time: number) => void;
+}
+
+const useUpdateStore = create<UpdateState>()(
+  persist(
+    (set) => ({
+      lastCheckTime: null,
+      setLastCheckTime: (time) => set({ lastCheckTime: time }),
+    }),
+    {
+      name: 'update-storage',
+    }
+  )
+);
 
 export default function UpdateDialog() {
+  const { lastCheckTime, setLastCheckTime } = useUpdateStore();
   const {
     currentlyRunning,
     isUpdateAvailable,
@@ -19,6 +40,7 @@ export default function UpdateDialog() {
     checkError,
     availableUpdate,
   } = Updates.useUpdates();
+  const isLandscape = useOrientation();
 
   useEffect(() => {
     if (isUpdatePending) {
@@ -44,6 +66,7 @@ export default function UpdateDialog() {
   const checkForUpdate = async () => {
     try {
       await Updates.checkForUpdateAsync();
+      setLastCheckTime(Date.now());
     } catch (error: unknown) {
       console.error("检查更新失败:", error);
       toast.error("检查失败", {
@@ -64,27 +87,55 @@ export default function UpdateDialog() {
   };
 
   return (
-    <View className="w-full rounded-lg bg-card p-4">
+    <View className={`
+      w-full rounded-lg bg-card p-4
+      ${isLandscape ? 'max-w-[600px] mx-auto' : ''}
+    `}>
       {/* 当前版本信息 */}
-      <Alert icon={Check} className="mb-4">
+      <Alert 
+        icon={Check} 
+        className={`
+          mb-4
+          ${isLandscape ? 'flex-row items-center' : ''}
+        `}
+      >
         <AlertTitle>版本信息</AlertTitle>
         <AlertDescription>
           当前版本: {currentlyRunning.runtimeVersion || "未知"}
           {isUpdateAvailable ? "\n有新版本可用" : "\n已是最新版本"}
+          {lastCheckTime && `\n上次检查: ${new Date(lastCheckTime).toLocaleString()}`}
         </AlertDescription>
       </Alert>
 
-      {/* 检查更新按钮 - 使用更小的尺寸 */}
-      <Button
-        variant="outline"
-        size="sm"
-        onPress={checkForUpdate}
-        disabled={isChecking}
-        className="mb-4"
-      >
-        <RefreshCw className={isChecking ? "animate-spin" : ""} size={16} />
-        <Text className="ml-2">{isChecking ? "检查中..." : "检查更新"}</Text>
-      </Button>
+      {/* 按钮容器 */}
+      <View className={`
+        ${isLandscape ? 'flex-row items-center space-x-4' : 'space-y-4'}
+      `}>
+        <Button
+          variant="outline"
+          size="sm"
+          onPress={checkForUpdate}
+          disabled={isChecking}
+          className={isLandscape ? 'flex-1' : 'w-full'}
+        >
+          <RefreshCw className={isChecking ? "animate-spin" : ""} size={16} />
+          <Text className="ml-2">{isChecking ? "检查中..." : "检查更新"}</Text>
+        </Button>
+
+        {isUpdateAvailable && (
+          <Button
+            size="sm"
+            onPress={downloadUpdate}
+            disabled={isDownloading}
+            className={isLandscape ? 'flex-1' : 'w-full'}
+          >
+            <Download size={16} className={isDownloading ? "animate-pulse" : ""} />
+            <Text className="ml-2">
+              {isDownloading ? "下载中..." : "下载更新"}
+            </Text>
+          </Button>
+        )}
+      </View>
 
       {/* 可用更新信息 - 只在有更新时显示 */}
       {isUpdateAvailable && availableUpdate && (

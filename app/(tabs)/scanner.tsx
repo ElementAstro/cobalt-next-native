@@ -33,40 +33,19 @@ import DraggableFlatList, {
   RenderItemParams,
   ScaleDecorator,
 } from "react-native-draggable-flatlist";
-
-interface ScanResult {
-  port: number;
-  status: string;
-  service?: string;
-}
-
-interface ScanHistoryItem {
-  id: string;
-  timestamp: Date;
-  ipAddress: string;
-  portRange: string;
-  openPorts: number;
-  totalPorts: number;
-}
+import type { ScanResult, ScanHistoryItem } from "@/stores/useScannerStore";
 
 const ScannerSettings = React.memo(
-  ({
-    ipAddress,
-    setIpAddress,
-    portRange,
-    setPortRange,
-    customPortRange,
-    setCustomPortRange,
-    isScanning,
-  }: {
-    ipAddress: string;
-    setIpAddress: (value: string) => void;
-    portRange: string;
-    setPortRange: (value: string) => void;
-    customPortRange: string;
-    setCustomPortRange: (value: string) => void;
-    isScanning: boolean;
-  }) => {
+  ({ isScanning }: { isScanning: boolean }) => {
+    const {
+      ipAddress,
+      portRange,
+      customPortRange,
+      setIpAddress,
+      setPortRange, 
+      setCustomPortRange
+    } = useScannerStore();
+
     return (
       <SettingsSection title="基本设置" className="pb-2 w-full text-white">
         <View className="space-y-4">
@@ -163,29 +142,22 @@ const ScannerPage: React.FC = () => {
     scanSpeed,
     timeout,
     showClosedPorts,
-    scanResults,
-    isScanning,
     scanMethod,
-    autoReconnect,
+    autoReconnect, 
     notificationsEnabled,
+    isScanning,
+    scanResults,
     scanProgress,
-    isDarkTheme,
     scanHistory,
     layout,
+    setIpAddress,
+    setPortRange,
+    setCustomPortRange,
     startScanning,
     stopScanning,
     updateScanProgress,
     updateScanResults,
     addScanHistory,
-    setPortRange,
-    setCustomPortRange,
-    setScanSpeed,
-    setIpAddress,
-    setTimeout: setTimeoutValue,
-    setShowClosedPorts,
-    setScanMethod,
-    setAutoReconnect,
-    setNotificationsEnabled,
   } = useScannerStore();
 
   const { width, height } = useWindowDimensions();
@@ -269,26 +241,33 @@ const ScannerPage: React.FC = () => {
           });
         }, timeout);
 
-        // Enhanced simulated port scanning logic (20% open rate)
-        const isOpen = Math.random() > 0.8;
-        if (isOpen) {
-          clearTimeout(timeoutHandle);
-          resolve({
-            port,
-            status: "open",
-            service: `${ip}:${port} - Service running`,
-          });
-        } else {
-          clearTimeout(timeoutHandle);
-          resolve({
-            port,
-            status: "closed",
-            service: `${ip}:${port} - No response`,
-          });
-        }
+        // 根据不同的扫描方式实现不同的扫描逻辑
+        const implementScan = () => {
+          switch(scanMethod) {
+            case 'tcp':
+              return Math.random() > 0.8; // 模拟 TCP 扫描
+            case 'syn':
+              return Math.random() > 0.85; // 模拟 SYN 扫描 
+            case 'udp':
+              return Math.random() > 0.9; // 模拟 UDP 扫描
+            case 'ack':  
+              return Math.random() > 0.95; // 模拟 ACK 扫描
+            default:
+              return Math.random() > 0.8;
+          }
+        };
+
+        const isOpen = implementScan();
+        clearTimeout(timeoutHandle);
+        
+        resolve({
+          port,
+          status: isOpen ? "open" : "closed",
+          service: isOpen ? `${ip}:${port} - Service running` : `${ip}:${port} - No response`,
+        });
       });
     },
-    [timeout]
+    [timeout, scanMethod]
   );
 
   const filteredResults = useMemo(() => {
@@ -439,25 +418,9 @@ const ScannerPage: React.FC = () => {
 
   const renderHeader = useMemo(
     () => (
-      <ScannerSettings
-        ipAddress={ipAddress}
-        setIpAddress={setIpAddress}
-        portRange={portRange}
-        setPortRange={setPortRange}
-        customPortRange={customPortRange}
-        setCustomPortRange={setCustomPortRange}
-        isScanning={isScanning}
-      />
+      <ScannerSettings isScanning={isScanning} />
     ),
-    [
-      ipAddress,
-      setIpAddress,
-      portRange,
-      setPortRange,
-      customPortRange,
-      setCustomPortRange,
-      isScanning,
-    ]
+    [isScanning]
   );
 
   const renderEmptyComponent = useCallback(() => {
@@ -499,26 +462,19 @@ const ScannerPage: React.FC = () => {
 
   const renderSettings = useMemo(
     () => (
-      <ScrollView className={isLandscape ? "w-full p-4" : "w-full p-4"}>
-        <View className="space-y-4">
+      <ScrollView 
+        className={`native:px-2 flex-1`}
+        showsVerticalScrollIndicator={false}
+      >
+        <View className="native:space-y-2 tablet:space-y-4">
           {renderHeader}
 
-          <SettingsSection title="高级设置" collapsible>
-            <AdvancedSettings
-              scanSpeed={scanSpeed}
-              setScanSpeed={setScanSpeed}
-              timeout={timeout}
-              setTimeoutValue={setTimeoutValue}
-              showClosedPorts={showClosedPorts}
-              setShowClosedPorts={setShowClosedPorts}
-              scanMethod={scanMethod}
-              setScanMethod={setScanMethod}
-              autoReconnect={autoReconnect}
-              setAutoReconnect={setAutoReconnect}
-              notificationsEnabled={notificationsEnabled}
-              setNotificationsEnabled={setNotificationsEnabled}
-              isScanning={isScanning}
-            />
+          <SettingsSection 
+            title="高级设置" 
+            collapsible 
+            className="native:py-2 tablet:py-4"
+          >
+            <AdvancedSettings />
           </SettingsSection>
 
           <ScanButton
@@ -529,25 +485,7 @@ const ScannerPage: React.FC = () => {
         </View>
       </ScrollView>
     ),
-    [
-      isLandscape,
-      renderHeader,
-      scanSpeed,
-      setScanSpeed,
-      timeout,
-      setTimeoutValue,
-      showClosedPorts,
-      setShowClosedPorts,
-      scanMethod,
-      setScanMethod,
-      autoReconnect,
-      setAutoReconnect,
-      notificationsEnabled,
-      setNotificationsEnabled,
-      isScanning,
-      startScan,
-      scanProgress,
-    ]
+    [renderHeader, isScanning, startScan, scanProgress]
   );
 
   const keyExtractor = useCallback(
@@ -566,11 +504,11 @@ const ScannerPage: React.FC = () => {
 
   const renderScanResults = useMemo(
     () => (
-      <View className={`${isLandscape ? "w-2/3" : "w-full"} p-4`}>
+      <View className="w-[60%] flex-1">
         <DraggableFlatList
           key={layout}
           data={filteredResults}
-          numColumns={layout === "grid" && isLandscape ? 2 : 1}
+          numColumns={2}
           keyExtractor={keyExtractor}
           renderItem={renderItem}
           onDragEnd={onDragEnd}
@@ -583,16 +521,11 @@ const ScannerPage: React.FC = () => {
           maintainVisibleContentPosition={{
             minIndexForVisible: 0,
           }}
-          columnWrapperStyle={
-            layout === "grid" && isLandscape
-              ? { justifyContent: "space-between" }
-              : undefined
-          }
+          columnWrapperStyle={{ justifyContent: "space-between" }}
         />
       </View>
     ),
     [
-      isLandscape,
       layout,
       filteredResults,
       renderItem,
@@ -625,32 +558,33 @@ const ScannerPage: React.FC = () => {
   }, [scanHistory, handleHistorySelect]);
 
   return (
-    <GestureHandlerRootView className={`flex-1`}>
-      <View
-        className={`flex-1 ${isLandscape ? "flex-row" : "flex-col"}`}
-        style={{ height: contentHeight }}
-      >
-        <View
-          className={`${
-            isLandscape
-              ? "w-1/2 border-r border-gray-200 dark:border-gray-700"
-              : "w-full"
-          }`}
-          style={{
-            maxHeight: isLandscape ? contentHeight : contentHeight * 0.4,
-          }}
-        >
+    <GestureHandlerRootView className="flex-1 bg-background">
+      <View className="flex-1 flex-row">
+        <View className="w-[40%] border-r border-border">
           {renderSettings}
         </View>
 
-        <View
-          className={`${isLandscape ? "w-1/2" : "w-full"}`}
-          style={{
-            height: isLandscape ? contentHeight : contentHeight * 0.6,
-          }}
-        >
+        <View className="w-[60%] flex-1">
           {memoizedHistory}
-          {renderScanResults}
+          <View className="flex-1 px-2">
+            <DraggableFlatList
+              key={layout}
+              data={filteredResults}
+              numColumns={layout === 'grid' ? 2 : 1}
+              keyExtractor={keyExtractor}
+              renderItem={renderItem}
+              onDragEnd={onDragEnd}
+              ListEmptyComponent={renderEmptyComponent}
+              removeClippedSubviews={true}
+              maxToRenderPerBatch={10}
+              windowSize={5}
+              getItemLayout={getItemLayout}
+              maintainVisibleContentPosition={{
+                minIndexForVisible: 0,
+              }}
+              columnWrapperStyle={layout === 'grid' ? { justifyContent: 'space-between' } : undefined}
+            />
+          </View>
         </View>
       </View>
     </GestureHandlerRootView>
