@@ -2,9 +2,9 @@ import React, { useCallback, useMemo, useEffect, useRef } from "react";
 import {
   View,
   Alert as RNAlert,
-  FlatList,
   useWindowDimensions,
-  ScrollView
+  ScrollView,
+  Pressable,
 } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import * as Notifications from "expo-notifications";
@@ -29,6 +29,10 @@ import ScanButton from "@/components/scanner/ScanButton";
 import AdvancedSettings from "@/components/scanner/AdvancedSettings";
 import ScanHistory from "@/components/scanner/ScanHistory";
 import Animated, { FadeIn } from "react-native-reanimated";
+import DraggableFlatList, {
+  RenderItemParams,
+  ScaleDecorator,
+} from "react-native-draggable-flatlist";
 
 interface ScanResult {
   port: number;
@@ -468,14 +472,29 @@ const ScannerPage: React.FC = () => {
   }, [isScanning]);
 
   const renderItem = useCallback(
-    ({ item, index }: { item: ScanResult; index: number }) => (
-      <ScanResultItem
-        item={item}
-        index={index}
-        key={`${item.port}-${item.status}`}
-      />
+    ({ item, drag, isActive, getIndex }: RenderItemParams<ScanResult>) => (
+      <ScaleDecorator>
+        <Animated.View
+          style={[isActive && { backgroundColor: "rgba(0,0,0,0.1)" }]}
+        >
+          <Pressable onLongPress={drag}>
+            <ScanResultItem
+              item={item}
+              index={getIndex() || 0}
+              key={`${item.port}-${item.status}`}
+            />
+          </Pressable>
+        </Animated.View>
+      </ScaleDecorator>
     ),
     []
+  );
+
+  const onDragEnd = useCallback(
+    ({ data }: { data: ScanResult[] }) => {
+      updateScanResults(data);
+    },
+    [updateScanResults]
   );
 
   const renderSettings = useMemo(
@@ -548,12 +567,13 @@ const ScannerPage: React.FC = () => {
   const renderScanResults = useMemo(
     () => (
       <View className={`${isLandscape ? "w-2/3" : "w-full"} p-4`}>
-        <FlatList
+        <DraggableFlatList
           key={layout}
-          numColumns={layout === "grid" && isLandscape ? 2 : 1}
           data={filteredResults}
+          numColumns={layout === "grid" && isLandscape ? 2 : 1}
           keyExtractor={keyExtractor}
           renderItem={renderItem}
+          onDragEnd={onDragEnd}
           className="p-4"
           ListEmptyComponent={renderEmptyComponent}
           removeClippedSubviews={true}
@@ -576,6 +596,7 @@ const ScannerPage: React.FC = () => {
       layout,
       filteredResults,
       renderItem,
+      onDragEnd,
       keyExtractor,
       renderEmptyComponent,
       getItemLayout,

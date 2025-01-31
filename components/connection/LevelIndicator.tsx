@@ -56,14 +56,14 @@ const MotionSchema = z.object({
 // Components
 const LevelDisplay = React.memo(({ angle, isLevel }: LevelDisplayProps) => {
   const colorScheme = useColorScheme();
-  const textColor = colorScheme === "dark" ? "white" : "black";
+  const dynamicTextColor = colorScheme === "dark" ? "white" : "black";
 
   return (
     <View className="items-center space-y-4">
-      <Text className={`text-2xl font-bold ${textColor}`}>
+      <Text className={`text-2xl font-bold ${dynamicTextColor}`}>
         {isLevel ? "水平" : "不水平"}
       </Text>
-      <Text className={`text-lg font-medium ${textColor}`}>
+      <Text className={`text-lg font-medium ${dynamicTextColor}`}>
         {angle.toFixed(1)}° 偏离水平
       </Text>
     </View>
@@ -143,14 +143,26 @@ const LevelIndicator = () => {
   }, []);
 
   const handleAccelerationUpdate = useCallback(
-    (data: { x: number; y: number; z: number }) => {
+    (data: { x: number; y: number; z: number } | undefined) => {
+      if (!data || data.y === undefined) {
+        toast.error("传感器数据为空", {
+          description: "请检查设备传感器状态",
+          icon: <AlertTriangle size={20} />,
+        });
+        return;
+      }
+
       try {
         const validatedData = AccelerationSchema.parse(data);
 
-        const angleInDegrees = Math.atan2(data.y, data.x) * (180 / Math.PI);
+        const angleInDegrees =
+          Math.atan2(validatedData.y, validatedData.x) * (180 / Math.PI);
         setAngle(Math.abs(angleInDegrees));
 
-        if (Math.abs(data.x) < 0.1 && Math.abs(data.y) < 0.1) {
+        if (
+          Math.abs(validatedData.x) < 0.1 &&
+          Math.abs(validatedData.y) < 0.1
+        ) {
           setIsLevel(true);
           toast.success("设备已水平", {
             icon: <CheckCircle2 size={20} />,
@@ -159,7 +171,10 @@ const LevelIndicator = () => {
           setIsLevel(false);
         }
 
-        if (Math.abs(data.x) > 0.5 || Math.abs(data.y) > 0.5) {
+        if (
+          Math.abs(validatedData.x) > 0.5 ||
+          Math.abs(validatedData.y) > 0.5
+        ) {
           Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
         }
       } catch (error) {
@@ -172,25 +187,25 @@ const LevelIndicator = () => {
     []
   );
 
-  const _subscribe = () => {
+  const _subscribe = useCallback(() => {
     const sub = Accelerometer.addListener(handleAccelerationUpdate);
     setSubscription(sub);
-  };
+  }, [handleAccelerationUpdate]);
 
-  const _subscribeMotion = () => {
+  const _subscribeMotion = useCallback(() => {
     const sub = DeviceMotion.addListener(handleMotionUpdate);
     setMotionSubscription(sub);
-  };
+  }, [handleMotionUpdate]);
 
-  const _unsubscribe = () => {
+  const _unsubscribe = useCallback(() => {
     subscription && subscription.remove();
     setSubscription(null);
-  };
+  }, [subscription]);
 
-  const _unsubscribeMotion = () => {
+  const _unsubscribeMotion = useCallback(() => {
     motionSubscription && motionSubscription.remove();
     setMotionSubscription(null);
-  };
+  }, [motionSubscription]);
 
   useEffect(() => {
     (async () => {
@@ -199,7 +214,7 @@ const LevelIndicator = () => {
         await requestPermission();
       }
     })();
-  }, [isAvailable]);
+  }, []);
 
   useEffect(() => {
     if (hasPermission && isAvailable) {

@@ -141,6 +141,15 @@ export const DownloadItem = React.memo<DownloadItemProps>(({ task, style }) => {
     opacity: withTiming(status === "downloading" ? 1 : 0.8),
   }));
 
+  const animatedStyle = useAnimatedStyle(() => ({
+    opacity: withSpring(task.status === "downloading" ? 1 : 0.8),
+    transform: [
+      {
+        scale: withSpring(task.status === "downloading" ? 1 : 0.98),
+      },
+    ],
+  }));
+
   const handlePause = useCallback(() => {
     downloadManager.pauseDownload(task.id);
     toast("已暂停下载", {
@@ -187,7 +196,7 @@ export const DownloadItem = React.memo<DownloadItemProps>(({ task, style }) => {
 
   return (
     <Animated.View
-      style={[style]}
+      style={[animatedStyle]}
       className="bg-card dark:bg-card rounded-xl p-4 shadow-sm"
     >
       <View className="flex-row justify-between items-start mb-3">

@@ -1,15 +1,16 @@
-import React, { useState, useEffect, useCallback } from "react";
-import { View, ScrollView, useWindowDimensions } from "react-native";
+import React, { useState, useEffect, useCallback, memo } from "react";
+import { View, useWindowDimensions } from "react-native";
 import * as FileSystem from "expo-file-system";
 import * as Sharing from "expo-sharing";
 import { useIsFocused } from "@react-navigation/native";
-import Toast from "react-native-toast-message";
 import { FileItem as FileItemType, DialogType } from "./types";
 import FileHeader from "./FileHeader";
 import FileItem from "./FileItem";
 import ConfirmDialog from "./ConfirmDialog";
 import { SafeAreaView } from "react-native-safe-area-context";
-import Animated, { FadeIn, Layout } from "react-native-reanimated";
+import Animated, { FadeIn, LinearTransition } from "react-native-reanimated";
+import { toast } from "sonner-native";
+import { FlashList } from "@shopify/flash-list";
 
 const FileManager: React.FC = () => {
   const [files, setFiles] = useState<FileItemType[]>([]);
@@ -40,7 +41,7 @@ const FileManager: React.FC = () => {
       );
       setFiles(fileDetails);
     } catch (error: any) {
-      showError(error.message || "无法读取目录");
+      handleError(error);
     }
   }, []);
 
@@ -58,10 +59,7 @@ const FileManager: React.FC = () => {
             setCurrentPath(`${file.uri}/`);
           } else {
             await Sharing.shareAsync(file.uri);
-            Toast.show({
-              type: "success",
-              text1: "分享成功",
-            });
+            toast.success("分享成功");
           }
           break;
         case "delete":
@@ -73,67 +71,43 @@ const FileManager: React.FC = () => {
         case "share":
           if (await Sharing.isAvailableAsync()) {
             await Sharing.shareAsync(file.uri);
-            Toast.show({
-              type: "success",
-              text1: "分享成功",
-            });
+            toast.success("分享成功");
           }
           break;
         case "rename":
-          // 这里可以添加重命名功能的代码
-          Toast.show({
-            type: "info",
-            text1: "重命名功能尚未实现",
-          });
+          toast.info("重命名功能尚未实现");
           break;
         case "download":
-          // 假设下载功能
-          Toast.show({
-            type: "success",
-            text1: "下载成功",
-          });
+          toast.success("下载成功");
           break;
         case "info":
-          Toast.show({
-            type: "info",
-            text1: `文件信息: ${file.name}`,
-            text2: `大小: ${
+          toast.info(
+            `文件信息: ${file.name}\n大小: ${
               file.size ? (file.size / 1024).toFixed(2) : "N/A"
-            } KB`,
-          });
+            } KB`
+          );
           break;
         case "lock":
-          Toast.show({
-            type: "warn",
-            text1: `锁定 ${file.name} 功能尚未实现`,
-          });
+          toast.warning(`锁定 ${file.name} 功能尚未实现`);
           break;
         case "star":
-          Toast.show({
-            type: "success",
-            text1: `${file.name} 已标记为收藏`,
-          });
+          toast.success(`${file.name} 已标记为收藏`);
           break;
         default:
-          Toast.show({
-            type: "error",
-            text1: "未知操作",
-          });
+          toast.error("未知操作");
       }
     } catch (error: any) {
-      showError(error.message || "操作失败");
+      handleError(error);
     }
   };
 
-  const showError = (message: string) => {
+  const handleError = useCallback((error: unknown) => {
+    const errorMessage = error instanceof Error ? error.message : "未知错误";
     setDialogType("error");
-    setDialogMessage(message);
+    setDialogMessage(errorMessage);
     setShowDialog(true);
-    Toast.show({
-      type: "error",
-      text1: message,
-    });
-  };
+    toast.error(errorMessage);
+  }, []);
 
   const handleConfirmDialog = async () => {
     if (dialogType === "delete" && selectedFiles.length > 0) {
@@ -142,14 +116,9 @@ const FileManager: React.FC = () => {
           selectedFiles.map((uri) => FileSystem.deleteAsync(uri))
         );
         loadDirectory(currentPath);
-        Toast.show({
-          type: "success",
-          text1: "删除成功",
-        });
+        toast.success("文件已删除");
       } catch (error: any) {
-        const errorMessage =
-          error instanceof Error ? error.message : "未知错误";
-        showError("删除失败: " + errorMessage);
+        handleError(error);
       }
     }
     setShowDialog(false);
@@ -164,38 +133,33 @@ const FileManager: React.FC = () => {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-white">
+    <SafeAreaView className="flex-1 bg-background">
       <FileHeader
         onNavigateUp={navigateUp}
         isDisabled={currentPath === FileSystem.documentDirectory}
         isLandscape={isLandscape}
       />
 
-      <ScrollView 
-        className="flex-1"
-        contentContainerStyle={{ 
-          flexGrow: 1,
-          padding: 16
-        }}
-      >
-        <View className={`flex-1 ${isLandscape ? "flex-row flex-wrap" : ""} gap-4`}>
-          {files.map((file, index) => (
-            <Animated.View
-              key={file.uri}
-              entering={FadeIn.delay(index * 50).springify()}
-              layout={Layout.springify()}
-              className={isLandscape ? "w-[30%]" : "w-full"}
-            >
-              <FileItem
-                file={file}
-                index={index}
-                isLandscape={isLandscape}
-                onFileAction={handleFileAction}
-              />
-            </Animated.View>
-          ))}
-        </View>
-      </ScrollView>
+      <FlashList
+        data={files}
+        renderItem={({ item, index }) => (
+          <Animated.View
+            entering={FadeIn.delay(index * 50).springify()}
+            layout={LinearTransition.springify()}
+            className={isLandscape ? "w-[30%] m-2" : "w-full mb-3"}
+          >
+            <FileItem
+              file={item}
+              index={index}
+              isLandscape={isLandscape}
+              onFileAction={handleFileAction}
+            />
+          </Animated.View>
+        )}
+        estimatedItemSize={200}
+        numColumns={isLandscape ? 3 : 1}
+        contentContainerStyle={{ padding: 16 }}
+      />
 
       <ConfirmDialog
         showDialog={showDialog}
@@ -204,10 +168,8 @@ const FileManager: React.FC = () => {
         dialogMessage={dialogMessage}
         handleConfirmDialog={handleConfirmDialog}
       />
-
-      <Toast />
     </SafeAreaView>
   );
 };
 
-export default FileManager;
+export default memo(FileManager);

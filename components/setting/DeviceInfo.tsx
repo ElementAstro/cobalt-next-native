@@ -4,6 +4,8 @@ import {
   useWindowDimensions,
   SafeAreaView,
   ViewProps,
+  ScrollView,
+  View,
 } from "react-native";
 import * as Device from "expo-device";
 import * as Network from "expo-network";
@@ -205,129 +207,111 @@ const DeviceScreen = () => {
     );
   }
 
-  const cardStyles = isLandscape ? "w-[48%] mb-4" : "w-full mb-4";
-
   return (
     <SafeAreaView className="flex-1">
-      <ThemedView
-        className={`flex-1 p-4 ${
-          isLandscape ? "flex-row flex-wrap justify-between" : ""
-        }`}
-      >
-        <InfoCard
-          title="设备概览"
-          description="基本的设备信息一览"
-          className={cardStyles}
+      <ThemedView className="flex-1 p-4">
+        <ScrollView 
+          className="flex-1"
+          showsVerticalScrollIndicator={false}
         >
-          <DeviceItem label="品牌" value={deviceInfo.brand} icon={Home} />
-          <DeviceItem
-            label="制造商"
-            value={deviceInfo.manufacturer}
-            icon={Cpu}
-          />
-          <DeviceItem
-            label="型号"
-            value={deviceInfo.modelName}
-            icon={Smartphone}
-          />
-        </InfoCard>
-
-        <InfoCard
-          title="系统信息"
-          description="设备操作系统相关信息"
-          className={cardStyles}
-        >
-          <DeviceItem
-            label="操作系统"
-            value={deviceInfo.osName}
-            icon={MemoryStick}
-          />
-          <DeviceItem label="版本" value={deviceInfo.osVersion} icon={Info} />
-          <DeviceItem
-            label="是否是真实设备"
-            value={deviceInfo.isDevice ? "是" : "否"}
-            icon={Smartphone}
-          />
-        </InfoCard>
-
-        <InfoCard
-          title="硬件信息"
-          description="设备硬件相关信息"
-          className={cardStyles}
-        >
-          <DeviceItem
-            label="设备类型"
-            value={
-              deviceInfo.deviceType !== null
-                ? deviceInfo.deviceType === Device.DeviceType.PHONE
-                  ? "手机"
-                  : deviceInfo.deviceType === Device.DeviceType.TABLET
-                  ? "平板"
-                  : "其他"
-                : "未知"
-            }
-            icon={DeviceTypeIcon}
-          />
-          <DeviceItem
-            label="设备年份"
-            value={deviceInfo.deviceYearClass}
-            icon={Home}
-          />
-          <DeviceItem
-            label="总内存"
-            value={
-              deviceInfo.totalMemory
-                ? `${(deviceInfo.totalMemory / (1024 * 1024)).toFixed(2)} MB`
-                : "未知"
-            }
-            icon={HardDrive}
-          />
-        </InfoCard>
-
-        <InfoCard
-          title="标识信息"
-          description="设备的标识相关信息"
-          className={cardStyles}
-        >
-          <DeviceItem
-            label="设备名称"
-            value={deviceInfo.deviceName}
-            icon={Smartphone}
-          />
-          <DeviceItem
-            label="设计名称"
-            value={deviceInfo.designName}
-            icon={Home}
-          />
-          <DeviceItem label="型号 ID" value={deviceInfo.modelId} icon={Cpu} />
-          <DeviceItem
-            label="产品名称"
-            value={deviceInfo.productName}
-            icon={Home}
-          />
-        </InfoCard>
-
-        <InfoCard
-          title="网络信息"
-          description="设备的网络相关信息"
-          className={cardStyles}
-        >
-          <DeviceItem
-            label="IP 地址"
-            value={networkInfo.ipAddress}
-            icon={networkInfo.isConnected ? Wifi : WifiOff}
-          />
-          <DeviceItem
-            label="网络类型"
-            value={networkInfo.networkType}
-            icon={networkInfo.isConnected ? Signal : AlertCircle}
-          />
-          <DeviceItem
-            label="是否连接"
-            value={networkInfo.isConnected ? "已连接" : "未连接"}
-            icon={networkInfo.isConnected ? Wifi : WifiOff}
-          />
-        </InfoCard>
+          <View className="flex-1 flex-col lg:flex-row lg:flex-wrap">
+            <View className="w-full lg:w-1/2 lg:pr-2">
+              <InfoCard
+                title="设备概览"
+                description="基本的设备信息一览"
+                className="mb-4"
+              >
+                <DeviceItem label="品牌" value={deviceInfo.brand} icon={Home} />
+                <DeviceItem
+                  label="制造商"
+                  value={deviceInfo.manufacturer}
+                  icon={Cpu}
+                />
+                <DeviceItem
+                  label="型号"
+                  value={deviceInfo.modelName}
+                  icon={Smartphone}
+                />
+              </InfoCard>
+              
+              <InfoCard
+                title="系统信息"
+                description="设备操作系统相关信息"
+                className="mb-4"
+              >
+                <DeviceItem
+                  label="操作系统"
+                  value={deviceInfo.osName}
+                  icon={MemoryStick}
+                />
+                <DeviceItem label="版本" value={deviceInfo.osVersion} icon={Info} />
+                <DeviceItem
+                  label="是否是真实设备"
+                  value={deviceInfo.isDevice ? "是" : "否"}
+                  icon={Smartphone}
+                />
+              </InfoCard>
+            </View>
+            
+            <View className="w-full lg:w-1/2 lg:pl-2">
+              <InfoCard
+                title="硬件信息"
+                description="设备硬件相关信息"
+                className="mb-4"
+              >
+                <DeviceItem
+                  label="设备类型"
+                  value={
+                    deviceInfo.deviceType !== null
+                      ? deviceInfo.deviceType === Device.DeviceType.PHONE
+                        ? "手机"
+                        : deviceInfo.deviceType === Device.DeviceType.TABLET
+                        ? "平板"
+                        : "其他"
+                      : "未知"
+                  }
+                  icon={DeviceTypeIcon}
+                />
+                <DeviceItem
+                  label="设备年份"
+                  value={deviceInfo.deviceYearClass}
+                  icon={Home}
+                />
+                <DeviceItem
+                  label="总内存"
+                  value={
+                    deviceInfo.totalMemory
+                      ? `${(deviceInfo.totalMemory / (1024 * 1024)).toFixed(2)} MB`
+                      : "未知"
+                  }
+                  icon={HardDrive}
+                />
+              </InfoCard>
+              
+              <InfoCard
+                title="网络信息"
+                description="设备的网络相关信息"
+                className="mb-4"
+              >
+                <DeviceItem
+                  label="IP 地址"
+                  value={networkInfo.ipAddress}
+                  icon={networkInfo.isConnected ? Wifi : WifiOff}
+                />
+                <DeviceItem
+                  label="网络类型"
+                  value={networkInfo.networkType}
+                  icon={networkInfo.isConnected ? Signal : AlertCircle}
+                />
+                <DeviceItem
+                  label="是否连接"
+                  value={networkInfo.isConnected ? "已连接" : "未连接"}
+                  icon={networkInfo.isConnected ? Wifi : WifiOff}
+                />
+              </InfoCard>
+            </View>
+          </View>
+        </ScrollView>
       </ThemedView>
     </SafeAreaView>
   );

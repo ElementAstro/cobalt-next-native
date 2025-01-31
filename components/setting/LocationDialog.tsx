@@ -156,22 +156,31 @@ const LocationDialog: React.FC = () => {
   const { width, height } = useWindowDimensions();
   const isLandscape = width > height;
 
-  // 优化动画值
+  // 修改动画初始化
   const animations = {
     scale: useSharedValue(1),
     rotate: useSharedValue(0),
-    progress: useSharedValue(0),
+    progress: useSharedValue(1), // 将初始值改为 1
   };
 
+  // 优化动画样式
   const fadeAnim = useAnimatedStyle(() => ({
-    opacity: animations.progress.value,
+    opacity: withSpring(animations.progress.value),
   }));
 
   const slideAnim = useAnimatedStyle(() => ({
     transform: [
-      { translateY: interpolate(animations.progress.value, [0, 1], [50, 0]) },
+      {
+        translateY: withSpring(
+          interpolate(animations.progress.value, [0, 1], [50, 0])
+        ),
+      },
       { scale: withSpring(animations.scale.value) },
-      { rotate: `${animations.rotate.value}deg` },
+      {
+        rotate: withSpring(
+          `${interpolate(animations.rotate.value, [0, 360], [0, 360])}deg`
+        ),
+      },
     ],
   }));
 
@@ -238,7 +247,8 @@ const LocationDialog: React.FC = () => {
   // 获取位置信息并验证
   const getCurrentLocation = useCallback(async () => {
     setLoading(true);
-    animations.scale.value = 0.9;
+    animations.scale.value = withSpring(0.9);
+    animations.progress.value = withSpring(0.8);
 
     try {
       const permissionGranted = await requestLocationPermissions();
@@ -265,9 +275,9 @@ const LocationDialog: React.FC = () => {
       const validatedLocation = LocationSchema.parse(locationData);
       setLocation(validatedLocation);
 
-      animations.scale.value = withSpring(1.1);
-      animations.rotate.value = withTiming(360);
-      animations.progress.value = withTiming(1);
+      animations.scale.value = withSpring(1);
+      animations.rotate.value = withTiming(360, { duration: 1000 });
+      animations.progress.value = withSpring(1);
 
       toast.success("定位成功", { description: "已获取最新位置" });
     } catch (error) {
@@ -276,7 +286,9 @@ const LocationDialog: React.FC = () => {
       setErrorMsg(message);
     } finally {
       setLoading(false);
+      // 确保动画回到初始状态
       animations.scale.value = withSpring(1);
+      animations.progress.value = withSpring(1);
     }
   }, [setLocation, animations]);
 
@@ -315,10 +327,10 @@ const LocationDialog: React.FC = () => {
       <DialogContent className="p-0">
         <Animated.View
           style={[fadeAnim, slideAnim]}
-          className={`flex ${isLandscape ? "flex-row" : "flex-col"} p-4`}
+          className="flex flex-col lg:flex-row p-4"
         >
           {/* 位置信息卡片 */}
-          <Card className="flex-1">
+          <Card className="flex-1 lg:mr-4">
             <CardHeader>
               <CardTitle className="flex-row items-center space-x-2">
                 <Target size={24} className="text-primary" />
@@ -354,7 +366,9 @@ const LocationDialog: React.FC = () => {
           </Card>
 
           {/* 地图显示 */}
-          <MapDisplay location={storeLocation} isLandscape={isLandscape} />
+          <View className="flex-1 mt-4 lg:mt-0">
+            <MapDisplay location={storeLocation} isLandscape={isLandscape} />
+          </View>
         </Animated.View>
 
         <DialogClose asChild>

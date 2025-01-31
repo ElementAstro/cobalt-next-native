@@ -18,6 +18,7 @@ import "../global.css";
 import { useColorScheme } from "@/hooks/useColorScheme";
 import { Toaster } from "sonner-native";
 import ErrorBoundary from "@/components/error/ErrorBoundary";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
 
 // 防止资源加载完成前自动隐藏启动屏幕
 SplashScreen.preventAutoHideAsync();
@@ -59,35 +60,39 @@ export default function RootLayout() {
   }
 
   return (
-    <ErrorBoundary>
-      <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
-        <Stack>
-          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-          <Stack.Screen name="+not-found" />
-        </Stack>
-        <PortalHost />
-        <StatusBar style="auto" />
-        <Toaster
-          position="top-center"
-          // offset={100}
-          duration={3000}
-          swipeToDismissDirection="up"
-          visibleToasts={4}
-          closeButton
-          autoWiggleOnUpdate="toast-change"
-          theme="system"
-          icons={{
-            error: <Text>💥</Text>,
-            loading: <Text>🔄</Text>,
-          }}
-          toastOptions={{
-            actionButtonStyle: {
-              paddingHorizontal: 20,
-            },
-          }}
-          pauseWhenPageIsHidden
-        />
-      </ThemeProvider>
-    </ErrorBoundary>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <ErrorBoundary>
+        <ThemeProvider
+          value={colorScheme === "dark" ? DarkTheme : DefaultTheme}
+        >
+          <Stack>
+            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+            <Stack.Screen name="+not-found" />
+          </Stack>
+          <PortalHost />
+          <StatusBar style="auto" />
+          <Toaster
+            position="top-center"
+            // offset={100}
+            duration={3000}
+            swipeToDismissDirection="up"
+            visibleToasts={4}
+            closeButton
+            autoWiggleOnUpdate="toast-change"
+            theme="system"
+            icons={{
+              error: <Text>💥</Text>,
+              loading: <Text>🔄</Text>,
+            }}
+            toastOptions={{
+              actionButtonStyle: {
+                paddingHorizontal: 20,
+              },
+            }}
+            pauseWhenPageIsHidden
+          />
+        </ThemeProvider>
+      </ErrorBoundary>
+    </GestureHandlerRootView>
   );
 }

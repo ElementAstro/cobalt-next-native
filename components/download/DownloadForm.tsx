@@ -3,7 +3,7 @@ import { View, ActivityIndicator } from "react-native";
 import { downloadManager } from "./download";
 import { z } from "zod";
 import { toast } from "sonner-native";
-import { Link, FileDown, AlertCircle, Check } from "lucide-react-native";
+import { Link, FileDown, AlertCircle, Check, X } from "lucide-react-native";
 import { useDebouncedCallback } from "use-debounce";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -56,19 +56,24 @@ export const DownloadForm: React.FC = React.memo(() => {
     try {
       setIsLoading(true);
       const finalFilename = filename || url.split("/").pop() || "unknown";
-      await downloadManager.addDownload(url, finalFilename);
 
-      toast("下载任务已添加", {
-        description: `文件: ${finalFilename}`,
-        icon: <Check size={20} color="#10b981" />,
+      const result = await downloadManager.addDownload(url, finalFilename);
+
+      toast.success("下载任务已添加", {
+        description: `将下载: ${finalFilename}`,
+        icon: <Check size={20} />,
+        action: {
+          label: "撤销",
+          onClick: () => downloadManager.cancelDownload(result),
+        },
       });
 
       setUrl("");
       setFilename("");
     } catch (error) {
-      toast("添加下载失败", {
+      toast.error("添加下载失败", {
         description: error instanceof Error ? error.message : "未知错误",
-        icon: <AlertCircle size={20} color="#ef4444" />,
+        icon: <AlertCircle size={20} />,
       });
     } finally {
       setIsLoading(false);

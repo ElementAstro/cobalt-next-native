@@ -6,7 +6,6 @@ import {
   Dimensions,
   ScrollView,
 } from "react-native";
-import { LinearGradient } from "expo-linear-gradient";
 import { BlurView } from "expo-blur";
 import {
   CopilotProvider,
@@ -177,7 +176,7 @@ function HomeScreenContent() {
               >
                 <WalkthroughCard
                   className={`border-2 shadow-lg ${
-                    activeMode === "hotspot"
+                    activeMode !== "hotspot"
                       ? "border-primary bg-primary/10"
                       : "border-gray-300 bg-gray-900"
                   }`}

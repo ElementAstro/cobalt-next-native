@@ -16,6 +16,10 @@ export const FileItemSchema = z.object({
       execute: z.boolean(),
     })
     .optional(),
+  thumbnailUri: z.string().url().optional(),
+  lastAccessed: z.number().nonnegative().optional(),
+  tags: z.array(z.string()).optional(),
+  mimeType: z.string().optional(),
 });
 
 export type FileItem = z.infer<typeof FileItemSchema>;
@@ -23,20 +27,27 @@ export type FileItem = z.infer<typeof FileItemSchema>;
 export const DialogTypeSchema = z.enum(["delete", "rename", "error"]);
 export type DialogType = z.infer<typeof DialogTypeSchema> | null;
 
-export interface FileAction {
-  type:
-    | "open"
-    | "delete"
-    | "share"
-    | "rename"
-    | "download"
-    | "info"
-    | "lock"
-    | "star";
-  icon: string;
-  label: string;
-  requiresConfirmation: boolean;
-}
+export const FileActionSchema = z.object({
+  type: z.enum([
+    "open",
+    "delete",
+    "share",
+    "rename",
+    "download",
+    "info",
+    "lock",
+    "star",
+    "copy",
+    "move",
+    "compress",
+  ]),
+  icon: z.string(),
+  label: z.string(),
+  requiresConfirmation: z.boolean(),
+  color: z.string().optional(),
+});
+
+export type FileAction = z.infer<typeof FileActionSchema>;
 
 export interface FileManagerState {
   currentPath: string;

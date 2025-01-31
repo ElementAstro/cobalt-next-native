@@ -12,7 +12,7 @@ import {
   ThumbsUp,
   MessageCircle,
 } from "lucide-react-native";
-import Toast from "react-native-toast-message";
+import { toast } from "sonner-native";
 
 import {
   AlertDialog,
@@ -39,8 +39,6 @@ interface RateAppPromptProps {
   autoPrompt?: boolean;
   buttonText?: string;
   rating?: number;
-  minDaysBeforePrompt?: number;
-  minLaunchesBeforePrompt?: number;
 }
 
 const RateAppPrompt: React.FC<RateAppPromptProps> = ({
@@ -49,23 +47,16 @@ const RateAppPrompt: React.FC<RateAppPromptProps> = ({
   autoPrompt = false,
   buttonText = "评分",
   rating = 0,
-  minDaysBeforePrompt = 3,
-  minLaunchesBeforePrompt = 5,
 }) => {
   const [canPrompt, setCanPrompt] = useState(false);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [currentRating, setCurrentRating] = useState(rating);
-  const [isSubmitted, setIsSubmitted] = useState(false);
   const { width, height } = useWindowDimensions();
-  const isLandscape = width > height;
 
   const showSuccessToast = useCallback(() => {
-    Toast.show({
-      type: "success",
-      text1: "感谢您的评分！",
-      text2: "您的反馈对我们非常重要",
-      position: "bottom",
-      bottomOffset: 80,
+    toast.success("感谢您的评分！", {
+      description: "您的反馈对我们非常重要",
+      duration: 3000,
     });
   }, []);
 
@@ -73,7 +64,6 @@ const RateAppPrompt: React.FC<RateAppPromptProps> = ({
     try {
       if (await StoreReview.hasAction()) {
         await StoreReview.requestReview();
-        setIsSubmitted(true);
         showSuccessToast();
       } else {
         setIsDialogOpen(true);
@@ -99,12 +89,9 @@ const RateAppPrompt: React.FC<RateAppPromptProps> = ({
   const handleStarPress = useCallback((rating: number) => {
     setCurrentRating(rating);
     if (rating >= 4) {
-      Toast.show({
-        type: "info",
-        text1: "感谢您的支持！",
-        text2: "请继续享受我们的应用",
-        position: "bottom",
-        bottomOffset: 80,
+      toast.info("感谢您的支持！", {
+        description: "请继续享受我们的应用",
+        duration: 3000,
       });
     }
   }, []);
@@ -148,7 +135,7 @@ const RateAppPrompt: React.FC<RateAppPromptProps> = ({
       {showButton && canPrompt && (
         <Button
           onPress={requestReview}
-          className={isLandscape ? "w-1/3" : "w-full"}
+          className="w-full lg:w-auto"
           variant="default"
         >
           <Award className="mr-2 h-4 w-4" />
@@ -157,7 +144,7 @@ const RateAppPrompt: React.FC<RateAppPromptProps> = ({
       )}
 
       <AlertDialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <AlertDialogContent className={isLandscape ? "w-[80%]" : "sm:max-w-md"}>
+        <AlertDialogContent className="w-full max-w-lg mx-auto">
           <AlertDialogHeader>
             <AlertDialogTitle>应用评分</AlertDialogTitle>
             <AlertDialogDescription>{promptMessage}</AlertDialogDescription>
@@ -165,12 +152,12 @@ const RateAppPrompt: React.FC<RateAppPromptProps> = ({
 
           <Card className="mt-4">
             <CardHeader>
-              <CardTitle className="text-center">
-                <Heart className="inline-block mr-2" />
+              <CardTitle className="text-center flex-row items-center justify-center">
+                <Heart className="mr-2" />
                 请为我们评分
               </CardTitle>
             </CardHeader>
-            <CardContent>
+            <CardContent className="space-y-4">
               {renderStars()}
               {currentRating > 0 && (
                 <Animated.View
@@ -204,8 +191,6 @@ const RateAppPrompt: React.FC<RateAppPromptProps> = ({
           </Card>
         </AlertDialogContent>
       </AlertDialog>
-
-      <Toast />
     </>
   );
 };

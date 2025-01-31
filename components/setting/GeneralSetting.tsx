@@ -1,5 +1,5 @@
 import React, { useMemo, useCallback } from "react";
-import { useWindowDimensions } from "react-native";
+import { useWindowDimensions, ScrollView } from "react-native";
 import { z } from "zod";
 import { toast } from "sonner-native";
 import {
@@ -136,38 +136,46 @@ const GeneralSetting = () => {
   );
 
   return (
-    <Animated.View entering={FadeInDown.duration(500)} className="flex-1 p-4">
-      <Card className={isLandscape ? "w-1/2" : "w-full"}>
-        <CardHeader>
-          <CardTitle className="flex-row items-center space-x-2">
-            <Settings size={24} className="text-primary" />
-            <Text className="text-xl font-bold">常规设置</Text>
-          </CardTitle>
-          <CardDescription>管理应用的基本设置选项</CardDescription>
-        </CardHeader>
+    <Animated.View 
+      entering={FadeInDown.duration(500)} 
+      className="flex-1 p-4"
+    >
+      <ScrollView
+        className="flex-1"
+        showsVerticalScrollIndicator={false}
+      >
+        <Card className="w-full lg:w-2/3 mx-auto">
+          <CardHeader>
+            <CardTitle className="flex-row items-center space-x-2">
+              <Settings size={24} className="text-primary" />
+              <Text className="text-xl font-bold">常规设置</Text>
+            </CardTitle>
+            <CardDescription>管理应用的基本设置选项</CardDescription>
+          </CardHeader>
 
-        <CardContent className="space-y-4">
-          {settingsItems.map((item) => (
-            <SettingItem
-              key={item.settingKey}
-              icon={item.icon}
-              label={item.label}
-              value={item.value}
-              onToggle={(checked: boolean) =>
-                handleSettingChange(
-                  item.settingKey as keyof GeneralSettings,
-                  checked
-                )
-              }
-            />
-          ))}
+          <CardContent className="space-y-6">
+            {settingsItems.map((item) => (
+              <SettingItem
+                key={item.settingKey}
+                icon={item.icon}
+                label={item.label}
+                value={item.value}
+                onToggle={(checked: boolean) =>
+                  handleSettingChange(
+                    item.settingKey as keyof GeneralSettings,
+                    checked
+                  )
+                }
+              />
+            ))}
 
-          <Alert variant="default" icon={RefreshCw}>
-            <AlertTitle>自动保存</AlertTitle>
-            <AlertDescription>设置会自动保存,无需手动操作</AlertDescription>
-          </Alert>
-        </CardContent>
-      </Card>
+            <Alert variant="default" icon={RefreshCw}>
+              <AlertTitle>自动保存</AlertTitle>
+              <AlertDescription>设置会自动保存，无需手动操作</AlertDescription>
+            </Alert>
+          </CardContent>
+        </Card>
+      </ScrollView>
     </Animated.View>
   );
 };

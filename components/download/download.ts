@@ -4,6 +4,8 @@ import * as Network from "expo-network";
 import * as Notifications from "expo-notifications";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { BehaviorSubject } from "rxjs";
+import { toast } from "sonner-native";
+import { z } from "zod";
 import type {
   DownloadTask,
   DownloadStats,
@@ -140,14 +142,26 @@ class DownloadManager {
     this.persistDownloads();
   }
 
-  public async addDownload(
-    url: string,
-    filename: string,
-    options: DownloadOptions = {}
-  ): Promise<string> {
+  private async validateDownloadRequest(url: string, filename: string) {
+    const schema = z.object({
+      url: z.string().url("无效的下载链接"),
+      filename: z.string().min(1, "文件名不能为空"),
+    });
+
+    try {
+      schema.parse({ url, filename });
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        throw new Error(error.errors[0].message);
+      }
+      throw error;
+    }
+  }
+
+  private async checkSystemRequirements() {
     const networkStatus = await Network.getNetworkStateAsync();
     if (!networkStatus.isConnected) {
-      throw new Error("No network connection");
+      throw new Error("无网络连接");
     }
 
     const fileInfo = await FileSystem.getInfoAsync(
@@ -155,8 +169,17 @@ class DownloadManager {
     );
     const minSpace = 1024 * 1024 * 10; // 10MB
     if (fileInfo.exists && fileInfo.size < minSpace) {
-      throw new Error("Insufficient storage space");
+      throw new Error("存储空间不足");
     }
+  }
+
+  public async addDownload(
+    url: string,
+    filename: string,
+    options: DownloadOptions = {}
+  ): Promise<string> {
+    await this.validateDownloadRequest(url, filename);
+    await this.checkSystemRequirements();
 
     const downloadId = Math.random().toString(36).slice(2, 11);
     const destinationUri = `${FileSystem.documentDirectory}${filename}`;

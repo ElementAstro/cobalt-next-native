@@ -103,9 +103,9 @@ const ThemeSetting = () => {
   return (
     <Animated.View
       entering={FadeInDown.duration(500)}
-      className={`flex-1 p-4 ${isLandscape ? "flex-row space-x-4" : ""}`}
+      className="flex-1 p-4 flex-col lg:flex-row lg:space-x-4"
     >
-      <Card className={isLandscape ? "w-1/2" : "w-full"}>
+      <Card className="flex-1 lg:w-1/2">
         <CardHeader>
           <CardTitle className="flex-row items-center space-x-2">
             <Settings2 size={24} className="text-primary" />
@@ -150,7 +150,7 @@ const ThemeSetting = () => {
         </CardContent>
       </Card>
 
-      <View className={isLandscape ? "w-1/2" : "mt-4"}>
+      <View className="flex-1 mt-4 lg:mt-0 lg:w-1/2">
         <ThemePreview theme={theme} />
       </View>
     </Animated.View>
