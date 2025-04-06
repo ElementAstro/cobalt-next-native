@@ -1,6 +1,14 @@
 import React, { Component, ErrorInfo } from "react";
 import { View, ScrollView } from "react-native";
-import { AlertCircle, RefreshCw } from "lucide-react-native";
+import { AlertCircle, RefreshCw, AlertTriangle } from "lucide-react-native";
+import Animated, {
+  FadeIn,
+  FadeInDown,
+  SlideInUp,
+  Layout,
+  BounceIn,
+  withSpring,
+} from "react-native-reanimated";
 import { Button } from "~/components/ui/button";
 import { Text } from "~/components/ui/text";
 import {
@@ -59,9 +67,13 @@ class ErrorBoundary extends Component<Props, State> {
       return (
         <ScrollView
           contentContainerStyle={{ flex: 1, padding: 16 }}
-          className="flex-1 bg-background"
+          className="flex-1 bg-gradient-to-b from-background to-background/95"
         >
-          <Card className="native:rounded-2xl native:shadow-lg overflow-hidden">
+          <Animated.View
+            entering={FadeInDown.duration(500).springify()}
+            className="w-full"
+          >
+          <Card className="native:rounded-2xl native:shadow-lg overflow-hidden border-primary/10">
             <CardHeader className="bg-destructive/10">
               <CardTitle className="flex-row items-center space-x-2">
                 <AlertCircle size={24} className="text-destructive" />
@@ -108,3 +120,4 @@ class ErrorBoundary extends Component<Props, State> {
 }
 
 export default ErrorBoundary;
+

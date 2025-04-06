@@ -58,6 +58,7 @@ import { Alert, AlertTitle, AlertDescription } from "~/components/ui/alert";
 import Animated, {
   FadeIn,
   FadeOut,
+  FadeInDown,
   SlideInUp,
   Layout,
   BounceIn,
@@ -290,7 +291,43 @@ const PrivacyDialog = ({
   </Dialog>
 );
 
-const DeviceScreen = () => {
+const LoadingSkeleton: React.FC = () => {
+  return (
+    <Animated.View
+      entering={FadeIn.duration(300).springify()}
+      className="flex-1 bg-gradient-to-b from-background to-background/95 p-4"
+    >
+      {[...Array(4)].map((_, index) => (
+        <Animated.View
+          key={index}
+          entering={FadeIn.delay(index * 100).springify()}
+          className="mb-4 bg-primary/5 rounded-2xl overflow-hidden"
+        >
+          <View className="p-4 border-b border-border/10">
+            <View className="h-6 w-32 bg-primary/10 rounded-lg mb-2 animate-pulse" />
+            <View className="h-4 w-48 bg-primary/5 rounded-lg animate-pulse" />
+          </View>
+          <View className="p-4">
+            {[...Array(3)].map((_, itemIndex) => (
+              <View
+                key={itemIndex}
+                className="flex-row items-center justify-between mb-3 last:mb-0"
+              >
+                <View className="flex-row items-center space-x-3">
+                  <View className="h-10 w-10 rounded-full bg-primary/10 animate-pulse" />
+                  <View className="h-4 w-24 bg-primary/5 rounded-lg animate-pulse" />
+                </View>
+                <View className="h-6 w-20 bg-primary/10 rounded-lg animate-pulse" />
+              </View>
+            ))}
+          </View>
+        </Animated.View>
+      ))}
+    </Animated.View>
+  );
+};
+
+const DeviceScreen: React.FC = () => {
   const [deviceInfo, setDeviceInfo] = useState<DeviceInfo>({} as DeviceInfo);
   const [networkInfo, setNetworkInfo] = useState<NetworkInfo>({
     ipAddress: null,
@@ -302,26 +339,22 @@ const DeviceScreen = () => {
   const [refreshing, setRefreshing] = useState(false);
   const [showPrivacyDialog, setShowPrivacyDialog] = useState(true);
   const [hasAcceptedPrivacy, setHasAcceptedPrivacy] = useState(false);
-  const [visibleSensitiveInfo, setVisibleSensitiveInfo] = useState<
-    Record<string, boolean>
-  >({});
+  const [visibleSensitiveInfo, setVisibleSensitiveInfo] = useState<Record<string, boolean>>({});
+  
   const { width, height } = useWindowDimensions();
   const isLandscape = width > height;
 
   const DeviceTypeIcon = useMemo(() => {
     if (!deviceInfo.deviceType) return Cpu;
-    return (
-      deviceTypeIcons[deviceInfo.deviceType as keyof typeof deviceTypeIcons] ||
-      Cpu
-    );
+    return deviceTypeIcons[deviceInfo.deviceType as keyof typeof deviceTypeIcons] || Cpu;
   }, [deviceInfo.deviceType]);
 
-  const toggleSensitiveInfo = (key: string) => {
+  const toggleSensitiveInfo = useCallback((key: string) => {
     setVisibleSensitiveInfo((prev) => ({
       ...prev,
       [key]: !prev[key],
     }));
-  };
+  }, []);
 
   const fetchInfo = useCallback(
     async (isRefreshing = false) => {
@@ -398,60 +431,52 @@ const DeviceScreen = () => {
       fetchInfo();
     }
   }, [hasAcceptedPrivacy, fetchInfo]);
+if (!hasAcceptedPrivacy) {
+  return (
+    <PrivacyDialog
+      isOpen={showPrivacyDialog}
+      onClose={() => setShowPrivacyDialog(false)}
+      onAccept={handleAcceptPrivacy}
+    />
+  );
+}
 
-  if (!hasAcceptedPrivacy) {
-    return (
-      <PrivacyDialog
-        isOpen={showPrivacyDialog}
-        onClose={() => setShowPrivacyDialog(false)}
-        onAccept={handleAcceptPrivacy}
-      />
-    );
-  }
+if (isLoading && !refreshing) {
+  return <LoadingSkeleton />;
+}
 
-  if (isLoading && !refreshing) {
-    return (
-      <Animated.View
-        entering={FadeIn.duration(300).springify()}
-        className="flex-1 justify-center items-center bg-background"
+if (error && !refreshing) {
+  return (
+    <Animated.View
+      entering={FadeIn.duration(300).springify()}
+      className="flex-1 justify-center items-center p-6 bg-gradient-to-b from-background to-background/95"
+    >
+      <Alert variant="destructive" className="w-full mb-6" icon={AlertCircle}>
+        <AlertTitle>发生错误</AlertTitle>
+        <AlertDescription>{error}</AlertDescription>
+      </Alert>
+      <Button
+        variant="outline"
+        onPress={() => fetchInfo()}
+        className="flex-row items-center space-x-2 px-4 py-2 rounded-xl bg-primary/10"
       >
-        <ActivityIndicator size="large" className="mb-4 native:scale-150" />
-        <Text className="text-muted-foreground native:text-lg">加载中...</Text>
-      </Animated.View>
-    );
-  }
-
-  if (error && !refreshing) {
-    return (
-      <Animated.View
-        entering={FadeIn.duration(300).springify()}
-        className="flex-1 justify-center items-center p-6 bg-background"
-      >
-        <AlertCircle
-          size={40}
-          className="text-destructive mb-4 native:h-12 native:w-12"
-        />
-        <Text className="text-destructive text-center native:text-lg mb-6">
-          {error}
-        </Text>
-        <Button
-          variant="outline"
-          onPress={() => fetchInfo()}
-          className="flex-row items-center space-x-2 px-4 py-2 rounded-xl"
-        >
-          <RefreshCcw size={20} className="mr-2" />
-          <Text>重试</Text>
-        </Button>
-      </Animated.View>
-    );
-  }
+        <RefreshCcw size={20} className="mr-2 text-primary" />
+        <Text className="text-primary font-medium">重试</Text>
+      </Button>
+    </Animated.View>
+  );
+}
 
   return (
-    <SafeAreaView className="flex-1 bg-background">
-      <ScrollView
+    <SafeAreaView className="flex-1 bg-gradient-to-b from-background to-background/95">
+      <Animated.ScrollView
+        entering={FadeIn.duration(400).springify()}
         className="flex-1"
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ padding: 16 }}
+        contentContainerStyle={{
+          padding: 16,
+          paddingBottom: 32
+        }}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
@@ -460,16 +485,18 @@ const DeviceScreen = () => {
             tintColor="#006FEE"
           />
         }
+        scrollEventThrottle={16}
       >
-        <View
-          className={`space-y-4 native:space-y-6 ${
-            isLandscape ? "flex-row flex-wrap justify-between" : ""
-          }`}
-        >
+          <Animated.View
+            entering={FadeInDown.duration(500).springify()}
+            className={`space-y-4 native:space-y-6 ${
+              isLandscape ? "flex-row flex-wrap justify-between" : ""
+            }`}
+          >
           <InfoCard
             title="设备概览"
             description="基本的设备信息一览"
-            className={isLandscape ? "w-[48%] mb-4" : "mb-2"}
+            className={`${isLandscape ? "w-[48%] mb-4" : "mb-2"} transition-all duration-300 hover:scale-[1.02] active:scale-[0.98]`}
           >
             <DeviceItem
               label="品牌"
@@ -496,12 +523,12 @@ const DeviceScreen = () => {
               onToggleVisibility={() => toggleSensitiveInfo("modelName")}
             />
           </InfoCard>
+<InfoCard
+  title="系统信息"
+  description="设备操作系统相关信息"
+  className={`${isLandscape ? "w-[48%] mb-4" : "mb-2"} transition-all duration-300 hover:scale-[1.02] active:scale-[0.98]`}
+>
 
-          <InfoCard
-            title="系统信息"
-            description="设备操作系统相关信息"
-            className={isLandscape ? "w-[48%] mb-4" : "mb-2"}
-          >
             <DeviceItem
               label="操作系统"
               value={deviceInfo.osName}
@@ -514,12 +541,12 @@ const DeviceScreen = () => {
               icon={Smartphone}
             />
           </InfoCard>
+<InfoCard
+  title="硬件信息"
+  description="设备硬件相关信息"
+  className={`${isLandscape ? "w-[48%] mb-4" : "mb-2"} transition-all duration-300 hover:scale-[1.02] active:scale-[0.98]`}
+>
 
-          <InfoCard
-            title="硬件信息"
-            description="设备硬件相关信息"
-            className={isLandscape ? "w-[48%] mb-4" : "mb-2"}
-          >
             <DeviceItem
               label="设备类型"
               value={
@@ -548,12 +575,12 @@ const DeviceScreen = () => {
               icon={HardDrive}
             />
           </InfoCard>
+<InfoCard
+  title="网络信息"
+  description="设备的网络相关信息"
+  className={`${isLandscape ? "w-[48%]" : ""} transition-all duration-300 hover:scale-[1.02] active:scale-[0.98]`}
+>
 
-          <InfoCard
-            title="网络信息"
-            description="设备的网络相关信息"
-            className={isLandscape ? "w-[48%]" : ""}
-          >
             <DeviceItem
               label="IP 地址"
               value={networkInfo.ipAddress}
@@ -573,8 +600,8 @@ const DeviceScreen = () => {
               icon={networkInfo.isConnected ? Wifi : WifiOff}
             />
           </InfoCard>
-        </View>
-      </ScrollView>
+        </Animated.View>
+    </Animated.ScrollView>
     </SafeAreaView>
   );
 };

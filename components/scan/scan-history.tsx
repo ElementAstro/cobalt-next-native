@@ -16,6 +16,10 @@ import {
   SortAsc,
   SortDesc,
   X,
+  Star,
+  StarOff,
+  Share2,
+  Trash2,
 } from "lucide-react-native";
 import Animated, {
   FadeIn,
@@ -71,6 +75,9 @@ const HistoryCard = React.memo(
   ({
     item,
     onPress,
+    onFavorite,
+    onDelete,
+    onShare,
     index,
   }: {
     item: ScanHistoryItem;
@@ -182,17 +189,30 @@ const HistoryCard = React.memo(
                   {new Date(item.timestamp).toLocaleString()}
                 </Text>
               </View>
-              <View
-                className={`
-                  flex-row items-center space-x-2 
-                  px-2 py-1 rounded-full
-                  ${config.bgColor}
-                `}
-              >
-                <StatusIcon size={14} className={config.color} />
-                <Text className={`text-xs font-medium ${config.color}`}>
-                  {config.label}
-                </Text>
+
+              {/* 添加状态标签 */}
+              <View className="flex-row items-center space-x-2">
+                {item.favorite && (
+                  <Animated.View entering={FadeIn.springify()} className="mr-2">
+                    <Star
+                      size={16}
+                      fill="#eab308"
+                      className="text-yellow-500"
+                    />
+                  </Animated.View>
+                )}
+                <View
+                  className={`
+                    flex-row items-center space-x-2 
+                    px-2 py-1 rounded-full
+                    ${config.bgColor}
+                  `}
+                >
+                  <StatusIcon size={14} className={config.color} />
+                  <Text className={`text-xs font-medium ${config.color}`}>
+                    {config.label}
+                  </Text>
+                </View>
               </View>
             </View>
 
@@ -232,7 +252,64 @@ const HistoryCard = React.memo(
                   </View>
                 )}
               </View>
-              <ChevronRight size={18} className="text-muted-foreground" />
+
+              {/* 添加操作按钮组 */}
+              <View className="flex-row items-center space-x-2">
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Pressable
+                      onPress={onFavorite}
+                      className="p-2 rounded-full hover:bg-muted/50 active:bg-muted"
+                    >
+                      {item.favorite ? (
+                        <Star
+                          size={18}
+                          className="text-yellow-500"
+                          fill="#eab308"
+                        />
+                      ) : (
+                        <StarOff size={18} className="text-muted-foreground" />
+                      )}
+                    </Pressable>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <Text>{item.favorite ? "取消收藏" : "收藏"}</Text>
+                  </TooltipContent>
+                </Tooltip>
+
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Pressable
+                      onPress={onShare}
+                      className="p-2 rounded-full hover:bg-muted/50 active:bg-muted"
+                    >
+                      <Share2 size={18} className="text-muted-foreground" />
+                    </Pressable>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <Text>分享</Text>
+                  </TooltipContent>
+                </Tooltip>
+
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Pressable
+                      onPress={onDelete}
+                      className="p-2 rounded-full hover:bg-destructive/10 active:bg-destructive/20"
+                    >
+                      <Trash2 size={18} className="text-destructive" />
+                    </Pressable>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <Text>删除</Text>
+                  </TooltipContent>
+                </Tooltip>
+
+                <ChevronRight
+                  size={18}
+                  className="text-muted-foreground ml-2"
+                />
+              </View>
             </View>
           </View>
         </Pressable>

@@ -1,10 +1,11 @@
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback, useMemo } from "react";
 import {
   View,
   TouchableOpacity,
   useWindowDimensions,
   ScrollView,
 } from "react-native";
+import type { LucideIcon } from "lucide-react-native";
 import {
   Wifi,
   Gauge,
@@ -16,7 +17,7 @@ import {
   Loader2,
   ChevronRight,
 } from "lucide-react-native";
-import {
+import Animated, {
   useAnimatedStyle,
   withTiming,
   useSharedValue,
@@ -25,6 +26,8 @@ import {
   FadeIn,
   FadeOut,
   SlideInUp,
+  withSequence,
+  interpolate,
 } from "react-native-reanimated";
 import { useNetworkStore } from "~/stores/useNetworkStore";
 import { useColorScheme } from "~/lib/useColorScheme";
@@ -39,17 +42,77 @@ import { z } from "zod";
 import * as Haptics from "expo-haptics";
 import { Button } from "~/components/ui/button";
 
+// 优化数据验证
 const NetworkSpeedSchema = z.object({
-  download: z.number().min(0),
-  upload: z.number().min(0),
+  download: z.number().min(0).max(1000),
+  upload: z.number().min(0).max(1000),
   quality: z.number().min(0).max(100),
 });
+
+interface NetworkDataCardProps {
+  icon: LucideIcon;
+  title: string;
+  value: string | number;
+  colorClass: string;
+  suffix?: string;
+  delay?: number;
+}
 
 interface NetworkInfoModalProps {
   visible: boolean;
   onClose: () => void;
 }
 
+const NetworkDataCard = React.memo(
+  ({
+    icon: Icon,
+    title,
+    value,
+    colorClass,
+    suffix,
+    delay = 0,
+  }: NetworkDataCardProps) => {
+    const scale = useSharedValue(1);
+
+    const handlePress = useCallback(async () => {
+      scale.value = withSequence(
+        withSpring(0.95, {
+          damping: 10,
+          stiffness: 200,
+        }),
+        withSpring(1)
+      );
+      await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    }, []);
+
+    const cardStyle = useAnimatedStyle(() => ({
+      transform: [{ scale: scale.value }],
+    }));
+
+    return (
+      <Animated.View
+        entering={SlideInUp.delay(delay).springify()}
+        style={cardStyle}
+        accessible={true}
+        accessibilityLabel={`${title}: ${value}${suffix || ""}`}
+        accessibilityRole="button"
+      >
+        <TouchableOpacity onPress={handlePress} className="active:opacity-90">
+          <View className="flex-1 min-w-[140px] bg-card/60 dark:bg-gray-800/60 p-4 rounded-2xl backdrop-blur-lg border border-border/50">
+            <View className="flex-row items-center space-x-2 mb-2">
+              <Icon size={18} className={colorClass} />
+              <Text className="text-sm text-muted-foreground">{title}</Text>
+            </View>
+            <Text className={`text-lg font-semibold ${colorClass}`}>
+              {value}
+              {suffix && <Text className="text-sm ml-1">{suffix}</Text>}
+            </Text>
+          </View>
+        </TouchableOpacity>
+      </Animated.View>
+    );
+  }
+);
 export const NetworkInfoModal: React.FC<NetworkInfoModalProps> = ({
   visible,
   onClose,
@@ -64,20 +127,160 @@ export const NetworkInfoModal: React.FC<NetworkInfoModalProps> = ({
     fetchNetworkInfo,
     testNetworkSpeed,
   } = useNetworkStore();
-  
+
   const { isDarkColorScheme } = useColorScheme();
   const { width, height } = useWindowDimensions();
   const isLandscape = width > height;
 
+  // 动画值
   const fadeAnim = useSharedValue(0);
   const slideAnim = useSharedValue(-300);
   const buttonScale = useSharedValue(1);
   const refreshIconRotate = useSharedValue(0);
-
   const [error, setError] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const [showHistory, setShowHistory] = useState(false);
 
+  // 缓存重复使用的值
+  const chartOptions = useMemo(
+    () => ({
+      tooltip: {
+        trigger: "axis",
+        backgroundColor: isDarkColorScheme
+          ? "rgba(0,0,0,0.8)"
+          : "rgba(255,255,255,0.9)",
+        borderRadius: 8,
+        textStyle: {
+          color: isDarkColorScheme ? "#fff" : "#000",
+        },
+      },
+      legend: {
+        data: ["下载速度 (Mbps)", "上传速度 (Mbps)"],
+        textStyle: { color: isDarkColorScheme ? "#fff" : "#000" },
+        icon: "circle",
+      },
+      grid: {
+        top: 40,
+        left: 50,
+        right: 20,
+        bottom: 40,
+      },
+      xAxis: {
+        type: "category",
+        boundaryGap: false,
+        data: networkHistory.map((item) =>
+          new Date(item.timestamp).toLocaleTimeString()
+        ),
+        axisLine: {
+          lineStyle: {
+            color: isDarkColorScheme
+              ? "rgba(255,255,255,0.2)"
+              : "rgba(0,0,0,0.2)",
+          },
+        },
+        axisLabel: {
+          color: isDarkColorScheme ? "#fff" : "#000",
+          fontSize: 10,
+        },
+      },
+      yAxis: {
+        type: "value",
+        axisLine: {
+          lineStyle: {
+            color: isDarkColorScheme
+              ? "rgba(255,255,255,0.2)"
+              : "rgba(0,0,0,0.2)",
+          },
+        },
+        axisLabel: {
+          color: isDarkColorScheme ? "#fff" : "#000",
+          fontSize: 10,
+        },
+        splitLine: {
+          lineStyle: {
+            color: isDarkColorScheme
+              ? "rgba(255,255,255,0.1)"
+              : "rgba(0,0,0,0.1)",
+          },
+        },
+      },
+      series: [
+        {
+          name: "下载速度 (Mbps)",
+          type: "line",
+          smooth: true,
+          data: networkHistory.map((item) => item.download),
+          lineStyle: { width: 2 },
+          itemStyle: { color: "#3b82f6" },
+          areaStyle: {
+            color: isDarkColorScheme
+              ? "rgba(59,130,246,0.2)"
+              : "rgba(59,130,246,0.1)",
+          },
+        },
+        {
+          name: "上传速度 (Mbps)",
+          type: "line",
+          smooth: true,
+          data: networkHistory.map((item) => item.upload),
+          lineStyle: { width: 2 },
+          itemStyle: { color: "#10b981" },
+          areaStyle: {
+            color: isDarkColorScheme
+              ? "rgba(16,185,129,0.2)"
+              : "rgba(16,185,129,0.1)",
+          },
+        },
+      ],
+    }),
+    [networkHistory, isDarkColorScheme]
+  );
+
+  // 性能优化：使用 useCallback 包装事件处理器
+  const handleRefresh = useCallback(async () => {
+    try {
+      buttonScale.value = withSequence(withSpring(0.9), withSpring(1));
+
+      refreshIconRotate.value = withSequence(
+        withTiming(360, { duration: 1000 }),
+        withTiming(0, { duration: 0 })
+      );
+
+      await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      await fetchNetworkInfo();
+    } catch (error) {
+      console.error("刷新网络信息失败:", error);
+      setError("网络信息刷新失败");
+    }
+  }, [fetchNetworkInfo]);
+
+  const handleSpeedTest = useCallback(async () => {
+    if (isTestingSpeed) return;
+
+    try {
+      buttonScale.value = withSequence(withSpring(0.9), withSpring(1));
+
+      await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      await testNetworkSpeed();
+    } catch (error) {
+      console.error("网络测速失败:", error);
+      setError("网络测速失败");
+    }
+  }, [isTestingSpeed, testNetworkSpeed]);
+
+  // 动画样式
+  const modalStyle = useAnimatedStyle(() => ({
+    transform: [{ translateY: slideAnim.value }],
+    opacity: fadeAnim.value,
+  }));
+
+  const buttonAnimStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: buttonScale.value }],
+  }));
+
+  const refreshIconStyle = useAnimatedStyle(() => ({
+    transform: [{ rotate: `${refreshIconRotate.value}deg` }],
+  }));
+
+  // 生命周期处理
   useEffect(() => {
     if (visible) {
       fadeAnim.value = withTiming(1, { duration: 300 });
@@ -95,149 +298,26 @@ export const NetworkInfoModal: React.FC<NetworkInfoModalProps> = ({
     }
   }, [visible, fadeAnim, slideAnim, fetchNetworkInfo]);
 
-  const modalStyle = useAnimatedStyle(() => ({
-    transform: [{ translateY: slideAnim.value }],
-    opacity: fadeAnim.value,
-  }));
-
-  const buttonAnimStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: buttonScale.value }],
-  }));
-
-  const refreshIconStyle = useAnimatedStyle(() => ({
-    transform: [{ rotate: `${refreshIconRotate.value}deg` }],
-  }));
-
-  const chartOptions = {
-    tooltip: {
-      trigger: "axis",
-      backgroundColor: isDarkColorScheme ? "rgba(0,0,0,0.8)" : "rgba(255,255,255,0.9)",
-      borderRadius: 8,
-      textStyle: {
-        color: isDarkColorScheme ? "#fff" : "#000",
-      },
-    },
-    legend: {
-      data: ["下载速度 (Mbps)", "上传速度 (Mbps)"],
-      textStyle: { color: isDarkColorScheme ? "#fff" : "#000" },
-      icon: "circle",
-    },
-    grid: {
-      top: 40,
-      left: 50,
-      right: 20,
-      bottom: 40,
-    },
-    xAxis: {
-      type: "category",
-      boundaryGap: false,
-      data: networkHistory.map((item) =>
-        new Date(item.timestamp).toLocaleTimeString()
-      ),
-      axisLine: {
-        lineStyle: {
-          color: isDarkColorScheme ? "rgba(255,255,255,0.2)" : "rgba(0,0,0,0.2)",
-        },
-      },
-      axisLabel: {
-        color: isDarkColorScheme ? "rgba(255,255,255,0.8)" : "rgba(0,0,0,0.8)",
-        fontSize: 10,
-      },
-    },
-    yAxis: {
-      type: "value",
-      splitLine: {
-        lineStyle: {
-          color: isDarkColorScheme ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.1)",
-        },
-      },
-      axisLabel: {
-        color: isDarkColorScheme ? "rgba(255,255,255,0.8)" : "rgba(0,0,0,0.8)",
-      },
-    },
-    series: [
-      {
-        name: "下载速度 (Mbps)",
-        type: "line",
-        data: networkHistory.map((item) => item.download),
-        smooth: true,
-        symbol: "circle",
-        symbolSize: 6,
-        lineStyle: {
-          width: 3,
-          color: "#3b82f6",
-        },
-        itemStyle: {
-          color: "#3b82f6",
-        },
-        areaStyle: {
-          color: isDarkColorScheme 
-            ? "rgba(59,130,246,0.15)" 
-            : "rgba(59,130,246,0.1)",
-        },
-      },
-      {
-        name: "上传速度 (Mbps)",
-        type: "line",
-        data: networkHistory.map((item) => item.upload),
-        smooth: true,
-        symbol: "circle",
-        symbolSize: 6,
-        lineStyle: {
-          width: 3,
-          color: "#10b981",
-        },
-        itemStyle: {
-          color: "#10b981",
-        },
-        areaStyle: {
-          color: isDarkColorScheme 
-            ? "rgba(16,185,129,0.15)" 
-            : "rgba(16,185,129,0.1)",
-        },
-      },
-    ],
-  };
-
-  const handleSpeedTest = async () => {
-    try {
-      setIsLoading(true);
-      setError(null);
-      buttonScale.value = withSpring(0.95);
-      await Haptics.impactAsync();
-      
-      const result = await testNetworkSpeed();
-      const validated = NetworkSpeedSchema.parse(result);
-
-      buttonScale.value = withSpring(1);
-      toast.success("网络速度测试完成");
-      await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    } catch (err) {
-      buttonScale.value = withSpring(1);
-      setError(err instanceof Error ? err.message : "网络测试失败");
-      toast.error("网络速度测试失败");
-      await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-    } finally {
-      setIsLoading(false);
+  // 错误处理和自动重试
+  useEffect(() => {
+    if (error) {
+      const timer = setTimeout(() => setError(null), 3000);
+      return () => clearTimeout(timer);
     }
-  };
+  }, [error]);
 
-  const handleRefresh = async () => {
-    try {
-      refreshIconRotate.value = withTiming(refreshIconRotate.value + 360, {
-        duration: 1000,
-        easing: Easing.bezier(0.4, 0, 0.2, 1),
-      });
-      await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-      await fetchNetworkInfo();
-      toast.success("刷新成功");
-    } catch (error) {
-      toast.error("刷新失败");
-    }
-  };
+  // 修改网络状态指示器组件，添加动画效果
+  const cardAnimStyle = useAnimatedStyle(() => ({
+    opacity: withSpring(1, { damping: 10 }),
+    transform: [{ scale: withSpring(1, { damping: 10 }) }],
+  }));
 
   const NetworkStatusIndicator = () => (
-    <View className="flex-row items-center space-x-3 bg-card/60 dark:bg-gray-800/60 p-4 rounded-2xl backdrop-blur-lg border border-border/50">
+    <Animated.View
+      entering={FadeIn.duration(500).springify()}
+      style={cardAnimStyle}
+      className="flex-row items-center space-x-3 bg-card/60 dark:bg-gray-800/60 p-4 rounded-2xl backdrop-blur-lg border border-border/50"
+    >
       {networkState?.isConnected ? (
         <Wifi size={24} className="text-emerald-500" />
       ) : (
@@ -251,8 +331,8 @@ export const NetworkInfoModal: React.FC<NetworkInfoModalProps> = ({
           value={networkSpeed?.quality || 0}
           className="h-1.5"
           indicatorClassName={`${
-            (networkSpeed?.quality || 0) > 70 
-              ? "bg-emerald-500" 
+            (networkSpeed?.quality || 0) > 70
+              ? "bg-emerald-500"
               : "bg-amber-500"
           }`}
         />
@@ -263,105 +343,114 @@ export const NetworkInfoModal: React.FC<NetworkInfoModalProps> = ({
       >
         {networkState?.isConnected ? "已连接" : "已断开"}
       </Badge>
-    </View>
-  );
-
-  const NetworkDataCard = ({ 
-    icon: Icon, 
-    title, 
-    value, 
-    suffix,
-    colorClass = "text-blue-500",
-  }: {
-    icon: any;
-    title: string;
-    value: string | number;
-    suffix?: string;
-    colorClass?: string;
-  }) => (
-    <View className="flex-1 min-w-[140px] bg-card/60 dark:bg-gray-800/60 p-4 rounded-2xl backdrop-blur-lg border border-border/50">
-      <View className="flex-row items-center space-x-2 mb-2">
-        <Icon size={18} className={colorClass} />
-        <Text className="text-sm text-muted-foreground">{title}</Text>
-      </View>
-      <Text className={`text-lg font-semibold ${colorClass}`}>
-        {value}
-        {suffix && <Text className="text-sm ml-1">{suffix}</Text>}
-      </Text>
-    </View>
+    </Animated.View>
   );
 
   return (
     <Dialog open={visible} onOpenChange={onClose}>
       <DialogContent
-        className="w-full min-w-full bg-background/95 dark:bg-gray-900/95 rounded-t-3xl native:rounded-t-[32px] native:max-h-[94%] native:min-h-[60%] backdrop-blur-xl border-t border-border/50"
+        className="max-w-lg p-0 gap-0 bg-background/95 backdrop-blur-xl border-border/50"
         style={modalStyle}
       >
         <ScrollView
-          className="flex-1"
+          className="max-h-[80vh]"
           showsVerticalScrollIndicator={false}
-          contentContainerStyle={{
-            padding: 16,
-            gap: 20,
-          }}
+          contentContainerStyle={{ padding: 16 }}
         >
-          {error && (
-            <Alert 
-              className="rounded-2xl bg-destructive/10 border-destructive/20" 
-              variant="destructive"
-              icon={AlertCircle}
-            >
-              <AlertTitle className="font-semibold">出错了</AlertTitle>
-              <AlertDescription>{error}</AlertDescription>
+          {/* 标题栏 */}
+          <View className="flex-row items-center justify-between mb-6">
+            <View className="flex-row items-center space-x-3">
+              <Signal size={24} className="text-primary" />
+              <Text className="text-xl font-bold text-primary">网络信息</Text>
+            </View>
+            <Animated.View style={buttonAnimStyle}>
               <TouchableOpacity
-                className="absolute right-3 top-3"
-                onPress={() => setError(null)}
+                onPress={handleRefresh}
+                className="p-2 rounded-full bg-primary/10 active:bg-primary/20"
+                accessibilityLabel="刷新网络信息"
+                accessibilityRole="button"
               >
-                <Text className="text-destructive">✕</Text>
+                <Animated.View style={refreshIconStyle}>
+                  <RefreshCw size={20} className="text-primary" />
+                </Animated.View>
               </TouchableOpacity>
-            </Alert>
+            </Animated.View>
+          </View>
+
+          {/* 错误提示 */}
+          {error && (
+            <Animated.View
+              entering={SlideInUp.springify()}
+              exiting={FadeOut}
+              className="mb-4"
+            >
+              <Alert variant="destructive" icon={AlertCircle}>
+                <AlertTitle className="font-semibold">出错了</AlertTitle>
+                <AlertDescription>{error}</AlertDescription>
+                <TouchableOpacity
+                  className="absolute right-3 top-3"
+                  onPress={() => setError(null)}
+                >
+                  <Text className="text-destructive">✕</Text>
+                </TouchableOpacity>
+              </Alert>
+            </Animated.View>
           )}
 
+          {/* 网络状态指示器 */}
           <NetworkStatusIndicator />
 
           {/* 网络信息卡片组 */}
-          <View className="space-y-6">
+          <Animated.View
+            className="space-y-6"
+            entering={SlideInUp.delay(200).springify()}
+          >
             <View className="flex-row flex-wrap gap-3">
               <NetworkDataCard
                 icon={Wifi}
                 title="IP 地址"
                 value={ipAddress || "加载中..."}
                 colorClass="text-blue-500"
+                delay={300}
               />
               <NetworkDataCard
                 icon={Signal}
                 title="网络类型"
                 value={networkState?.type || "未知"}
                 colorClass="text-emerald-500"
+                delay={400}
               />
               <NetworkDataCard
                 icon={Gauge}
-                title="飞行模式"
-                value={isAirplaneMode ? "开启" : "关闭"}
-                colorClass="text-amber-500"
+                title="连接状态"
+                value={networkState?.isConnected ? "已连接" : "未连接"}
+                colorClass={
+                  networkState?.isConnected
+                    ? "text-emerald-500"
+                    : "text-rose-500"
+                }
+                delay={500}
               />
             </View>
 
-            {/* 网络速度卡片组 */}
+            {/* 网络速度测试区域 */}
             {networkSpeed && (
-              <View className="space-y-4">
-                <View className="flex-row items-center justify-between">
+              <Animated.View
+                entering={SlideInUp.delay(600).springify()}
+                className="space-y-4"
+              >
+                <View className="flex-row items-center justify-between mb-2">
                   <Text className="text-lg font-semibold text-foreground">
                     网络速度
                   </Text>
                   <TouchableOpacity
-                    onPress={() => setShowHistory(!showHistory)}
-                    className="flex-row items-center space-x-1 py-1 px-2 rounded-lg bg-muted/50"
+                    onPress={handleSpeedTest}
+                    className="flex-row items-center space-x-2 px-3 py-1.5 rounded-full bg-primary/10"
                   >
-                    <Text className="text-sm text-muted-foreground">
-                      {showHistory ? "隐藏历史" : "查看历史"}
+                    <Text className="text-sm font-medium text-primary">
+                      测试速度
                     </Text>
-                    <ChevronRight size={16} className="text-muted-foreground" />
+                    <ChevronRight size={16} className="text-primary" />
                   </TouchableOpacity>
                 </View>
 
@@ -388,56 +477,21 @@ export const NetworkInfoModal: React.FC<NetworkInfoModalProps> = ({
                     colorClass="text-amber-500"
                   />
                 </View>
-              </View>
-            )}
 
-            {/* 操作按钮组 */}
-            <View className="space-y-3 pt-2">
-              <Button
-                className="w-full h-12 rounded-xl bg-primary/90 hover:bg-primary active:scale-98 transition-all duration-200"
-                onPress={handleSpeedTest}
-                disabled={isLoading}
-              >
-                {isLoading ? (
-                  <Loader2 size={20} className="animate-spin text-primary-foreground" />
-                ) : (
-                  <>
-                    <RefreshCw size={18} className="mr-2 text-primary-foreground" />
-                    <Text className="text-primary-foreground font-medium">
-                      测试网络速度
-                    </Text>
-                  </>
+                {/* 历史数据图表 */}
+                {networkHistory.length > 0 && (
+                  <View className="mt-4 p-4 rounded-2xl bg-card/60 backdrop-blur-lg border border-border/50">
+                    <Text className="text-base font-medium mb-4">历史记录</Text>
+                    <RNEChartsPro
+                      width={width - 64}
+                      height={200}
+                      option={chartOptions}
+                    />
+                  </View>
                 )}
-              </Button>
-
-              <Button
-                variant="outline"
-                className="w-full h-12 rounded-xl border-2 hover:bg-secondary/80 active:scale-98 transition-all duration-200"
-                onPress={handleRefresh}
-              >
-                <History size={18} className="mr-2 text-foreground" />
-                <Text className="text-foreground font-medium">
-                  刷新网络信息
-                </Text>
-              </Button>
-            </View>
-          </View>
-
-          {/* 网络历史图表 */}
-          {showHistory && networkHistory.length > 0 && (
-            <View className="space-y-4 pt-4">
-              <Text className="text-lg font-semibold text-foreground mb-2">
-                网络历史
-              </Text>
-              <View className="h-64 w-full bg-card/60 dark:bg-gray-800/60 rounded-2xl p-4 backdrop-blur-lg border border-border/50">
-                <RNEChartsPro
-                  height={220}
-                  option={chartOptions}
-                  backgroundColor="transparent"
-                />
-              </View>
-            </View>
-          )}
+              </Animated.View>
+            )}
+          </Animated.View>
         </ScrollView>
       </DialogContent>
     </Dialog>

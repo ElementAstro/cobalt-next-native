@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { SafeAreaView, ScrollView, View } from "react-native";
+import React, { useState
+import { SafeAreaView, ScrollView, View
 import {
   Settings,
   Bell,
