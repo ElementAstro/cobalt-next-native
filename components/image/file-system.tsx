@@ -54,8 +54,8 @@ import BottomSheet, {
   BottomSheetBackdrop,
   BottomSheetScrollView,
 } from "@gorhom/bottom-sheet";
-import { ErrorBoundary } from './error-boundary';
-import { OperationFeedback } from './operation-feedback';
+import { ErrorBoundary } from "./error-boundary";
+import { OperationFeedback } from "./operation-feedback";
 
 // 文件类型定义
 interface FileItemType {
@@ -113,12 +113,12 @@ const FileManager: React.FC = () => {
   const [isMenuVisible, setIsMenuVisible] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [feedback, setFeedback] = useState<{
-    type: 'success' | 'error' | 'loading';
+    type: "success" | "error" | "loading";
     message: string;
     visible: boolean;
   }>({
-    type: 'success',
-    message: '',
+    type: "success",
+    message: "",
     visible: false,
   });
 
@@ -167,16 +167,19 @@ const FileManager: React.FC = () => {
     setWebViewUrl(null);
   };
 
-  const showFeedback = (type: 'success' | 'error' | 'loading', message: string) => {
+  const showFeedback = (
+    type: "success" | "error" | "loading",
+    message: string
+  ) => {
     setFeedback({ type, message, visible: true });
   };
 
   const handleFileAction = async (file: FileItemType, action: string) => {
     try {
-      showFeedback('loading', `正在处理 ${file.name}...`);
-      
+      showFeedback("loading", `正在处理 ${file.name}...`);
+
       switch (action) {
-        case 'open':
+        case "open":
           if (file.isDirectory) {
             setCurrentPath(`${file.uri}/`);
           } else {
@@ -189,11 +192,11 @@ const FileManager: React.FC = () => {
               toast.success("分享成功");
             }
           }
-          showFeedback('success', '打开成功');
+          showFeedback("success", "打开成功");
           break;
-        case 'delete':
+        case "delete":
           await handleDelete(file);
-          showFeedback('success', '删除成功');
+          showFeedback("success", "删除成功");
           break;
         case "share":
           if (await Sharing.isAvailableAsync()) {
@@ -224,18 +227,24 @@ const FileManager: React.FC = () => {
           toast.error("未知操作");
       }
     } catch (error) {
-      showFeedback('error', error instanceof Error ? error.message : '操作失败');
+      showFeedback(
+        "error",
+        error instanceof Error ? error.message : "操作失败"
+      );
     }
   };
 
   const handleDelete = async (file: FileItemType) => {
     if (file.isDirectory) {
       const size = await calculateFolderSize(file.uri);
-      if (size > 1024 * 1024 * 10) { // 10MB
-        const confirm = await new Promise(resolve => {
+      if (size > 1024 * 1024 * 10) {
+        // 10MB
+        const confirm = await new Promise((resolve) => {
           setDialogType({
-            type: 'delete',
-            message: `文件夹较大 (${(size / 1024 / 1024).toFixed(2)}MB)，确定删除吗？`,
+            type: "delete",
+            message: `文件夹较大 (${(size / 1024 / 1024).toFixed(
+              2
+            )}MB)，确定删除吗？`,
           });
           setShowDialog(true);
           resolve(true);
@@ -710,9 +719,7 @@ const FileManager: React.FC = () => {
             </Animated.View>
           </View>
 
-          <View className="flex-1 px-4">
-            {renderFileList()}
-          </View>
+          <View className="flex-1 px-4">{renderFileList()}</View>
         </View>
 
         <OperationBar />
@@ -754,7 +761,7 @@ const FileManager: React.FC = () => {
           type={feedback.type}
           message={feedback.message}
           visible={feedback.visible}
-          onHide={() => setFeedback(prev => ({ ...prev, visible: false }))}
+          onHide={() => setFeedback((prev) => ({ ...prev, visible: false }))}
         />
       </View>
     </ErrorBoundary>

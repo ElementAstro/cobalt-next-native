@@ -1,5 +1,11 @@
 import React, { useEffect, useState } from "react";
-import { View, ScrollView, TouchableOpacity, Platform, AccessibilityInfo } from "react-native";
+import {
+  View,
+  ScrollView,
+  TouchableOpacity,
+  Platform,
+  AccessibilityInfo,
+} from "react-native";
 import { ErrorBoundary } from "react-error-boundary";
 import {
   AlertCircle,
@@ -19,7 +25,12 @@ import { Alert, AlertTitle, AlertDescription } from "~/components/ui/alert";
 import { Button } from "~/components/ui/button";
 import { Text } from "~/components/ui/text";
 import { Badge } from "~/components/ui/badge";
-import { Card, CardHeader, CardContent, CardFooter } from "~/components/ui/card";
+import {
+  Card,
+  CardHeader,
+  CardContent,
+  CardFooter,
+} from "~/components/ui/card";
 import Animated, {
   FadeIn,
   FadeOut,
@@ -58,32 +69,38 @@ enum ErrorType {
 // 错误处理工具函数
 const categorizeError = (error: Error): ErrorType => {
   const message = error.message.toLowerCase();
-  
-  if (message.includes("network") || 
-      message.includes("connection") ||
-      message.includes("offline") ||
-      message.includes("timeout") ||
-      message.includes("failed to fetch")) {
+
+  if (
+    message.includes("network") ||
+    message.includes("connection") ||
+    message.includes("offline") ||
+    message.includes("timeout") ||
+    message.includes("failed to fetch")
+  ) {
     return ErrorType.NETWORK;
   }
-  
-  if (message.includes("render") ||
-      message.includes("element") ||
-      message.includes("component") ||
-      message.includes("dom") ||
-      message.includes("layout")) {
-    return ErrorType.RENDERING;  
+
+  if (
+    message.includes("render") ||
+    message.includes("element") ||
+    message.includes("component") ||
+    message.includes("dom") ||
+    message.includes("layout")
+  ) {
+    return ErrorType.RENDERING;
   }
-  
-  if (message.includes("script") ||
-      message.includes("javascript") ||
-      message.includes("undefined is not") ||
-      message.includes("cannot read property") ||
-      message.includes("null") ||
-      message.includes("unexpected token")) {
+
+  if (
+    message.includes("script") ||
+    message.includes("javascript") ||
+    message.includes("undefined is not") ||
+    message.includes("cannot read property") ||
+    message.includes("null") ||
+    message.includes("unexpected token")
+  ) {
     return ErrorType.JAVASCRIPT;
   }
-  
+
   return ErrorType.UNKNOWN;
 };
 
@@ -99,7 +116,7 @@ const ErrorFallback = ({ error, resetErrorBoundary }: FallbackProps) => {
   const [retryAttempts, setRetryAttempts] = useState(0);
   const [isScreenReaderEnabled, setIsScreenReaderEnabled] = useState(false);
   const [isErrorCollapsed, setIsErrorCollapsed] = useState(true);
-  
+
   // 动画值
   const cardScale = useSharedValue(1);
   const buttonScale = useSharedValue(1);
@@ -108,16 +125,16 @@ const ErrorFallback = ({ error, resetErrorBoundary }: FallbackProps) => {
   const iconRotation = useSharedValue(0);
   const errorDetailsOpacity = useSharedValue(0);
   const shimmerPosition = useSharedValue(-1);
-  
+
   // 初始化错误类型
   useEffect(() => {
     setErrorType(categorizeError(error));
   }, [error]);
-  
+
   // 检查屏幕阅读器状态
   useEffect(() => {
     let isMounted = true;
-    
+
     const checkScreenReader = async () => {
       try {
         const isEnabled = await AccessibilityInfo.isScreenReaderEnabled();
@@ -128,48 +145,48 @@ const ErrorFallback = ({ error, resetErrorBoundary }: FallbackProps) => {
         console.warn("Failed to check screen reader status:", error);
       }
     };
-    
+
     checkScreenReader();
-    
+
     const subscription = AccessibilityInfo.addEventListener(
       "screenReaderChanged",
       setIsScreenReaderEnabled
     );
-    
+
     return () => {
       isMounted = false;
       subscription.remove();
     };
   }, []);
-  
+
   // 启动动画
   useEffect(() => {
     // 卡片入场动画
     cardScale.value = withSequence(
       withTiming(0.95, { duration: 100 }),
-      withSpring(1, { 
+      withSpring(1, {
         damping: 14,
         stiffness: 100,
-        mass: 1
+        mass: 1,
       })
     );
-    
+
     // 脉冲动画
     pulseAnimation.value = withRepeat(
       withSequence(
-        withTiming(1, { 
-          duration: 2000, 
-          easing: Easing.inOut(Easing.quad) 
+        withTiming(1, {
+          duration: 2000,
+          easing: Easing.inOut(Easing.quad),
         }),
-        withTiming(0, { 
-          duration: 2000, 
-          easing: Easing.inOut(Easing.quad) 
+        withTiming(0, {
+          duration: 2000,
+          easing: Easing.inOut(Easing.quad),
         })
       ),
       -1,
       true
     );
-    
+
     // 图标旋转动画
     iconRotation.value = withSequence(
       withDelay(
@@ -179,14 +196,14 @@ const ErrorFallback = ({ error, resetErrorBoundary }: FallbackProps) => {
       withTiming(15, { duration: 300, easing: Easing.inOut(Easing.quad) }),
       withTiming(0, { duration: 150, easing: Easing.inOut(Easing.quad) })
     );
-    
+
     // 闪烁动画
     shimmerPosition.value = withRepeat(
       withTiming(1, { duration: 2000, easing: Easing.inOut(Easing.ease) }),
       -1,
       false
     );
-    
+
     return () => {
       cancelAnimation(cardScale);
       cancelAnimation(buttonScale);
@@ -195,29 +212,29 @@ const ErrorFallback = ({ error, resetErrorBoundary }: FallbackProps) => {
       cancelAnimation(shimmerPosition);
     };
   }, []);
-  
+
   // 代码块展开/收起动画
   useEffect(() => {
-    codeBlockHeight.value = withTiming(
-      isCodeExpanded ? 150 : 0,
-      { duration: 300, easing: Easing.inOut(Easing.quad) }
-    );
+    codeBlockHeight.value = withTiming(isCodeExpanded ? 150 : 0, {
+      duration: 300,
+      easing: Easing.inOut(Easing.quad),
+    });
   }, [isCodeExpanded]);
-  
+
   // 错误详情展开/收起动画
   useEffect(() => {
-    errorDetailsOpacity.value = withTiming(
-      isErrorCollapsed ? 0 : 1,
-      { duration: 300, easing: Easing.inOut(Easing.quad) }
-    );
+    errorDetailsOpacity.value = withTiming(isErrorCollapsed ? 0 : 1, {
+      duration: 300,
+      easing: Easing.inOut(Easing.quad),
+    });
   }, [isErrorCollapsed]);
 
   // 动画样式
   const cardStyle = useAnimatedStyle(() => ({
     transform: [{ scale: cardScale.value }],
     shadowOpacity: interpolate(
-      cardScale.value, 
-      [0.95, 1], 
+      cardScale.value,
+      [0.95, 1],
       [0.1, 0.25],
       Extrapolate.CLAMP
     ),
@@ -226,28 +243,30 @@ const ErrorFallback = ({ error, resetErrorBoundary }: FallbackProps) => {
   const buttonStyle = useAnimatedStyle(() => ({
     transform: [{ scale: buttonScale.value }],
   }));
-  
+
   const iconStyle = useAnimatedStyle(() => ({
     transform: [{ rotateZ: `${iconRotation.value}deg` }],
   }));
-  
+
   const pulseStyle = useAnimatedStyle(() => ({
     opacity: interpolate(
-      pulseAnimation.value, 
-      [0, 0.5, 1], 
+      pulseAnimation.value,
+      [0, 0.5, 1],
       [0.7, 0.9, 0.7],
       Extrapolate.CLAMP
     ),
-    transform: [{ 
-      scale: interpolate(
-        pulseAnimation.value, 
-        [0, 0.5, 1], 
-        [0.98, 1.02, 0.98],
-        Extrapolate.CLAMP
-      ) 
-    }],
+    transform: [
+      {
+        scale: interpolate(
+          pulseAnimation.value,
+          [0, 0.5, 1],
+          [0.98, 1.02, 0.98],
+          Extrapolate.CLAMP
+        ),
+      },
+    ],
   }));
-  
+
   const codeBlockStyle = useAnimatedStyle(() => ({
     height: codeBlockHeight.value,
     opacity: interpolate(
@@ -257,64 +276,66 @@ const ErrorFallback = ({ error, resetErrorBoundary }: FallbackProps) => {
       Extrapolate.CLAMP
     ),
   }));
-  
+
   const errorDetailsStyle = useAnimatedStyle(() => ({
     opacity: errorDetailsOpacity.value,
-    display: errorDetailsOpacity.value === 0 ? 'none' : 'flex',
+    display: errorDetailsOpacity.value === 0 ? "none" : "flex",
   }));
-  
+
   const shimmerStyle = useAnimatedStyle(() => ({
-    transform: [{ 
-      translateX: interpolate(
-        shimmerPosition.value, 
-        [-1, 1], 
-        [-100, 300],
-        Extrapolate.CLAMP
-      ) 
-    }],
+    transform: [
+      {
+        translateX: interpolate(
+          shimmerPosition.value,
+          [-1, 1],
+          [-100, 300],
+          Extrapolate.CLAMP
+        ),
+      },
+    ],
   }));
 
   // 错误图标和信息
   const getErrorInfo = () => {
-    switch(errorType) {
+    switch (errorType) {
       case ErrorType.NETWORK:
         return {
           icon: <XCircle size={28} className="text-amber-500" />,
           title: "网络错误",
           description: "连接服务器失败，请检查网络连接",
           suggestion: "请确保您的网络连接正常并重试",
-          color: "bg-amber-500/10 text-amber-500"
+          color: "bg-amber-500/10 text-amber-500",
         };
-        
+
       case ErrorType.RENDERING:
         return {
           icon: <Bug size={28} className="text-purple-500" />,
           title: "渲染错误",
           description: "页面无法正确渲染",
           suggestion: "可能是内容格式不兼容或资源加载失败",
-          color: "bg-purple-500/10 text-purple-500"
+          color: "bg-purple-500/10 text-purple-500",
         };
-        
+
       case ErrorType.JAVASCRIPT:
         return {
           icon: <FileBug size={28} className="text-blue-500" />,
           title: "脚本错误",
           description: "JavaScript执行出错",
           suggestion: "页面脚本执行过程中遇到了问题",
-          color: "bg-blue-500/10 text-blue-500"
+          color: "bg-blue-500/10 text-blue-500",
         };
-        
+
       default:
         return {
           icon: <AlertCircle size={28} className="text-destructive" />,
           title: "未知错误",
           description: "发生了未知错误",
           suggestion: "请重试或联系开发者获取帮助",
-          color: "bg-destructive/10 text-destructive"
+          color: "bg-destructive/10 text-destructive",
         };
     }
   };
-  
+
   const errorInfo = getErrorInfo();
 
   // 处理重试
@@ -323,7 +344,7 @@ const ErrorFallback = ({ error, resetErrorBoundary }: FallbackProps) => {
       withSpring(0.95, { damping: 10, stiffness: 300 }),
       withSpring(1, { damping: 15, stiffness: 200 })
     );
-    
+
     cardScale.value = withSequence(
       withSpring(0.98, { damping: 10, stiffness: 300 }),
       withSpring(1, { damping: 15, stiffness: 200 })
@@ -333,55 +354,52 @@ const ErrorFallback = ({ error, resetErrorBoundary }: FallbackProps) => {
     if (Platform.OS !== "web" && !isScreenReaderEnabled) {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     }
-    
+
     // 增加重试次数
     setRetryAttempts(retryAttempts + 1);
-    
+
     // 显示吐司提示
     toast.success("正在重试", {
       description: `重试次数: ${retryAttempts + 1}`,
     });
-    
+
     // 重置错误边界
     resetErrorBoundary();
   };
-  
+
   // 复制错误信息
   const handleCopyError = () => {
     // 这里会有实际复制到剪贴板的代码
     // 示例: Clipboard.setString(error.message);
-    
-    buttonScale.value = withSequence(
-      withSpring(0.95),
-      withSpring(1)
-    );
-    
+
+    buttonScale.value = withSequence(withSpring(0.95), withSpring(1));
+
     // 触觉反馈
     if (Platform.OS !== "web" && !isScreenReaderEnabled) {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     }
-    
+
     // 显示吐司提示
     toast.success("已复制错误信息");
   };
-  
+
   // 切换代码展开状态
   const toggleCodeExpand = () => {
     // 触觉反馈
     if (Platform.OS !== "web" && !isScreenReaderEnabled) {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     }
-    
+
     setIsCodeExpanded(!isCodeExpanded);
   };
-  
+
   // 切换错误详情展示状态
   const toggleErrorDetails = () => {
     // 触觉反馈
     if (Platform.OS !== "web" && !isScreenReaderEnabled) {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     }
-    
+
     setIsErrorCollapsed(!isErrorCollapsed);
   };
 
@@ -394,7 +412,11 @@ const ErrorFallback = ({ error, resetErrorBoundary }: FallbackProps) => {
     >
       <ScrollView
         className="flex-1 p-6"
-        contentContainerStyle={{ flexGrow: 1, justifyContent: "center", padding: 8 }}
+        contentContainerStyle={{
+          flexGrow: 1,
+          justifyContent: "center",
+          padding: 8,
+        }}
         showsVerticalScrollIndicator={false}
       >
         <Animated.View
@@ -429,44 +451,45 @@ const ErrorFallback = ({ error, resetErrorBoundary }: FallbackProps) => {
               <Text className="text-base text-foreground">
                 {errorInfo.suggestion}
               </Text>
-              
+
               <View className="flex-row space-x-2 flex-wrap">
                 <Badge variant="secondary" className="rounded-full mb-2">
                   <RefreshCw size={12} className="mr-1" />
                   <Text className="text-xs">重试次数: {retryAttempts}</Text>
                 </Badge>
-                
+
                 <Badge variant="outline" className="rounded-full mb-2">
                   <Terminal size={12} className="mr-1 text-muted-foreground" />
-                  <Text className="text-xs text-muted-foreground">错误类型: {errorType}</Text>
+                  <Text className="text-xs text-muted-foreground">
+                    错误类型: {errorType}
+                  </Text>
                 </Badge>
               </View>
-              
+
               {/* 错误详情展开/折叠按钮 */}
               <TouchableOpacity
                 onPress={toggleErrorDetails}
                 className="flex-row items-center space-x-2 py-2"
                 accessibilityRole="button"
                 accessibilityLabel="查看错误详情"
-                accessibilityHint={isErrorCollapsed ? "展开错误详情" : "折叠错误详情"}
+                accessibilityHint={
+                  isErrorCollapsed ? "展开错误详情" : "折叠错误详情"
+                }
               >
                 <Info size={16} className="text-primary" />
                 <Text className="text-sm font-medium text-primary">
                   {isErrorCollapsed ? "查看错误详情" : "隐藏错误详情"}
                 </Text>
               </TouchableOpacity>
-              
+
               {/* 错误详情展开区域 */}
-              <Animated.View
-                style={errorDetailsStyle}
-                className="space-y-2"
-              >
+              <Animated.View style={errorDetailsStyle} className="space-y-2">
                 <View className="bg-muted/50 dark:bg-muted/20 p-3 rounded-xl">
                   <Text className="text-sm text-destructive/90 font-medium">
                     {error.message || "发生了未知错误"}
                   </Text>
                 </View>
-                
+
                 {/* 错误堆栈展开/折叠按钮 */}
                 {error.stack && (
                   <>
@@ -475,16 +498,18 @@ const ErrorFallback = ({ error, resetErrorBoundary }: FallbackProps) => {
                       className="flex-row items-center space-x-2 py-2"
                       accessibilityRole="button"
                       accessibilityLabel="查看错误堆栈"
-                      accessibilityHint={isCodeExpanded ? "折叠错误堆栈" : "展开错误堆栈"}
+                      accessibilityHint={
+                        isCodeExpanded ? "折叠错误堆栈" : "展开错误堆栈"
+                      }
                     >
                       <Cpu size={14} className="text-muted-foreground" />
                       <Text className="text-xs font-medium text-muted-foreground">
                         {isCodeExpanded ? "隐藏错误堆栈" : "查看错误堆栈"}
                       </Text>
                     </TouchableOpacity>
-                    
+
                     {/* 错误堆栈展开区域 */}
-                    <Animated.View 
+                    <Animated.View
                       style={codeBlockStyle}
                       className="relative overflow-hidden"
                     >
@@ -497,7 +522,7 @@ const ErrorFallback = ({ error, resetErrorBoundary }: FallbackProps) => {
                             {error.stack}
                           </Text>
                         </ScrollView>
-                        
+
                         {/* 闪光效果 */}
                         <Animated.View
                           style={shimmerStyle}
@@ -507,7 +532,7 @@ const ErrorFallback = ({ error, resetErrorBoundary }: FallbackProps) => {
                     </Animated.View>
                   </>
                 )}
-                
+
                 {/* 复制错误按钮 */}
                 <Button
                   variant="outline"
@@ -520,10 +545,10 @@ const ErrorFallback = ({ error, resetErrorBoundary }: FallbackProps) => {
                 </Button>
               </Animated.View>
             </CardContent>
-            
+
             <CardFooter className="pt-2 pb-4">
               <View className="flex-row space-x-3 w-full">
-                <AnimatedTouchable 
+                <AnimatedTouchable
                   style={buttonStyle}
                   className="flex-1"
                   activeOpacity={0.7}
@@ -544,7 +569,7 @@ const ErrorFallback = ({ error, resetErrorBoundary }: FallbackProps) => {
                     <Text>返回</Text>
                   </Button>
                 </AnimatedTouchable>
-                
+
                 <AnimatedTouchable
                   style={buttonStyle}
                   className="flex-1"
@@ -566,11 +591,9 @@ const ErrorFallback = ({ error, resetErrorBoundary }: FallbackProps) => {
               </View>
             </CardFooter>
           </AnimatedCard>
-          
+
           {/* 帮助卡片 */}
-          <Animated.View
-            entering={SlideInUp.delay(300).springify()}
-          >
+          <Animated.View entering={SlideInUp.delay(300).springify()}>
             <TouchableOpacity
               className="flex-row items-center space-x-3 bg-primary/10 p-4 rounded-2xl"
               onPress={() => {
@@ -599,7 +622,11 @@ const ErrorFallback = ({ error, resetErrorBoundary }: FallbackProps) => {
   );
 };
 
-export const WebViewErrorBoundary = ({ children }: { children: React.ReactNode }) => {
+export const WebViewErrorBoundary = ({
+  children,
+}: {
+  children: React.ReactNode;
+}) => {
   return (
     <ErrorBoundary
       FallbackComponent={ErrorFallback}
@@ -609,7 +636,7 @@ export const WebViewErrorBoundary = ({ children }: { children: React.ReactNode }
       onError={(error) => {
         // 错误日志记录
         console.error("WebView Error:", error);
-        
+
         // 如果需要，这里可以添加额外的错误报告逻辑
         // 比如发送到错误追踪系统
       }}

@@ -82,7 +82,7 @@ export class ErrorBoundary extends React.Component<Props, State> {
     autoRetrying: false,
     lastUpdated: Date.now(),
   };
-  
+
   private autoRetryTimeout: NodeJS.Timeout | null = null;
 
   static getDerivedStateFromError(error: Error): Partial<State> {
@@ -156,28 +156,32 @@ export class ErrorBoundary extends React.Component<Props, State> {
       errorType,
     };
   }
-  
+
   // 在 props 更改时，如果配置了 resetOnPropsChange，则重置错误状态
   static getDerivedStateFromProps(props: Props, state: State) {
-    if (props.resetOnPropsChange && state.hasError && Date.now() - state.lastUpdated > 1000) {
+    if (
+      props.resetOnPropsChange &&
+      state.hasError &&
+      Date.now() - state.lastUpdated > 1000
+    ) {
       return {
         hasError: false,
-        lastUpdated: Date.now()
+        lastUpdated: Date.now(),
       };
     }
     return null;
   }
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
-    this.setState({ 
+    this.setState({
       errorInfo,
       retryCount: 0,
-      autoRetrying: false
+      autoRetrying: false,
     });
-    
+
     // 记录错误
     console.error("Image Component Error:", error, errorInfo);
-    
+
     // 调用自定义错误日志记录函数
     this.props.logError?.(error, errorInfo);
 
@@ -185,50 +189,50 @@ export class ErrorBoundary extends React.Component<Props, State> {
     if (Platform.OS !== "web") {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
     }
-    
+
     // 根据错误类型决定是否自动重试
-    const shouldAutoRetry = 
-      this.state.errorType === "network" || 
-      this.state.errorType === "timeout" || 
+    const shouldAutoRetry =
+      this.state.errorType === "network" ||
+      this.state.errorType === "timeout" ||
       this.state.errorType === "recoverable";
-      
+
     if (shouldAutoRetry && this.props.retryDelay) {
       this.triggerAutoRetry();
     }
   }
-  
+
   componentWillUnmount() {
     this.clearAutoRetryTimeout();
   }
-  
+
   clearAutoRetryTimeout() {
     if (this.autoRetryTimeout) {
       clearTimeout(this.autoRetryTimeout);
       this.autoRetryTimeout = null;
     }
   }
-  
+
   triggerAutoRetry = () => {
     const { retryDelay = 3000 } = this.props;
-    
+
     this.clearAutoRetryTimeout();
     this.setState({ autoRetrying: true });
-    
+
     this.autoRetryTimeout = setTimeout(() => {
       this.handleRetry();
-      this.setState(prevState => ({ 
+      this.setState((prevState) => ({
         retryCount: prevState.retryCount + 1,
-        autoRetrying: false 
+        autoRetrying: false,
       }));
     }, retryDelay);
   };
 
   handleRetry = () => {
-    this.setState({ 
+    this.setState({
       hasError: false,
-      lastUpdated: Date.now()
+      lastUpdated: Date.now(),
     });
-    
+
     this.props.onReset?.();
 
     // 触发震动反馈
@@ -242,21 +246,21 @@ export class ErrorBoundary extends React.Component<Props, State> {
     if (Platform.OS !== "web") {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     }
-    
+
     this.props.onGoBack?.();
   };
-  
+
   handleGoHome = () => {
     if (Platform.OS !== "web") {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     }
-    
+
     this.props.onGoHome?.();
   };
-  
+
   handleOpenHelp = async () => {
     const { helpURL } = this.props;
-    if (helpURL && await Linking.canOpenURL(helpURL)) {
+    if (helpURL && (await Linking.canOpenURL(helpURL))) {
       await Linking.openURL(helpURL);
     }
   };
@@ -316,7 +320,7 @@ const ErrorDisplay: React.FC<ErrorDisplayProps> = ({
   const [expanded, setExpanded] = useState(false);
   const [copiedToClipboard, setCopiedToClipboard] = useState(false);
   const [showSuccessMessage, setShowSuccessMessage] = useState(false);
-  
+
   // 动画值
   const scale = useSharedValue(0.95);
   const rotation = useSharedValue(0);
@@ -326,25 +330,28 @@ const ErrorDisplay: React.FC<ErrorDisplayProps> = ({
 
   useEffect(() => {
     // 入场动画
-    scale.value = withTiming(1, { duration: 400, easing: Easing.out(Easing.back(1.5)) });
-    
+    scale.value = withTiming(1, {
+      duration: 400,
+      easing: Easing.out(Easing.back(1.5)),
+    });
+
     // 轻微旋转以增加视觉吸引力
     rotation.value = withSequence(
       withTiming(2, { duration: 300 }),
       withTiming(-1, { duration: 200 }),
       withTiming(0, { duration: 200 })
     );
-    
+
     // 创建脉冲动画效果
     pulseValue.value = withRepeat(
       withSequence(
         withTiming(1.05, { duration: 1000, easing: Easing.inOut(Easing.ease) }),
-        withTiming(1, { duration: 1000, easing: Easing.inOut(Easing.ease) }),
+        withTiming(1, { duration: 1000, easing: Easing.inOut(Easing.ease) })
       ),
       -1,
       true
     );
-    
+
     // 振动效果
     shake.value = withSequence(
       withTiming(6, { duration: 80 }),
@@ -353,13 +360,13 @@ const ErrorDisplay: React.FC<ErrorDisplayProps> = ({
       withTiming(-4, { duration: 80 }),
       withTiming(0, { duration: 80 })
     );
-    
+
     return () => {
       // 清理动画
       cancelAnimation(pulseValue);
     };
   }, []);
-  
+
   // 处理自动重试的进度条动画
   useEffect(() => {
     if (autoRetrying && retryDelay) {
@@ -371,31 +378,24 @@ const ErrorDisplay: React.FC<ErrorDisplayProps> = ({
   }, [autoRetrying, retryDelay]);
 
   const containerStyle = useAnimatedStyle(() => ({
-    transform: [
-      { scale: scale.value },
-      { rotateZ: `${rotation.value}deg` }
-    ],
+    transform: [{ scale: scale.value }, { rotateZ: `${rotation.value}deg` }],
   }));
-  
+
   const iconStyle = useAnimatedStyle(() => {
     return {
-      transform: [
-        { scale: pulseValue.value }
-      ]
-    }
-  });
-  
-  const shakeStyle = useAnimatedStyle(() => {
-    return {
-      transform: [
-        { translateX: shake.value }
-      ]
+      transform: [{ scale: pulseValue.value }],
     };
   });
-  
+
+  const shakeStyle = useAnimatedStyle(() => {
+    return {
+      transform: [{ translateX: shake.value }],
+    };
+  });
+
   const autoRetryProgressStyle = useAnimatedStyle(() => {
     return {
-      width: `${autoRetryProgress.value}%`
+      width: `${autoRetryProgress.value}%`,
     };
   });
 
@@ -446,39 +446,39 @@ const ErrorDisplay: React.FC<ErrorDisplayProps> = ({
         return "图像处理过程中发生了未知错误，请尝试重新加载或联系支持团队";
     }
   };
-  
+
   const getErrorTips = () => {
     switch (errorType) {
       case "network":
         return [
           "检查您的网络连接是否正常",
           "确认您连接的是稳定的WiFi或移动数据",
-          "可能是服务器暂时不可用，稍后再试"
+          "可能是服务器暂时不可用，稍后再试",
         ];
       case "permission":
         return [
           "在设备设置中检查应用权限",
           "确保已授予图像访问权限",
-          "重启应用后再次尝试"
+          "重启应用后再次尝试",
         ];
       case "validation":
       case "data":
         return [
           "尝试使用不同格式的图像",
           "确保图像未损坏且格式受支持",
-          "图像可能过大，尝试降低分辨率"
+          "图像可能过大，尝试降低分辨率",
         ];
       case "storage":
         return [
           "清理设备存储空间",
           "删除不需要的图像和文件",
-          "检查应用缓存并清理"
+          "检查应用缓存并清理",
         ];
       default:
         return [
           "重新加载页面或重启应用",
           "尝试使用不同的图像文件",
-          "如果问题持续存在，请联系支持团队"
+          "如果问题持续存在，请联系支持团队",
         ];
     }
   };
@@ -507,7 +507,7 @@ const ErrorDisplay: React.FC<ErrorDisplayProps> = ({
 
   const handleCopyError = async () => {
     if (!error) return;
-    
+
     try {
       const errorDetails = `
 Error: ${error.message}
@@ -517,28 +517,28 @@ Time: ${new Date().toISOString()}
 Platform: ${Platform.OS} ${Platform.Version}
 Retry Count: ${retryCount}
 `;
-      
+
       await Clipboard.setStringAsync(errorDetails);
       setCopiedToClipboard(true);
       setShowSuccessMessage(true);
-      
+
       // 触觉反馈
       if (Platform.OS !== "web") {
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       }
-      
+
       // 3秒后隐藏成功消息
       setTimeout(() => {
         setShowSuccessMessage(false);
       }, 3000);
     } catch (e) {
-      console.error('Failed to copy error details to clipboard:', e);
+      console.error("Failed to copy error details to clipboard:", e);
     }
   };
 
   return (
     <View className="flex-1 items-center justify-center p-4 bg-gradient-to-b from-background to-background/95">
-      <AnimatedCard 
+      <AnimatedCard
         style={[containerStyle]}
         entering={FadeIn.duration(300)}
         className="w-full max-w-sm p-6 bg-background/90 backdrop-blur-sm border-border/50"
@@ -565,19 +565,19 @@ Retry Count: ${retryCount}
           >
             {getErrorMessage()}
           </Animated.Text>
-          
+
           <Animated.View entering={FadeIn.delay(400)} className="w-full">
-            <Badge 
-              variant={errorType === "critical" ? "destructive" : "outline"} 
+            <Badge
+              variant={errorType === "critical" ? "destructive" : "outline"}
               className="mb-2 self-center"
             >
               {errorType === "critical" ? "严重错误" : "可恢复"}
               {retryCount > 0 && ` · 已重试 ${retryCount} 次`}
             </Badge>
           </Animated.View>
-          
+
           {/* 错误提示列表 */}
-          <Animated.View 
+          <Animated.View
             entering={FadeIn.delay(500)}
             className="w-full mt-2 bg-muted/30 p-3 rounded-md"
           >
@@ -585,7 +585,9 @@ Retry Count: ${retryCount}
             {getErrorTips().map((tip, index) => (
               <View key={index} className="flex-row items-center mt-1">
                 <View className="h-1.5 w-1.5 rounded-full bg-primary mr-2" />
-                <Text className="text-xs text-muted-foreground flex-1">{tip}</Text>
+                <Text className="text-xs text-muted-foreground flex-1">
+                  {tip}
+                </Text>
               </View>
             ))}
           </Animated.View>
@@ -603,7 +605,7 @@ Retry Count: ${retryCount}
                 {error?.stack || "没有可用的错误堆栈"}
               </Text>
             </ScrollView>
-            
+
             <View className="flex-row justify-between mt-2">
               <Button
                 variant="ghost"
@@ -614,7 +616,7 @@ Retry Count: ${retryCount}
                 <Copy className="h-3 w-3 mr-1" />
                 <Text className="text-xs">复制错误信息</Text>
               </Button>
-              
+
               {onOpenHelp && (
                 <Button
                   variant="ghost"
@@ -627,13 +629,13 @@ Retry Count: ${retryCount}
                 </Button>
               )}
             </View>
-            
+
             {showSuccessMessage && (
               <Animated.View
                 entering={BounceIn.duration(300)}
                 exiting={FadeOut.duration(300)}
               >
-                <Alert variant="success" className="mt-2">
+                <Alert variant="default" className="mt-2" icon={Copy}>
                   <AlertTitle>已复制到剪贴板</AlertTitle>
                 </Alert>
               </Animated.View>
@@ -650,18 +652,20 @@ Retry Count: ${retryCount}
           {autoRetrying && retryDelay && (
             <View className="mb-2 space-y-1">
               <View className="h-1 bg-muted rounded-full overflow-hidden">
-                <Animated.View 
-                  className="h-full bg-primary rounded-full" 
+                <Animated.View
+                  className="h-full bg-primary rounded-full"
                   style={autoRetryProgressStyle}
                 />
               </View>
               <View className="flex-row items-center justify-between">
-                <Text className="text-xs text-muted-foreground">正在自动重试...</Text>
+                <Text className="text-xs text-muted-foreground">
+                  正在自动重试...
+                </Text>
                 <RotateCw className="h-3 w-3 text-muted-foreground animate-spin" />
               </View>
             </View>
           )}
-        
+
           {/* 主要操作按钮 */}
           <Button
             onPress={onRetry}
@@ -682,14 +686,10 @@ Retry Count: ${retryCount}
             <ArrowLeft className="h-5 w-5 mr-2" />
             <Text>返回</Text>
           </Button>
-          
+
           {/* 回到主页 */}
           {onGoHome && (
-            <Button
-              onPress={onGoHome}
-              className="w-full h-12"
-              variant="ghost"
-            >
+            <Button onPress={onGoHome} className="w-full h-12" variant="ghost">
               <Home className="h-5 w-5 mr-2" />
               <Text>回到主页</Text>
             </Button>
@@ -714,14 +714,14 @@ Retry Count: ${retryCount}
 // 通用的 Database 图标组件
 const Database = ({ className = "" }) => (
   <Animated.View className={className} entering={ZoomIn}>
-    <Svg 
-      width="100%" 
-      height="100%" 
-      viewBox="0 0 24 24" 
-      fill="none" 
-      stroke="currentColor" 
-      strokeWidth={2} 
-      strokeLinecap="round" 
+    <Svg
+      width="100%"
+      height="100%"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={2}
+      strokeLinecap="round"
       strokeLinejoin="round"
     >
       <ellipse cx="12" cy="5" rx="9" ry="3" />
@@ -733,9 +733,9 @@ const Database = ({ className = "" }) => (
 
 // 取消动画的辅助函数
 const cancelAnimation = (value: Animated.SharedValue<any>) => {
-  'worklet';
+  "worklet";
   value.value = withTiming(value.value);
 };
 
 // 从 react-native-svg 导入 SVG 组件
-import Svg from 'react-native-svg';
+import Svg from "react-native-svg";

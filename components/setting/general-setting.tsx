@@ -1,5 +1,11 @@
 import React, { useMemo, useCallback } from "react";
-import { ScrollView, SafeAreaView, Platform, Pressable, View } from "react-native";
+import {
+  ScrollView,
+  SafeAreaView,
+  Platform,
+  Pressable,
+  View,
+} from "react-native";
 import { toast } from "sonner-native";
 import {
   Settings,
@@ -68,17 +74,11 @@ const SettingItem = ({
   const rotation = useSharedValue(0);
 
   const animatedStyle = useAnimatedStyle(() => ({
-    transform: [
-      { scale: scale.value },
-      { rotate: `${rotation.value}deg` },
-    ],
+    transform: [{ scale: scale.value }, { rotate: `${rotation.value}deg` }],
   }));
 
   const handlePress = async () => {
-    scale.value = withSequence(
-      withSpring(0.95),
-      withSpring(1)
-    );
+    scale.value = withSequence(withSpring(0.95), withSpring(1));
     rotation.value = withSequence(
       withTiming(value ? -180 : 180, { duration: 300 }),
       withTiming(0)
@@ -87,7 +87,7 @@ const SettingItem = ({
     if (Platform.OS !== "web") {
       await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     }
-    
+
     onToggle(!value);
   };
 
@@ -108,7 +108,9 @@ const SettingItem = ({
               <Icon size={20} className="text-primary native:h-6 native:w-6" />
             </View>
             <View>
-              <Text className="text-base native:text-lg font-medium">{label}</Text>
+              <Text className="text-base native:text-lg font-medium">
+                {label}
+              </Text>
               {description && (
                 <Text className="text-sm text-muted-foreground mt-1">
                   {description}
@@ -250,7 +252,7 @@ const GeneralSetting = () => {
                 </Animated.View>
               ))}
 
-              <Animated.View 
+              <Animated.View
                 entering={BounceIn.delay(400).springify()}
                 className="mt-4"
               >

@@ -1,18 +1,23 @@
 import React, { Component, ErrorInfo } from "react";
 import { View, ScrollView, Pressable } from "react-native";
-import { AlertCircle, RefreshCw, XCircle, ArrowLeft } from "lucide-react-native";
-import Animated, { 
-  FadeInDown, 
-  FadeOut, 
-  SlideInUp, 
-  ZoomIn, 
+import {
+  AlertCircle,
+  RefreshCw,
+  XCircle,
+  ArrowLeft,
+} from "lucide-react-native";
+import Animated, {
+  FadeInDown,
+  FadeOut,
+  SlideInUp,
+  ZoomIn,
   Layout,
   useAnimatedStyle,
   withSpring,
   useSharedValue,
   interpolate,
   withSequence,
-  withTiming
+  withTiming,
 } from "react-native-reanimated";
 import { Button } from "~/components/ui/button";
 import { Text } from "~/components/ui/text";
@@ -39,12 +44,12 @@ interface State {
   isRetrying: boolean;
 }
 
-const AnimatedErrorMessage = ({ 
-  error, 
-  errorInfo 
-}: { 
-  error: string; 
-  errorInfo?: ErrorInfo | null 
+const AnimatedErrorMessage = ({
+  error,
+  errorInfo,
+}: {
+  error: string;
+  errorInfo?: ErrorInfo | null;
 }) => {
   const scale = useSharedValue(1);
   const opacity = useSharedValue(1);
@@ -66,19 +71,19 @@ const AnimatedErrorMessage = ({
 
   return (
     <Pressable onPressIn={onPressIn} onPressOut={onPressOut}>
-      <Animated.View 
+      <Animated.View
         style={animatedStyle}
         className="mt-4 bg-muted p-3 rounded-md overflow-hidden border border-border/10"
       >
-        <Animated.View 
-          entering={FadeInDown.delay(400).duration(500).springify()} 
+        <Animated.View
+          entering={FadeInDown.delay(400).duration(500).springify()}
           className="bg-destructive/5 mb-2 p-2 rounded-md"
         >
           <Text className="font-medium text-destructive">{error}</Text>
         </Animated.View>
 
         {errorInfo && (
-          <Animated.View 
+          <Animated.View
             entering={FadeInDown.delay(600).duration(500).springify()}
           >
             <Text className="text-xs text-muted-foreground font-mono">
@@ -116,19 +121,19 @@ class ErrorBoundary extends Component<Props, State> {
   handleReset = async (): Promise<void> => {
     try {
       this.setState({ isRetrying: true });
-      
+
       // 触觉反馈
       await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      
+
       // 延迟重置以便动画有时间完成
       setTimeout(() => {
-        this.setState({ 
-          hasError: false, 
-          error: null, 
+        this.setState({
+          hasError: false,
+          error: null,
           errorInfo: null,
-          isRetrying: false 
+          isRetrying: false,
         });
-        
+
         // 如果提供了外部重置回调，则调用它
         if (this.props.onReset) {
           this.props.onReset();
@@ -170,7 +175,7 @@ class ErrorBoundary extends Component<Props, State> {
             <Card className="native:rounded-2xl native:shadow-lg overflow-hidden border-primary/10">
               <CardHeader className="bg-destructive/10 border-b border-destructive/20">
                 <CardTitle className="flex-row items-center justify-between">
-                  <Animated.View 
+                  <Animated.View
                     entering={ZoomIn.delay(300).duration(500).springify()}
                     className="flex-row items-center space-x-2"
                   >
@@ -179,8 +184,8 @@ class ErrorBoundary extends Component<Props, State> {
                       出错了
                     </Text>
                   </Animated.View>
-                  
-                  <Pressable 
+
+                  <Pressable
                     onPress={this.handleGoBack}
                     className="p-2 bg-destructive/20 rounded-full active:opacity-70"
                     accessibilityRole="button"
@@ -191,19 +196,23 @@ class ErrorBoundary extends Component<Props, State> {
                   </Pressable>
                 </CardTitle>
               </CardHeader>
-              
+
               <CardContent className="p-4 native:p-5 space-y-4">
                 <Animated.View
                   entering={FadeInDown.delay(200).duration(500).springify()}
                   layout={Layout.springify()}
                 >
-                  <Alert variant="destructive" icon={AlertCircle} className="native:rounded-xl">
+                  <Alert
+                    variant="destructive"
+                    icon={AlertCircle}
+                    className="native:rounded-xl"
+                  >
                     <Text className="font-medium">
                       {this.state.error?.message || "发生未知错误"}
                     </Text>
                   </Alert>
                 </Animated.View>
-                
+
                 <Animated.View
                   entering={FadeInDown.delay(300).duration(500).springify()}
                 >
@@ -213,13 +222,13 @@ class ErrorBoundary extends Component<Props, State> {
                 </Animated.View>
 
                 {this.state.errorInfo && (
-                  <AnimatedErrorMessage 
-                    error={this.state.error?.message || "未知错误"} 
-                    errorInfo={this.state.errorInfo} 
+                  <AnimatedErrorMessage
+                    error={this.state.error?.message || "未知错误"}
+                    errorInfo={this.state.errorInfo}
                   />
                 )}
               </CardContent>
-              
+
               <CardFooter className="border-t p-4 space-x-3 native:p-5">
                 <Button
                   className="flex-1 h-11 native:h-12 native:rounded-xl"
@@ -230,13 +239,17 @@ class ErrorBoundary extends Component<Props, State> {
                   accessibilityLabel="重试"
                   accessibilityHint="点击重新加载页面"
                 >
-                  <RefreshCw 
-                    size={18} 
-                    className={`mr-2 ${this.state.isRetrying ? 'animate-spin' : ''}`} 
+                  <RefreshCw
+                    size={18}
+                    className={`mr-2 ${
+                      this.state.isRetrying ? "animate-spin" : ""
+                    }`}
                   />
-                  <Text>{this.state.isRetrying ? "重新加载中..." : "重试"}</Text>
+                  <Text>
+                    {this.state.isRetrying ? "重新加载中..." : "重试"}
+                  </Text>
                 </Button>
-                
+
                 <Button
                   className="flex-1 h-11 native:h-12 native:rounded-xl"
                   onPress={this.handleGoBack}

@@ -1,5 +1,18 @@
-import React, { memo, useMemo, useState, useCallback, useEffect, useRef } from "react";
-import { View, Pressable, useWindowDimensions, Share, AccessibilityInfo } from "react-native";
+import React, {
+  memo,
+  useMemo,
+  useState,
+  useCallback,
+  useEffect,
+  useRef,
+} from "react";
+import {
+  View,
+  Pressable,
+  useWindowDimensions,
+  Share,
+  AccessibilityInfo,
+} from "react-native";
 import Animated, {
   FadeInLeft,
   Layout,
@@ -186,42 +199,45 @@ const StatusBadge = memo(
   }
 );
 
-const VulnerabilityBadge = memo(({ severity, count }: { severity: string; count?: number }) => {
-  const config = {
-    low: {
-      color: "bg-blue-500/10 text-blue-500 border-blue-500/20",
-      text: "低",
-    },
-    medium: {
-      color: "bg-amber-500/10 text-amber-500 border-amber-500/20",
-      text: "中",
-    },
-    high: {
-      color: "bg-orange-500/10 text-orange-500 border-orange-500/20",
-      text: "高",
-    },
-    critical: {
-      color: "bg-destructive/10 text-destructive border-destructive/20",
-      text: "严重",
-    },
-  };
+const VulnerabilityBadge = memo(
+  ({ severity, count }: { severity: string; count?: number }) => {
+    const config = {
+      low: {
+        color: "bg-blue-500/10 text-blue-500 border-blue-500/20",
+        text: "低",
+      },
+      medium: {
+        color: "bg-amber-500/10 text-amber-500 border-amber-500/20",
+        text: "中",
+      },
+      high: {
+        color: "bg-orange-500/10 text-orange-500 border-orange-500/20",
+        text: "高",
+      },
+      critical: {
+        color: "bg-destructive/10 text-destructive border-destructive/20",
+        text: "严重",
+      },
+    };
 
-  const { color, text } = config[severity as keyof typeof config] || config.low;
+    const { color, text } =
+      config[severity as keyof typeof config] || config.low;
 
-  return (
-    <Animated.View 
-      entering={ZoomIn.duration(300)}
-      className={`px-2 py-0.5 rounded-full border flex-row items-center space-x-1 ${color}`}
-    >
-      <Label className="text-xs font-medium">{text}</Label>
-      {count !== undefined && (
-        <View className="bg-background/30 px-1 rounded-full">
-          <Text className="text-xs">{count}</Text>
-        </View>
-      )}
-    </Animated.View>
-  );
-});
+    return (
+      <Animated.View
+        entering={ZoomIn.duration(300)}
+        className={`px-2 py-0.5 rounded-full border flex-row items-center space-x-1 ${color}`}
+      >
+        <Label className="text-xs font-medium">{text}</Label>
+        {count !== undefined && (
+          <View className="bg-background/30 px-1 rounded-full">
+            <Text className="text-xs">{count}</Text>
+          </View>
+        )}
+      </Animated.View>
+    );
+  }
+);
 
 const ScanResultSkeleton = () => {
   return (
@@ -233,7 +249,7 @@ const ScanResultSkeleton = () => {
         </View>
         <Skeleton className="w-16 h-6 rounded-full" />
       </View>
-      
+
       <View className="space-y-2">
         <View className="flex-row items-center space-x-2">
           <Skeleton className="w-4 h-4 rounded-full" />
@@ -244,7 +260,7 @@ const ScanResultSkeleton = () => {
           <Skeleton className="w-40 h-4 rounded-md" />
         </View>
       </View>
-      
+
       <View className="flex-row justify-between mt-2 pt-2 border-t border-border/20">
         <Skeleton className="w-16 h-8 rounded-md" />
         <View className="flex-row space-x-2">
@@ -280,7 +296,7 @@ const ScanResultItem: React.FC<ScanResultItemProps> = memo(
 
     // 适应主题色彩
     const darkMode = colorScheme === "dark";
-    
+
     // 检查屏幕阅读器状态
     useEffect(() => {
       AccessibilityInfo.isScreenReaderEnabled().then(setScreenReaderEnabled);
@@ -297,15 +313,15 @@ const ScanResultItem: React.FC<ScanResultItemProps> = memo(
         duration: 300,
         easing: Easing.bezier(0.25, 0.1, 0.25, 1),
       });
-      
+
       if (item.isSelected) {
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
       }
     }, [item.isSelected]);
-    
+
     // 高亮状态动画
     const highlightPulse = useSharedValue(isHighlighted ? 1 : 0);
-    
+
     useEffect(() => {
       if (isHighlighted) {
         highlightPulse.value = withRepeat(
@@ -319,7 +335,7 @@ const ScanResultItem: React.FC<ScanResultItemProps> = memo(
             highlightPulse.value = withTiming(1, { duration: 300 });
           }
         );
-        
+
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       } else {
         highlightPulse.value = withTiming(0, { duration: 300 });
@@ -339,9 +355,9 @@ const ScanResultItem: React.FC<ScanResultItemProps> = memo(
 
         await Clipboard.setStringAsync(textToCopy);
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-        toast.success("已复制到剪贴板", { 
+        toast.success("已复制到剪贴板", {
           duration: 2000,
-          icon: <ClipboardCw size={18} />
+          icon: <ClipboardCw size={18} />,
         });
       } catch (error) {
         toast.error("复制失败", { duration: 2000 });
@@ -377,9 +393,9 @@ const ScanResultItem: React.FC<ScanResultItemProps> = memo(
     // 模拟加载详情数据
     const loadDetails = useCallback(async () => {
       if (hasDetailsLoaded.current) return;
-      
+
       setIsDetailsLoading(true);
-      await new Promise(resolve => setTimeout(resolve, 800));
+      await new Promise((resolve) => setTimeout(resolve, 800));
       setIsDetailsLoading(false);
       hasDetailsLoaded.current = true;
     }, []);
@@ -426,7 +442,7 @@ const ScanResultItem: React.FC<ScanResultItemProps> = memo(
           borderColor,
           darkMode
             ? "hsla(var(--success) / 0.7)"
-            : "hsla(var(--success) / 0.6)"
+            : "hsla(var(--success) / 0.6)",
         ]
       );
 
@@ -434,7 +450,9 @@ const ScanResultItem: React.FC<ScanResultItemProps> = memo(
         backgroundColor,
         borderColor: isHighlighted ? highlightBorderColor : borderColor,
         transform: [{ scale: withSpring(1 - pressed.value * 0.02) }],
-        opacity: isLoading ? withTiming(0.7, { duration: 300 }) : withTiming(1, { duration: 300 }),
+        opacity: isLoading
+          ? withTiming(0.7, { duration: 300 })
+          : withTiming(1, { duration: 300 }),
       };
     });
 
@@ -447,15 +465,15 @@ const ScanResultItem: React.FC<ScanResultItemProps> = memo(
         duration: 250,
       }),
     }));
-    
+
     const chevronStyle = useAnimatedStyle(() => ({
       transform: [
-        { 
-          rotate: withTiming(`${expanded.value * 180}deg`, { 
+        {
+          rotate: withTiming(`${expanded.value * 180}deg`, {
             duration: 300,
             easing: Easing.bezier(0.25, 0.1, 0.25, 1),
-          }) 
-        }
+          }),
+        },
       ],
     }));
 
@@ -496,7 +514,7 @@ const ScanResultItem: React.FC<ScanResultItemProps> = memo(
         acc[vuln.severity] = (acc[vuln.severity] || 0) + 1;
         return acc;
       }, {} as Record<string, number>);
-      
+
       const hasCritical = groupedVuln.critical && groupedVuln.critical > 0;
 
       return (
@@ -511,20 +529,23 @@ const ScanResultItem: React.FC<ScanResultItemProps> = memo(
               </View>
             )}
           </View>
-          
+
           <View className="flex-row flex-wrap gap-2">
             {Object.entries(groupedVuln).map(([severity, count]) => (
-              <VulnerabilityBadge 
-                key={severity} 
-                severity={severity} 
+              <VulnerabilityBadge
+                key={severity}
+                severity={severity}
                 count={count}
               />
             ))}
           </View>
-          
+
           <View className="space-y-2 mt-1">
             {item.vulnerabilities.map((vuln) => (
-              <View key={vuln.id} className="bg-background/50 p-2 rounded-md border border-border/20">
+              <View
+                key={vuln.id}
+                className="bg-background/50 p-2 rounded-md border border-border/20"
+              >
                 <View className="flex-row items-center justify-between">
                   <Text className="font-medium">{vuln.name}</Text>
                   <VulnerabilityBadge severity={vuln.severity} />
@@ -558,7 +579,7 @@ const ScanResultItem: React.FC<ScanResultItemProps> = memo(
         </View>
       );
     };
-    
+
     // 加载中状态
     if (isLoading) {
       return <ScanResultSkeleton />;
@@ -586,9 +607,11 @@ const ScanResultItem: React.FC<ScanResultItemProps> = memo(
             onLongPress?.(item);
           }}
           accessibilityRole="button"
-          accessibilityLabel={`端口 ${item.port} ${item.service ? `(${item.service})` : ""} ${
-            item.status === "open" 
-              ? "开放" 
+          accessibilityLabel={`端口 ${item.port} ${
+            item.service ? `(${item.service})` : ""
+          } ${
+            item.status === "open"
+              ? "开放"
               : item.status === "closed"
               ? "关闭"
               : item.status === "error"
@@ -652,10 +675,12 @@ const ScanResultItem: React.FC<ScanResultItemProps> = memo(
                       <Label className="text-sm text-muted-foreground">
                         延迟: {item.latency}ms
                       </Label>
-                      <Progress 
-                        value={Math.min(100, (item.latency / 500) * 100)} 
-                        className="w-16 h-1.5" 
-                        indicatorClassName={item.latency > 300 ? "bg-amber-500" : "bg-primary"}
+                      <Progress
+                        value={Math.min(100, (item.latency / 500) * 100)}
+                        className="w-16 h-1.5"
+                        indicatorClassName={
+                          item.latency > 300 ? "bg-amber-500" : "bg-primary"
+                        }
                       />
                     </View>
                   )}
@@ -678,7 +703,9 @@ const ScanResultItem: React.FC<ScanResultItemProps> = memo(
                   onPress={toggleDetails}
                   className="flex-row items-center px-3 py-1"
                   accessibilityLabel={isExpanded ? "收起详情" : "显示详情"}
-                  accessibilityHint={isExpanded ? "收起详细信息" : "显示更多详细信息"}
+                  accessibilityHint={
+                    isExpanded ? "收起详细信息" : "显示更多详细信息"
+                  }
                 >
                   <Animated.View style={chevronStyle}>
                     <ChevronDown size={14} className="mr-1" />
@@ -747,10 +774,10 @@ const ScanResultItem: React.FC<ScanResultItemProps> = memo(
                   </>
                 )}
               </Animated.View>
-              
+
               {/* 高亮指示器 */}
               {isHighlighted && (
-                <Animated.View 
+                <Animated.View
                   className="absolute top-0 right-0 w-3 h-3 rounded-full bg-success"
                   entering={ZoomIn.duration(300).springify()}
                   exiting={ZoomOut.duration(200)}

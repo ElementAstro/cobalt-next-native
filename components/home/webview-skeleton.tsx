@@ -26,9 +26,9 @@ interface WebViewSkeletonProps {
   variant?: "default" | "detailed";
 }
 
-export const WebViewSkeleton: React.FC<WebViewSkeletonProps> = ({ 
+export const WebViewSkeleton: React.FC<WebViewSkeletonProps> = ({
   message = "加载中...",
-  variant = "default"
+  variant = "default",
 }) => {
   // 多个动画控制器，分别处理不同的动画效果
   const shimmer = useSharedValue(0);
@@ -42,7 +42,10 @@ export const WebViewSkeleton: React.FC<WebViewSkeletonProps> = ({
     // 闪烁动画 - 采用更自然的曲线
     shimmer.value = withRepeat(
       withSequence(
-        withTiming(1, { duration: 1200, easing: Easing.bezier(0.4, 0, 0.6, 1) }),
+        withTiming(1, {
+          duration: 1200,
+          easing: Easing.bezier(0.4, 0, 0.6, 1),
+        }),
         withTiming(0, { duration: 1200, easing: Easing.bezier(0.4, 0, 0.6, 1) })
       ),
       -1
@@ -56,16 +59,16 @@ export const WebViewSkeleton: React.FC<WebViewSkeletonProps> = ({
       ),
       -1
     );
-    
+
     // 加载图标旋转
     loadingRotation.value = withRepeat(
-      withTiming(360, { 
-        duration: 1500, 
-        easing: Easing.linear 
+      withTiming(360, {
+        duration: 1500,
+        easing: Easing.linear,
       }),
       -1
     );
-    
+
     // 脉冲动画
     pulseAnimation.value = withRepeat(
       withSequence(
@@ -74,7 +77,7 @@ export const WebViewSkeleton: React.FC<WebViewSkeletonProps> = ({
       ),
       -1
     );
-    
+
     // 进度条动画 - 给用户一种进度感
     progressValue.value = withSequence(
       withTiming(0.3, { duration: 1000, easing: Easing.out(Easing.quad) }),
@@ -89,7 +92,7 @@ export const WebViewSkeleton: React.FC<WebViewSkeletonProps> = ({
         -1
       )
     );
-    
+
     // 清理动画以防内存泄漏
     return () => {
       cancelAnimation(shimmer);
@@ -102,17 +105,19 @@ export const WebViewSkeleton: React.FC<WebViewSkeletonProps> = ({
 
   // 动画样式
   const shimmerStyle = useAnimatedStyle(() => ({
-    transform: [{ translateX: interpolate(shimmer.value, [0, 1], [-100, 100]) }],
+    transform: [
+      { translateX: interpolate(shimmer.value, [0, 1], [-100, 100]) },
+    ],
   }));
 
   const contentStyle = useAnimatedStyle(() => ({
     opacity: contentOpacity.value,
   }));
-  
+
   const loadingIconStyle = useAnimatedStyle(() => ({
     transform: [{ rotateZ: `${loadingRotation.value}deg` }],
   }));
-  
+
   const pulseStyle = useAnimatedStyle(() => ({
     opacity: interpolate(
       pulseAnimation.value,
@@ -121,21 +126,21 @@ export const WebViewSkeleton: React.FC<WebViewSkeletonProps> = ({
       Extrapolate.CLAMP
     ),
     transform: [
-      { 
+      {
         scale: interpolate(
           pulseAnimation.value,
           [0, 0.5, 1],
           [0.98, 1.02, 0.98],
           Extrapolate.CLAMP
-        ) 
-      }
+        ),
+      },
     ],
   }));
-  
+
   const progressBarStyle = useAnimatedStyle(() => ({
     width: `${progressValue.value * 100}%`,
   }));
-  
+
   const progressOpacityStyle = useAnimatedStyle(() => ({
     opacity: interpolate(
       progressValue.value,
@@ -146,14 +151,14 @@ export const WebViewSkeleton: React.FC<WebViewSkeletonProps> = ({
   }));
 
   return (
-    <Animated.View 
+    <Animated.View
       entering={FadeIn.duration(300)}
       exiting={FadeOut.duration(250)}
       layout={LinearTransition.springify()}
       className="flex-1 bg-background/90 backdrop-blur-lg rounded-2xl p-4 relative overflow-hidden"
     >
       {/* 进度条 */}
-      <Animated.View 
+      <Animated.View
         style={[progressOpacityStyle]}
         className="absolute top-0 left-0 right-0 h-1 bg-muted/20 z-10"
       >
@@ -162,7 +167,7 @@ export const WebViewSkeleton: React.FC<WebViewSkeletonProps> = ({
           className="h-full bg-primary rounded-full"
         />
       </Animated.View>
-      
+
       {/* 顶部栏骨架 */}
       <View className="flex-row items-center justify-between mb-4">
         <View className="h-6 w-32 bg-muted/60 rounded-lg overflow-hidden">
@@ -171,16 +176,16 @@ export const WebViewSkeleton: React.FC<WebViewSkeletonProps> = ({
             className="w-full h-full bg-gradient-to-r from-transparent via-muted/90 to-transparent"
           />
         </View>
-        
+
         <View className="flex-row items-center space-x-2">
-          <Animated.View 
+          <Animated.View
             style={pulseStyle}
             className="py-1 px-2 rounded-full bg-muted/60 flex-row items-center space-x-1"
           >
             <Monitor size={12} className="text-muted-foreground/70" />
             <Text className="text-xs text-muted-foreground/70">预览模式</Text>
           </Animated.View>
-          
+
           <View className="h-8 w-8 bg-muted/60 rounded-full overflow-hidden">
             <Animated.View
               style={shimmerStyle}
@@ -202,7 +207,7 @@ export const WebViewSkeleton: React.FC<WebViewSkeletonProps> = ({
                 <Skeleton className="h-3 w-24 rounded-md" />
               </View>
             </View>
-            
+
             <View className="h-48 bg-muted/60 rounded-xl overflow-hidden">
               <Animated.View
                 style={shimmerStyle}
@@ -218,7 +223,7 @@ export const WebViewSkeleton: React.FC<WebViewSkeletonProps> = ({
             />
           </View>
         )}
-        
+
         {/* 次要内容块 - 卡片布局 */}
         <View className="flex-row space-x-3">
           <View className="flex-1 h-24 bg-muted/60 rounded-xl overflow-hidden">
@@ -227,7 +232,7 @@ export const WebViewSkeleton: React.FC<WebViewSkeletonProps> = ({
               className="w-full h-full bg-gradient-to-r from-transparent via-muted/90 to-transparent"
             />
           </View>
-          
+
           <View className="flex-1 h-24 bg-muted/60 rounded-xl overflow-hidden">
             <Animated.View
               style={shimmerStyle}
@@ -235,7 +240,7 @@ export const WebViewSkeleton: React.FC<WebViewSkeletonProps> = ({
             />
           </View>
         </View>
-        
+
         {/* 额外的内容区块 - 列表项样式 */}
         <View className="space-y-3">
           <View className="h-12 bg-muted/60 rounded-lg overflow-hidden">
@@ -244,14 +249,14 @@ export const WebViewSkeleton: React.FC<WebViewSkeletonProps> = ({
               className="w-full h-full bg-gradient-to-r from-transparent via-muted/90 to-transparent"
             />
           </View>
-          
+
           <View className="h-12 bg-muted/60 rounded-lg overflow-hidden">
             <Animated.View
               style={shimmerStyle}
               className="w-full h-full bg-gradient-to-r from-transparent via-muted/90 to-transparent"
             />
           </View>
-          
+
           <View className="h-12 bg-muted/60 rounded-lg overflow-hidden">
             <Animated.View
               style={shimmerStyle}
@@ -276,11 +281,11 @@ export const WebViewSkeleton: React.FC<WebViewSkeletonProps> = ({
           />
         </View>
       </View>
-      
+
       {/* 加载指示器 */}
-      <Animated.View 
-        entering={ZoomIn.duration(400).delay(300)} 
-        style={pulseStyle} 
+      <Animated.View
+        entering={ZoomIn.duration(400).delay(300)}
+        style={pulseStyle}
         className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 items-center"
       >
         <View className="bg-background/80 backdrop-blur-md p-4 rounded-xl shadow-lg border border-border/30 items-center">

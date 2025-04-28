@@ -64,7 +64,9 @@ const ConfirmDialog: React.FC<ConfirmDialogProps> = memo(
 
     const dialogStyles = {
       error: {
-        icon: <AlertCircle className="h-8 w-8 text-destructive animate-pulse" />,
+        icon: (
+          <AlertCircle className="h-8 w-8 text-destructive animate-pulse" />
+        ),
         title: "错误",
         buttonColor: "bg-destructive hover:bg-destructive/90",
         description: "发生错误，请重试",
@@ -110,10 +112,7 @@ const ConfirmDialog: React.FC<ConfirmDialogProps> = memo(
                   {currentStyle.title}
                 </AlertDialogTitle>
               </Animated.View>
-              <Animated.View
-                entering={FadeIn.delay(200)}
-                className="space-y-2"
-              >
+              <Animated.View entering={FadeIn.delay(200)} className="space-y-2">
                 <AlertDialogDescription className="text-base text-muted-foreground">
                   {dialogMessage || currentStyle.description}
                 </AlertDialogDescription>
@@ -130,7 +129,7 @@ const ConfirmDialog: React.FC<ConfirmDialogProps> = memo(
                   取消
                 </Button>
               </AlertDialogCancel>
-              
+
               {dialogType !== "error" && (
                 <AlertDialogAction asChild>
                   <Button

@@ -1,8 +1,14 @@
-import React, { useCallback, useEffect, useState, useMemo, useRef } from "react";
-import { 
-  View, 
-  Text, 
-  TouchableOpacity, 
+import React, {
+  useCallback,
+  useEffect,
+  useState,
+  useMemo,
+  useRef,
+} from "react";
+import {
+  View,
+  Text,
+  TouchableOpacity,
   Dimensions,
   Keyboard,
   Platform,
@@ -63,15 +69,29 @@ const AnimatedTouchable = Animated.createAnimatedComponent(TouchableOpacity);
 const AnimatedBadge = Animated.createAnimatedComponent(Badge);
 
 // IP和端口号验证模式
-const ipSchema = z.string().regex(/^(\d{1,3}\.){3}\d{1,3}$/).refine((ip) => {
-  const parts = ip.split('.');
-  return parts.every(part => parseInt(part) >= 0 && parseInt(part) <= 255);
-}, { message: "无效的IP地址格式" });
+const ipSchema = z
+  .string()
+  .regex(/^(\d{1,3}\.){3}\d{1,3}$/)
+  .refine(
+    (ip) => {
+      const parts = ip.split(".");
+      return parts.every(
+        (part) => parseInt(part) >= 0 && parseInt(part) <= 255
+      );
+    },
+    { message: "无效的IP地址格式" }
+  );
 
-const portSchema = z.string().regex(/^\d{1,5}$/).refine((port) => {
-  const num = parseInt(port);
-  return num >= 0 && num <= 65535;
-}, { message: "端口号必须在0-65535之间" });
+const portSchema = z
+  .string()
+  .regex(/^\d{1,5}$/)
+  .refine(
+    (port) => {
+      const num = parseInt(port);
+      return num >= 0 && num <= 65535;
+    },
+    { message: "端口号必须在0-65535之间" }
+  );
 
 interface StatusCardProps {
   isConnected: boolean;
@@ -96,16 +116,16 @@ export const StatusCard: React.FC<StatusCardProps> = React.memo(
     isLoading = false,
   }) => {
     // 状态管理
-    const [isFocused, setIsFocused] = useState<'ip' | 'port' | null>(null);
+    const [isFocused, setIsFocused] = useState<"ip" | "port" | null>(null);
     const [ipError, setIpError] = useState<string | null>(null);
     const [portError, setPortError] = useState<string | null>(null);
     const [isScreenReaderEnabled, setIsScreenReaderEnabled] = useState(false);
     const [wasConnected, setWasConnected] = useState(isConnected);
-    
+
     // refs
     const ipInputRef = useRef<any>(null);
     const portInputRef = useRef<any>(null);
-    
+
     // 追踪连接状态变化
     const connectionChanged = wasConnected !== isConnected;
 
@@ -120,21 +140,27 @@ export const StatusCard: React.FC<StatusCardProps> = React.memo(
     const portValidAnimation = useSharedValue(0);
     const loadingProgress = useSharedValue(0);
     const shimmerPosition = useSharedValue(-1);
-    
+
     // 高级弹簧配置
-    const springConfig = useMemo(() => ({
-      damping: 10,
-      stiffness: 120,
-      mass: 0.8,
-      overshootClamping: false,
-    }), []);
-    
-    const bounceConfig = useMemo(() => ({
-      damping: 6,
-      stiffness: 200,
-      mass: 0.6,
-      overshootClamping: false,
-    }), []);
+    const springConfig = useMemo(
+      () => ({
+        damping: 10,
+        stiffness: 120,
+        mass: 0.8,
+        overshootClamping: false,
+      }),
+      []
+    );
+
+    const bounceConfig = useMemo(
+      () => ({
+        damping: 6,
+        stiffness: 200,
+        mass: 0.6,
+        overshootClamping: false,
+      }),
+      []
+    );
 
     // 响应式布局优化
     const { isSmallScreen, screenConfig } = useMemo(() => {
@@ -153,24 +179,24 @@ export const StatusCard: React.FC<StatusCardProps> = React.memo(
     // 复制连接信息到剪贴板
     const copyConnectionInfo = useCallback(() => {
       if (!ipAddress || !port) return;
-      
+
       const connectionString = `${ipAddress}:${port}`;
-      
+
       // 这里会有实际复制到剪贴板的代码
       // 示例: Clipboard.setString(connectionString);
-      
+
       // 触觉反馈与动画
       if (Platform.OS !== "web" && !isScreenReaderEnabled) {
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       }
-      
+
       // 复制成功动画
       cardScale.value = withSequence(
         withTiming(0.98, { duration: 100 }),
         withTiming(1.02, { duration: 100 }),
         withTiming(1, { duration: 200 })
       );
-      
+
       toast.success("已复制", {
         description: `连接信息：${connectionString}`,
         duration: 2000,
@@ -180,7 +206,7 @@ export const StatusCard: React.FC<StatusCardProps> = React.memo(
     // 处理动画与反馈
     const handlePressIn = useCallback(() => {
       cardScale.value = withSpring(0.98, springConfig);
-      
+
       if (Platform.OS !== "web" && !isScreenReaderEnabled) {
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
       }
@@ -191,30 +217,33 @@ export const StatusCard: React.FC<StatusCardProps> = React.memo(
     }, [springConfig]);
 
     // 输入框焦点处理
-    const handleInputFocus = useCallback((field: 'ip' | 'port') => {
-      setIsFocused(field);
-      
-      if (Platform.OS !== "web" && !isScreenReaderEnabled) {
-        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-      }
-      
-      // 聚焦动画
-      if (field === 'ip') {
-        ipValidAnimation.value = withSequence(
-          withTiming(0, { duration: 200 }),
-          withTiming(1, { duration: 300 })
-        );
-      } else {
-        portValidAnimation.value = withSequence(
-          withTiming(0, { duration: 200 }),
-          withTiming(1, { duration: 300 })
-        );
-      }
-    }, [isScreenReaderEnabled]);
+    const handleInputFocus = useCallback(
+      (field: "ip" | "port") => {
+        setIsFocused(field);
+
+        if (Platform.OS !== "web" && !isScreenReaderEnabled) {
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+        }
+
+        // 聚焦动画
+        if (field === "ip") {
+          ipValidAnimation.value = withSequence(
+            withTiming(0, { duration: 200 }),
+            withTiming(1, { duration: 300 })
+          );
+        } else {
+          portValidAnimation.value = withSequence(
+            withTiming(0, { duration: 200 }),
+            withTiming(1, { duration: 300 })
+          );
+        }
+      },
+      [isScreenReaderEnabled]
+    );
 
     const handleInputBlur = useCallback(() => {
       setIsFocused(null);
-      
+
       // 验证IP地址格式
       if (ipAddress) {
         try {
@@ -224,7 +253,7 @@ export const StatusCard: React.FC<StatusCardProps> = React.memo(
           setIpError("无效的IP地址");
         }
       }
-      
+
       // 验证端口号
       if (port) {
         try {
@@ -241,15 +270,15 @@ export const StatusCard: React.FC<StatusCardProps> = React.memo(
       (value: string) => {
         // 只允许数字和点
         const formattedValue = value.replace(/[^0-9.]/g, "");
-        
+
         // 清除错误信息
         if (ipError) setIpError(null);
-        
+
         // 验证IP地址格式
         const isValidFormat = /^(\d{1,3}\.){0,3}\d{1,3}$/.test(formattedValue);
         if (isValidFormat) {
           handleIpChange(formattedValue);
-          
+
           // 验证完整IP地址格式
           if (/^(\d{1,3}\.){3}\d{1,3}$/.test(formattedValue)) {
             try {
@@ -274,14 +303,14 @@ export const StatusCard: React.FC<StatusCardProps> = React.memo(
       (value: string) => {
         // 只允许数字
         const formattedValue = value.replace(/[^0-9]/g, "");
-        
+
         // 清除错误信息
         if (portError) setPortError(null);
-        
+
         // 验证端口号范围
         if (!formattedValue || formattedValue.length <= 5) {
           handlePortChange(formattedValue);
-          
+
           // 验证端口号
           if (formattedValue) {
             const port = parseInt(formattedValue, 10);
@@ -298,7 +327,7 @@ export const StatusCard: React.FC<StatusCardProps> = React.memo(
       },
       [handlePortChange, portError]
     );
-    
+
     // 焦点移到下一个输入框
     const moveToPortInput = useCallback(() => {
       if (portInputRef.current) {
@@ -326,17 +355,17 @@ export const StatusCard: React.FC<StatusCardProps> = React.memo(
         Extrapolate.CLAMP
       ),
     }));
-    
+
     const connectionSuccessStyle = useAnimatedStyle(() => ({
       transform: [
-        { 
+        {
           scale: interpolate(
             connectionSuccess.value,
             [0, 0.5, 1],
             [0, 1.2, 1],
             Extrapolate.CLAMP
-          ) 
-        }
+          ),
+        },
       ],
       opacity: connectionSuccess.value,
     }));
@@ -344,61 +373,63 @@ export const StatusCard: React.FC<StatusCardProps> = React.memo(
     const contentStyle = useAnimatedStyle(() => ({
       opacity: contentOpacity.value,
       transform: [
-        { 
+        {
           translateY: interpolate(
             contentOpacity.value,
             [0, 1],
             [10, 0],
             Extrapolate.CLAMP
-          ) 
-        }
+          ),
+        },
       ],
     }));
 
     const inputContainerStyle = useAnimatedStyle(() => ({
       opacity: inputContainerOpacity.value,
     }));
-    
+
     // IP验证动画样式
     const ipValidStyle = useAnimatedStyle(() => {
       return {
         transform: [{ scale: ipValidAnimation.value }],
         opacity: interpolate(
-          ipValidAnimation.value, 
-          [0.8, 1, 1.2], 
-          [0.7, 1, 1], 
+          ipValidAnimation.value,
+          [0.8, 1, 1.2],
+          [0.7, 1, 1],
           Extrapolate.CLAMP
         ),
       };
     });
-    
+
     // 端口验证动画样式
     const portValidStyle = useAnimatedStyle(() => {
       return {
         transform: [{ scale: portValidAnimation.value }],
         opacity: interpolate(
-          portValidAnimation.value, 
-          [0.8, 1, 1.2], 
-          [0.7, 1, 1], 
+          portValidAnimation.value,
+          [0.8, 1, 1.2],
+          [0.7, 1, 1],
           Extrapolate.CLAMP
         ),
       };
     });
-    
+
     // 闪烁加载动画
     const shimmerStyle = useAnimatedStyle(() => {
       return {
-        transform: [{ 
-          translateX: interpolate(
-            shimmerPosition.value,
-            [-1, 1],
-            [-100, 300],
-            Extrapolate.CLAMP
-          ) 
-        }],
+        transform: [
+          {
+            translateX: interpolate(
+              shimmerPosition.value,
+              [-1, 1],
+              [-100, 300],
+              Extrapolate.CLAMP
+            ),
+          },
+        ],
       };
     });
-    
+
     // 脉冲加载动画
     const pulsateStyle = useAnimatedStyle(() => {
       return {
@@ -414,7 +445,7 @@ export const StatusCard: React.FC<StatusCardProps> = React.memo(
     // 检查屏幕阅读器状态
     useEffect(() => {
       let isMounted = true;
-      
+
       const checkScreenReader = async () => {
         try {
           const isEnabled = await AccessibilityInfo.isScreenReaderEnabled();
@@ -425,14 +456,14 @@ export const StatusCard: React.FC<StatusCardProps> = React.memo(
           console.warn("Failed to check screen reader status:", error);
         }
       };
-      
+
       checkScreenReader();
-      
+
       const subscription = AccessibilityInfo.addEventListener(
         "screenReaderChanged",
         setIsScreenReaderEnabled
       );
-      
+
       return () => {
         isMounted = false;
         subscription.remove();
@@ -442,23 +473,29 @@ export const StatusCard: React.FC<StatusCardProps> = React.memo(
     // 生命周期效果
     useEffect(() => {
       // 入场动画
-      contentOpacity.value = withDelay(300, withTiming(1, { 
-        duration: 500,
-        easing: Easing.out(Easing.quad)
-      }));
-      
-      inputContainerOpacity.value = withDelay(500, withTiming(1, {
-        duration: 400,
-        easing: Easing.inOut(Easing.quad)
-      }));
-      
+      contentOpacity.value = withDelay(
+        300,
+        withTiming(1, {
+          duration: 500,
+          easing: Easing.out(Easing.quad),
+        })
+      );
+
+      inputContainerOpacity.value = withDelay(
+        500,
+        withTiming(1, {
+          duration: 400,
+          easing: Easing.inOut(Easing.quad),
+        })
+      );
+
       // 启动闪光加载动画
       shimmerPosition.value = withRepeat(
         withTiming(1, { duration: 1500, easing: Easing.inOut(Easing.ease) }),
         -1,
         false
       );
-      
+
       // 清理动画
       return () => {
         cancelAnimation(contentOpacity);
@@ -477,7 +514,7 @@ export const StatusCard: React.FC<StatusCardProps> = React.memo(
     useEffect(() => {
       // 保存上一个连接状态
       setWasConnected(isConnected);
-      
+
       if (connectionChanged) {
         // 连接状态变化动画
         statusIconScale.value = withSequence(
@@ -485,17 +522,20 @@ export const StatusCard: React.FC<StatusCardProps> = React.memo(
           withTiming(1.3, { duration: 300, easing: Easing.bounce }),
           withTiming(1, { duration: 200 })
         );
-        
+
         // 成功连接的脉冲效果
         if (isConnected) {
           connectionSuccess.value = withSequence(
             withTiming(0, { duration: 100 }),
-            withDelay(300, withTiming(1, { 
-              duration: 600, 
-              easing: Easing.out(Easing.cubic)
-            }))
+            withDelay(
+              300,
+              withTiming(1, {
+                duration: 600,
+                easing: Easing.out(Easing.cubic),
+              })
+            )
           );
-          
+
           // 触觉反馈
           if (Platform.OS !== "web" && !isScreenReaderEnabled) {
             Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -503,7 +543,7 @@ export const StatusCard: React.FC<StatusCardProps> = React.memo(
         } else {
           // 连接断开动画
           connectionSuccess.value = withTiming(0, { duration: 300 });
-          
+
           // 触觉反馈
           if (Platform.OS !== "web" && !isScreenReaderEnabled) {
             Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
@@ -511,7 +551,7 @@ export const StatusCard: React.FC<StatusCardProps> = React.memo(
         }
       }
     }, [isConnected, connectionChanged, isScreenReaderEnabled]);
-    
+
     // 加载状态动画
     useEffect(() => {
       if (isLoading) {
@@ -531,8 +571,8 @@ export const StatusCard: React.FC<StatusCardProps> = React.memo(
     // 渲染骨架屏加载状态
     if (isLoading) {
       return (
-        <Animated.View 
-          style={[cardAnimatedStyle, pulsateStyle]} 
+        <Animated.View
+          style={[cardAnimatedStyle, pulsateStyle]}
           entering={FadeIn.duration(300).springify()}
           className="w-full"
         >
@@ -549,7 +589,7 @@ export const StatusCard: React.FC<StatusCardProps> = React.memo(
                 <Skeleton className="w-20 h-6 rounded-full" />
               </View>
             </CardHeader>
-            
+
             <CardContent className={`space-y-6 ${screenConfig.padding}`}>
               <View className="space-y-4">
                 <View className="space-y-2">
@@ -563,7 +603,7 @@ export const StatusCard: React.FC<StatusCardProps> = React.memo(
               </View>
             </CardContent>
           </Card>
-          
+
           {/* 闪光效果 */}
           <Animated.View
             style={shimmerStyle}
@@ -615,13 +655,13 @@ export const StatusCard: React.FC<StatusCardProps> = React.memo(
                   className="absolute inset-0 bg-emerald-500/5 dark:bg-emerald-500/10"
                 />
               )}
-              
+
               <CardHeader
                 className={`space-y-4 ${isSmallScreen ? "px-4 py-3" : "p-5"}`}
               >
                 <View className="flex-row items-center justify-between w-full">
                   <View className="flex-row items-center space-x-3">
-                    <Animated.View 
+                    <Animated.View
                       style={statusIconStyle}
                       layout={LinearTransition.springify()}
                     >
@@ -637,27 +677,30 @@ export const StatusCard: React.FC<StatusCardProps> = React.memo(
                       >
                         {isConnected ? (
                           <>
-                            <Wifi 
-                              size={screenConfig.iconSize} 
+                            <Wifi
+                              size={screenConfig.iconSize}
                               className="text-emerald-500"
                             />
-                            <Animated.View 
+                            <Animated.View
                               style={connectionSuccessStyle}
                               entering={ZoomIn.springify()}
                               className="absolute -top-1 -right-1"
                             >
-                              <CheckCircle2 size={12} className="text-emerald-500 fill-emerald-50" />
+                              <CheckCircle2
+                                size={12}
+                                className="text-emerald-500 fill-emerald-50"
+                              />
                             </Animated.View>
                           </>
                         ) : (
-                          <WifiOff 
-                            size={screenConfig.iconSize} 
-                            className="text-rose-500" 
+                          <WifiOff
+                            size={screenConfig.iconSize}
+                            className="text-rose-500"
                           />
                         )}
                       </View>
                     </Animated.View>
-                    
+
                     <View className="space-y-1">
                       <CardTitle
                         className={`${
@@ -666,7 +709,7 @@ export const StatusCard: React.FC<StatusCardProps> = React.memo(
                       >
                         连接状态
                       </CardTitle>
-                      
+
                       <AnimatedBadge
                         variant={isConnected ? "default" : "secondary"}
                         entering={ZoomIn.springify().delay(300)}
@@ -716,7 +759,7 @@ export const StatusCard: React.FC<StatusCardProps> = React.memo(
                     >
                       <Server size={14} className="text-muted-foreground/90" />
                       <Text>IP地址配置</Text>
-                      
+
                       {/* 复制按钮 */}
                       {ipAddress && port && !ipError && !portError && (
                         <TouchableOpacity
@@ -742,7 +785,7 @@ export const StatusCard: React.FC<StatusCardProps> = React.memo(
                           placeholder="请输入IP地址"
                           value={ipAddress}
                           onChangeText={handleIpChangeWithValidation}
-                          onFocus={() => handleInputFocus('ip')}
+                          onFocus={() => handleInputFocus("ip")}
                           onBlur={handleInputBlur}
                           onSubmitEditing={moveToPortInput}
                           returnKeyType="next"
@@ -752,7 +795,7 @@ export const StatusCard: React.FC<StatusCardProps> = React.memo(
                             bg-muted/50 dark:bg-muted/30
                             border-2 transition-colors duration-200
                             ${
-                              isFocused === 'ip'
+                              isFocused === "ip"
                                 ? "border-primary border-opacity-50 bg-muted/70"
                                 : ipError
                                 ? "border-destructive border-opacity-40"
@@ -774,7 +817,7 @@ export const StatusCard: React.FC<StatusCardProps> = React.memo(
                               className="text-amber-500/70"
                             />
                           </Animated.View>
-                        ) : !ipError && ipAddress.split('.').length === 4 ? (
+                        ) : !ipError && ipAddress.split(".").length === 4 ? (
                           <Animated.View
                             style={ipValidStyle}
                             className="absolute right-3 top-3.5"
@@ -807,7 +850,7 @@ export const StatusCard: React.FC<StatusCardProps> = React.memo(
                           placeholder="端口"
                           value={port}
                           onChangeText={handlePortChangeWithValidation}
-                          onFocus={() => handleInputFocus('port')}
+                          onFocus={() => handleInputFocus("port")}
                           onBlur={handleInputBlur}
                           onSubmitEditing={() => Keyboard.dismiss()}
                           keyboardType="numeric"
@@ -816,7 +859,7 @@ export const StatusCard: React.FC<StatusCardProps> = React.memo(
                             bg-muted/50 dark:bg-muted/30
                             border-2 transition-colors duration-200
                             ${
-                              isFocused === 'port'
+                              isFocused === "port"
                                 ? "border-primary border-opacity-50 bg-muted/70"
                                 : portError
                                 ? "border-destructive border-opacity-40"
@@ -827,7 +870,7 @@ export const StatusCard: React.FC<StatusCardProps> = React.memo(
                           accessibilityLabel="端口输入框"
                           accessibilityHint="输入服务器端口号"
                         />
-                        
+
                         {port && !portError && (
                           <Animated.View
                             style={portValidStyle}
@@ -841,7 +884,7 @@ export const StatusCard: React.FC<StatusCardProps> = React.memo(
                         )}
                       </View>
                     </Animated.View>
-                    
+
                     {/* 错误提示 */}
                     {(ipError || portError) && (
                       <Animated.View
@@ -864,17 +907,26 @@ export const StatusCard: React.FC<StatusCardProps> = React.memo(
                           点击卡片查看详细网络信息
                         </Text>
                       </View>
-                      
-                      {isConnected && !ipError && !portError && ipAddress && port && (
-                        <AnimatedBadge
-                          variant="outline"
-                          entering={FadeIn.delay(300)}
-                          className="px-2 py-0 rounded-full border-emerald-500/30"
-                        >
-                          <Link2 size={10} className="mr-1 text-emerald-500" />
-                          <Text className="text-[10px] text-emerald-500">连接就绪</Text>
-                        </AnimatedBadge>
-                      )}
+
+                      {isConnected &&
+                        !ipError &&
+                        !portError &&
+                        ipAddress &&
+                        port && (
+                          <AnimatedBadge
+                            variant="outline"
+                            entering={FadeIn.delay(300)}
+                            className="px-2 py-0 rounded-full border-emerald-500/30"
+                          >
+                            <Link2
+                              size={10}
+                              className="mr-1 text-emerald-500"
+                            />
+                            <Text className="text-[10px] text-emerald-500">
+                              连接就绪
+                            </Text>
+                          </AnimatedBadge>
+                        )}
                     </Animated.View>
                   </View>
                 </Animated.View>

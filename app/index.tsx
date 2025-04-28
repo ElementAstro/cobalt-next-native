@@ -26,7 +26,7 @@ import BottomSheet, { BottomSheetBackdrop } from "@gorhom/bottom-sheet";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { Button } from "~/components/ui/button";
 import UpdateDialog from "~/components/home/update-dialog";
-import { CustomWebView } from "~/components/home/webview";
+import CustomWebView from "~/components/home/webview";
 import { ModeSelectionCards } from "~/components/home/mode-selection-cards";
 import { StatusCard } from "~/components/home/status-card";
 import FileSystem from "~/components/image/file-system";
@@ -138,10 +138,10 @@ function HomeScreenContent() {
       await new Promise((resolve) => setTimeout(resolve, 2000));
       stopScan();
       setIsConnected(true);
-      setScanStatus("success");
-      
+      setScanStatus("completed");
+
       const protocol = "http";
-      const url = `${protocol}://${ipAddress}:${port}`;
+      const url = `${protocol}://${ipAddress}:${port}?mode=${activeMode}&timestamp=${Date.now()}`;
       setWebViewUrl(url);
       setShowWebView(true);
       toast.success("连接成功");
@@ -172,18 +172,12 @@ function HomeScreenContent() {
 
   // Sheet的展开比例
   const snapPoints = useMemo(() => ["25%", "50%", "95%"], []);
-  const [selectedSheet, setSelectedSheet] = useState<"settings" | "files" | "history" | null>(
-    null
-  );
+  const [selectedSheet, setSelectedSheet] = useState<
+    "settings" | "files" | "history" | null
+  >(null);
 
   if (showWebView) {
-    return (
-      <CustomWebView
-        url={webViewUrl}
-        onError={handleWebViewError}
-        customParams={{ mode: activeMode, timestamp: Date.now().toString() }}
-      />
-    );
+    return <CustomWebView url={webViewUrl} onError={handleWebViewError} />;
   }
 
   return (
@@ -211,7 +205,7 @@ function HomeScreenContent() {
               />
             </Button>
           </Animated.View>
-          
+
           <Animated.View entering={FadeIn.duration(500).springify()}>
             <Button
               variant="ghost"
@@ -232,7 +226,7 @@ function HomeScreenContent() {
               />
             </Button>
           </Animated.View>
-          
+
           <Animated.View entering={FadeIn.duration(500).springify()}>
             <Button
               variant="ghost"
@@ -277,8 +271,8 @@ function HomeScreenContent() {
             />
             <Animated.View style={[{ opacity: buttonOpacity }]}>
               <WalkthroughButton
-                isScanning={isScanning}
-                onPress={handleScan}
+                loading={isScanning}
+                onScan={handleScan}
                 progress={scanProgress}
                 status={scanStatus}
               />

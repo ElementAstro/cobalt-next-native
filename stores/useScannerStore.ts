@@ -2,7 +2,7 @@ import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
-export type ScanStatus = "idle" | "scanning" | "success" | "error";
+export type ScanStatus = "idle" | "scanning" | "paused" | "error" | "completed";
 
 export interface ScanResult {
   port: number;

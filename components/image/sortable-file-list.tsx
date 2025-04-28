@@ -1,11 +1,11 @@
-import React, { useCallback, useState, useRef } from 'react';
-import { View, Dimensions } from 'react-native';
+import React, { useCallback, useState, useRef } from "react";
+import { View, Dimensions } from "react-native";
 import DraggableFlatList, {
   ScaleDecorator,
   ShadowDecorator,
   OpacityDecorator,
   RenderItemParams,
-} from 'react-native-draggable-flatlist';
+} from "react-native-draggable-flatlist";
 import Animated, {
   FadeIn,
   SlideInRight,
@@ -13,17 +13,17 @@ import Animated, {
   useAnimatedStyle,
   withSpring,
   withSequence,
-} from 'react-native-reanimated';
-import { FileItem as FileItemType } from '~/stores/useImageStore';
-import FileItem from './file-item';
-import { Text } from '~/components/ui/text';
-import { Card } from '~/components/ui/card';
-import { Badge } from '~/components/ui/badge';
-import { GripVertical } from 'lucide-react-native';
+} from "react-native-reanimated";
+import { FileItem as FileItemType } from "~/stores/useImageStore";
+import FileItem from "./file-item";
+import { Text } from "~/components/ui/text";
+import { Card } from "~/components/ui/card";
+import { Badge } from "~/components/ui/badge";
+import { GripVertical } from "lucide-react-native";
 
 interface SortableFileListProps {
   files: FileItemType[];
-  viewMode?: 'grid' | 'list';
+  viewMode?: "grid" | "list";
   isLandscape?: boolean;
   onFileAction: (file: FileItemType, action: string) => void;
   onOrderChange: (files: FileItemType[]) => void;
@@ -32,14 +32,14 @@ interface SortableFileListProps {
   ListHeaderComponent?: React.ReactElement;
 }
 
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
+const { width: SCREEN_WIDTH } = Dimensions.get("window");
 const COLUMN_COUNT = 2;
 const SPACING = 8;
 const ITEM_WIDTH = (SCREEN_WIDTH - (COLUMN_COUNT + 1) * SPACING) / COLUMN_COUNT;
 
 export const SortableFileList: React.FC<SortableFileListProps> = ({
   files,
-  viewMode = 'grid',
+  viewMode = "grid",
   isLandscape = false,
   onFileAction,
   onOrderChange,
@@ -53,7 +53,7 @@ export const SortableFileList: React.FC<SortableFileListProps> = ({
   const renderItem = useCallback(
     ({ item, drag, isActive, getIndex }: RenderItemParams<FileItemType>) => {
       const index = getIndex();
-      
+
       const animatedStyle = useAnimatedStyle(() => ({
         transform: [
           {
@@ -75,7 +75,7 @@ export const SortableFileList: React.FC<SortableFileListProps> = ({
                 style={[
                   animatedStyle,
                   {
-                    width: viewMode === 'grid' ? ITEM_WIDTH : '100%',
+                    width: viewMode === "grid" ? ITEM_WIDTH : "100%",
                     margin: SPACING / 2,
                   },
                 ]}
@@ -85,7 +85,7 @@ export const SortableFileList: React.FC<SortableFileListProps> = ({
                     <View
                       className={`
                         p-2 items-center justify-center
-                        ${viewMode === 'grid' ? 'hidden' : ''}
+                        ${viewMode === "grid" ? "hidden" : ""}
                       `}
                       onTouchStart={drag}
                     >
@@ -141,7 +141,7 @@ export const SortableFileList: React.FC<SortableFileListProps> = ({
         }}
         renderItem={renderItem}
         keyExtractor={(item) => item.uri}
-        numColumns={viewMode === 'grid' ? COLUMN_COUNT : 1}
+        numColumns={viewMode === "grid" ? COLUMN_COUNT : 1}
         contentContainerStyle={{
           paddingHorizontal: SPACING / 2,
           paddingVertical: SPACING,

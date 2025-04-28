@@ -22,15 +22,15 @@ import Animated, {
   SlideInDown,
   Easing,
 } from "react-native-reanimated";
-import { 
-  AlertCircle, 
-  Check, 
-  Eye, 
+import {
+  AlertCircle,
+  Check,
+  Eye,
   EyeOff,
   X,
   AlertOctagon,
   Info,
-  Loader2
+  Loader2,
 } from "lucide-react-native";
 import { Label } from "~/components/ui/label";
 import { Text } from "~/components/ui/text";
@@ -56,7 +56,16 @@ interface InputFieldProps {
   helperText?: string;
   errorText?: string;
   secureTextEntry?: boolean;
-  autoComplete?: "name" | "email" | "password" | "off" | "username" | "current-password" | "new-password" | "one-time-code" | undefined;
+  autoComplete?:
+    | "name"
+    | "email"
+    | "password"
+    | "off"
+    | "username"
+    | "current-password"
+    | "new-password"
+    | "one-time-code"
+    | undefined;
   autoCapitalize?: "none" | "sentences" | "words" | "characters";
   maxLength?: number;
   loading?: boolean;
@@ -123,7 +132,7 @@ const InputField: React.FC<InputFieldProps> = ({
     if (errorText) {
       errorAnimation.value = withTiming(1, { duration: 200 });
       successAnimation.value = withTiming(0, { duration: 200 });
-      
+
       // 触发抖动动画
       shakeAnimation.value = withSequence(
         withTiming(-3, { duration: 50 }),
@@ -136,7 +145,7 @@ const InputField: React.FC<InputFieldProps> = ({
         ),
         withTiming(0, { duration: 50 })
       );
-      
+
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
     }
   }, [errorText]);
@@ -147,39 +156,36 @@ const InputField: React.FC<InputFieldProps> = ({
     fadeAnim.value = withTiming(1, { duration: 300 });
   }, [externalValue, setValue]);
 
-  const debouncedOnChange = useDebouncedCallback(
-    (text: string) => {
-      onChangeText(text);
-      trigger("value").then((isValid) => {
-        if (isValid) {
-          // 成功状态反馈
-          successAnimation.value = withTiming(1, { duration: 200 });
-          errorAnimation.value = withTiming(0, { duration: 200 });
-          Haptics.selectionAsync();
-        } else if (errors.value) {
-          // 错误状态反馈
-          errorAnimation.value = withTiming(1, { duration: 200 });
-          successAnimation.value = withTiming(0, { duration: 200 });
-          
-          // 触发抖动动画
-          shakeAnimation.value = withSequence(
-            withTiming(-3, { duration: 50 }),
-            withRepeat(
-              withSequence(
-                withTiming(6, { duration: 100 }),
-                withTiming(-6, { duration: 100 })
-              ),
-              1
+  const debouncedOnChange = useDebouncedCallback((text: string) => {
+    onChangeText(text);
+    trigger("value").then((isValid) => {
+      if (isValid) {
+        // 成功状态反馈
+        successAnimation.value = withTiming(1, { duration: 200 });
+        errorAnimation.value = withTiming(0, { duration: 200 });
+        Haptics.selectionAsync();
+      } else if (errors.value) {
+        // 错误状态反馈
+        errorAnimation.value = withTiming(1, { duration: 200 });
+        successAnimation.value = withTiming(0, { duration: 200 });
+
+        // 触发抖动动画
+        shakeAnimation.value = withSequence(
+          withTiming(-3, { duration: 50 }),
+          withRepeat(
+            withSequence(
+              withTiming(6, { duration: 100 }),
+              withTiming(-6, { duration: 100 })
             ),
-            withTiming(0, { duration: 50 })
-          );
-          
-          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-        }
-      });
-    },
-    300
-  );
+            1
+          ),
+          withTiming(0, { duration: 50 })
+        );
+
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      }
+    });
+  }, 300);
 
   const togglePasswordVisibility = useCallback(() => {
     setIsPasswordVisible(!isPasswordVisible);
@@ -189,7 +195,7 @@ const InputField: React.FC<InputFieldProps> = ({
   const handleFocus = useCallback(() => {
     setIsFocused(true);
     focusAnimation.value = withTiming(1, { duration: 200 });
-    
+
     if (label) {
       labelPositionY.value = withSpring(-22, {
         damping: 12,
@@ -200,14 +206,14 @@ const InputField: React.FC<InputFieldProps> = ({
         stiffness: 100,
       });
     }
-    
+
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
   }, [label]);
 
   const handleBlur = useCallback(() => {
     setIsFocused(false);
     focusAnimation.value = withTiming(0, { duration: 200 });
-    
+
     // 只有当输入为空时才移回标签
     if (label && !getValues().value) {
       labelPositionY.value = withSpring(0, {
@@ -219,7 +225,7 @@ const InputField: React.FC<InputFieldProps> = ({
         stiffness: 100,
       });
     }
-    
+
     Keyboard.dismiss();
   }, [label, getValues]);
 
@@ -255,11 +261,12 @@ const InputField: React.FC<InputFieldProps> = ({
       [borderColor, "hsl(var(--success))"]
     );
 
-    const finalBorderColor = errorText || errors.value
-      ? errorBorderColor
-      : isValid && isDirty
-      ? successBorderColor
-      : borderColor;
+    const finalBorderColor =
+      errorText || errors.value
+        ? errorBorderColor
+        : isValid && isDirty
+        ? successBorderColor
+        : borderColor;
 
     return {
       borderWidth: withSpring(isFocused ? 2 : 1, {
@@ -277,12 +284,12 @@ const InputField: React.FC<InputFieldProps> = ({
       ],
       backgroundColor: withTiming(
         isFocused
-          ? isDark 
-            ? "hsla(var(--card) / 0.8)" 
+          ? isDark
+            ? "hsla(var(--card) / 0.8)"
             : "hsl(var(--background))"
           : isDark
-            ? "hsla(var(--card) / 0.5)"
-            : "hsla(var(--card) / 0.8)",
+          ? "hsla(var(--card) / 0.5)"
+          : "hsla(var(--card) / 0.8)",
         { duration: 200 }
       ),
       shadowOpacity: withTiming(isFocused ? 0.1 : 0, { duration: 200 }),
@@ -294,13 +301,13 @@ const InputField: React.FC<InputFieldProps> = ({
   const labelStyle = useAnimatedStyle(() => {
     const initialPosition = externalValue ? -22 : 0;
     const initialScale = externalValue ? 0.85 : 1;
-    
+
     // 如果有初始值，标签就应该在上方
     if (labelPositionY.value === 0 && externalValue) {
       labelPositionY.value = initialPosition;
       labelScale.value = initialScale;
     }
-    
+
     return {
       transform: [
         { translateY: labelPositionY.value },
@@ -383,8 +390,10 @@ const InputField: React.FC<InputFieldProps> = ({
         name="value"
         render={({ field: { onChange, value } }) => (
           <View>
-            <Animated.View 
-              className={`relative overflow-hidden ${isFocused ? "shadow-sm" : ""}`} 
+            <Animated.View
+              className={`relative overflow-hidden ${
+                isFocused ? "shadow-sm" : ""
+              }`}
               style={inputContainerStyle}
             >
               <Input
@@ -408,7 +417,7 @@ const InputField: React.FC<InputFieldProps> = ({
                   disabled,
                   selected: isFocused,
                   checked: isValid && isDirty,
-                  busy: loading
+                  busy: loading,
                 }}
                 importantForAccessibility="yes"
                 className={`
@@ -416,14 +425,18 @@ const InputField: React.FC<InputFieldProps> = ({
                   py-3 px-4 text-base
                   bg-transparent
                   rounded-xl
-                  ${disabled || loading ? 'opacity-60' : ''}
-                  ${secureTextEntry || (value && value.length > 0) ? 'pr-10' : ''}
+                  ${disabled || loading ? "opacity-60" : ""}
+                  ${
+                    secureTextEntry || (value && value.length > 0)
+                      ? "pr-10"
+                      : ""
+                  }
                 `}
               />
-              
+
               {/* 清除按钮 */}
               {value && value.length > 0 && !secureTextEntry && !loading && (
-                <Pressable 
+                <Pressable
                   onPress={clearInput}
                   className="absolute right-3 top-1/2 -translate-y-1/2"
                   accessibilityRole="button"
@@ -434,14 +447,16 @@ const InputField: React.FC<InputFieldProps> = ({
                   </Animated.View>
                 </Pressable>
               )}
-              
+
               {/* 密码可见性切换 */}
               {secureTextEntry && !loading && (
-                <Pressable 
+                <Pressable
                   onPress={togglePasswordVisibility}
                   className="absolute right-3 top-1/2 -translate-y-1/2"
                   accessibilityRole="button"
-                  accessibilityLabel={isPasswordVisible ? "隐藏密码" : "显示密码"}
+                  accessibilityLabel={
+                    isPasswordVisible ? "隐藏密码" : "显示密码"
+                  }
                 >
                   <Animated.View entering={ZoomIn.duration(200)}>
                     {isPasswordVisible ? (
@@ -457,11 +472,14 @@ const InputField: React.FC<InputFieldProps> = ({
               {loading && (
                 <View className="absolute right-3 top-1/2 -translate-y-1/2">
                   <Animated.View entering={ZoomIn.duration(200)}>
-                    <Loader2 size={18} className="text-muted-foreground animate-spin" />
+                    <Loader2
+                      size={18}
+                      className="text-muted-foreground animate-spin"
+                    />
                   </Animated.View>
                 </View>
               )}
-              
+
               {/* 验证状态图标 */}
               {!loading && !secureTextEntry && value && value.length > 0 && (
                 <>
@@ -513,20 +531,20 @@ const InputField: React.FC<InputFieldProps> = ({
           accessibilityLabel={`提示：${helperText}`}
         >
           <Info size={14} className="text-muted-foreground" />
-          <Text className="text-xs text-muted-foreground">
-            {helperText}
-          </Text>
+          <Text className="text-xs text-muted-foreground">{helperText}</Text>
         </Animated.View>
       )}
-      
+
       {/* 字符计数器 */}
       {maxLength && !errorText && !errors.value && (
         <View className="flex-row justify-end px-1">
-          <Text className={`text-xs ${
-            (getValues().value?.length || 0) > maxLength * 0.8 
-              ? "text-amber-500" 
-              : "text-muted-foreground"
-          }`}>
+          <Text
+            className={`text-xs ${
+              (getValues().value?.length || 0) > maxLength * 0.8
+                ? "text-amber-500"
+                : "text-muted-foreground"
+            }`}
+          >
             {getValues().value?.length || 0}/{maxLength}
           </Text>
         </View>

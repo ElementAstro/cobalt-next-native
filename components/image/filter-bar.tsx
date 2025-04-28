@@ -1,5 +1,5 @@
-import React, { useMemo } from 'react';
-import { View, TouchableOpacity } from 'react-native';
+import React, { useMemo } from "react";
+import { View, TouchableOpacity } from "react-native";
 import {
   Calendar,
   FileType2,
@@ -13,21 +13,21 @@ import {
   Folder,
   Clock,
   ChevronDown,
-} from 'lucide-react-native';
+} from "lucide-react-native";
 import Animated, {
   FadeIn,
   useAnimatedStyle,
   withSpring,
-} from 'react-native-reanimated';
-import { Button } from '~/components/ui/button';
-import { Input } from '~/components/ui/input';
-import { Text } from '~/components/ui/text';
-import { Card } from '~/components/ui/card';
-import { useFileStore } from '~/stores/useImageStore';
+} from "react-native-reanimated";
+import { Button } from "~/components/ui/button";
+import { Input } from "~/components/ui/input";
+import { Text } from "~/components/ui/text";
+import { Card } from "~/components/ui/card";
+import { useFileStore } from "~/stores/useImageStore";
 
 // 使用与 store 一致的类型
-type FilterType = 'all' | 'files' | 'folders';
-type SortType = 'name' | 'date' | 'size';
+type FilterType = "all" | "files" | "folders";
+type SortType = "name" | "date" | "size";
 
 interface FilterOption {
   value: FilterType;
@@ -63,41 +63,47 @@ export const FilterBar: React.FC<FilterBarProps> = ({
     setFilterType,
   } = useFileStore();
 
-  const filterOptions: FilterOption[] = useMemo(() => [
-    {
-      value: 'all',
-      label: '全部',
-      icon: File,
-    },
-    {
-      value: 'files',
-      label: '文件',
-      icon: ImageIcon,
-    },
-    {
-      value: 'folders',
-      label: '文件夹',
-      icon: Folder,
-    },
-  ], []);
+  const filterOptions: FilterOption[] = useMemo(
+    () => [
+      {
+        value: "all",
+        label: "全部",
+        icon: File,
+      },
+      {
+        value: "files",
+        label: "文件",
+        icon: ImageIcon,
+      },
+      {
+        value: "folders",
+        label: "文件夹",
+        icon: Folder,
+      },
+    ],
+    []
+  );
 
-  const sortOptions: SortOption[] = useMemo(() => [
-    {
-      value: 'name',
-      label: '名称',
-      icon: FileType2,
-    },
-    {
-      value: 'date',
-      label: '日期',
-      icon: Calendar,
-    },
-    {
-      value: 'size',
-      label: '大小',
-      icon: Filter,
-    },
-  ], []);
+  const sortOptions: SortOption[] = useMemo(
+    () => [
+      {
+        value: "name",
+        label: "名称",
+        icon: FileType2,
+      },
+      {
+        value: "date",
+        label: "日期",
+        icon: Calendar,
+      },
+      {
+        value: "size",
+        label: "大小",
+        icon: Filter,
+      },
+    ],
+    []
+  );
 
   // 动画样式
   const containerStyle = useAnimatedStyle(() => ({
@@ -113,12 +119,12 @@ export const FilterBar: React.FC<FilterBarProps> = ({
 
   // 获取当前选中的过滤器标签
   const currentFilter = useMemo(() => {
-    return filterOptions.find(option => option.value === filterType);
+    return filterOptions.find((option) => option.value === filterType);
   }, [filterType, filterOptions]);
 
   // 获取当前选中的排序方式
   const currentSort = useMemo(() => {
-    return sortOptions.find(option => option.value === sortBy);
+    return sortOptions.find((option) => option.value === sortBy);
   }, [sortBy, sortOptions]);
 
   return (
@@ -142,7 +148,7 @@ export const FilterBar: React.FC<FilterBarProps> = ({
               variant="ghost"
               size="icon"
               className="absolute right-2 top-2 h-8 w-8"
-              onPress={() => setSearchQuery('')}
+              onPress={() => setSearchQuery("")}
             >
               <ChevronDown className="h-4 w-4" />
             </Button>
@@ -153,9 +159,9 @@ export const FilterBar: React.FC<FilterBarProps> = ({
           variant="outline"
           size="icon"
           className="h-12 w-12 rounded-2xl"
-          onPress={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
+          onPress={() => setSortOrder(sortOrder === "asc" ? "desc" : "asc")}
         >
-          {sortOrder === 'asc' ? (
+          {sortOrder === "asc" ? (
             <SortAsc className="h-5 w-5" />
           ) : (
             <SortDesc className="h-5 w-5" />
@@ -176,14 +182,26 @@ export const FilterBar: React.FC<FilterBarProps> = ({
                     onFilterChange?.(value);
                   }}
                 >
-                  <View 
+                  <View
                     className={`
                       flex-row items-center px-3 py-2 rounded-lg
-                      ${filterType === value ? 'bg-primary' : 'bg-transparent'}
+                      ${filterType === value ? "bg-primary" : "bg-transparent"}
                     `}
                   >
-                    <Icon className={`h-4 w-4 mr-2 ${filterType === value ? 'text-primary-foreground' : 'text-foreground'}`} />
-                    <Text className={filterType === value ? 'text-primary-foreground' : 'text-foreground'}>
+                    <Icon
+                      className={`h-4 w-4 mr-2 ${
+                        filterType === value
+                          ? "text-primary-foreground"
+                          : "text-foreground"
+                      }`}
+                    />
+                    <Text
+                      className={
+                        filterType === value
+                          ? "text-primary-foreground"
+                          : "text-foreground"
+                      }
+                    >
                       {label}
                     </Text>
                   </View>
@@ -196,18 +214,27 @@ export const FilterBar: React.FC<FilterBarProps> = ({
         <Card className="p-2 bg-muted/50 border-0">
           <View className="flex-row flex-wrap gap-2">
             {sortOptions.map(({ value, label, icon: Icon }) => (
-              <TouchableOpacity
-                key={value}
-                onPress={() => setSortBy(value)}
-              >
-                <View 
+              <TouchableOpacity key={value} onPress={() => setSortBy(value)}>
+                <View
                   className={`
                     flex-row items-center px-3 py-2 rounded-lg
-                    ${sortBy === value ? 'bg-primary' : 'bg-transparent'}
+                    ${sortBy === value ? "bg-primary" : "bg-transparent"}
                   `}
                 >
-                  <Icon className={`h-4 w-4 mr-2 ${sortBy === value ? 'text-primary-foreground' : 'text-foreground'}`} />
-                  <Text className={sortBy === value ? 'text-primary-foreground' : 'text-foreground'}>
+                  <Icon
+                    className={`h-4 w-4 mr-2 ${
+                      sortBy === value
+                        ? "text-primary-foreground"
+                        : "text-foreground"
+                    }`}
+                  />
+                  <Text
+                    className={
+                      sortBy === value
+                        ? "text-primary-foreground"
+                        : "text-foreground"
+                    }
+                  >
                     {label}
                   </Text>
                 </View>

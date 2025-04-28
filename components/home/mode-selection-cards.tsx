@@ -1,4 +1,10 @@
-import React, { useCallback, useState, useEffect, useMemo, useRef } from "react";
+import React, {
+  useCallback,
+  useState,
+  useEffect,
+  useMemo,
+  useRef,
+} from "react";
 import {
   View,
   Text,
@@ -78,7 +84,7 @@ export const ModeSelectionCards: React.FC<ModeSelectionProps> = React.memo(
     const hotspotWaveAnimation = useSharedValue(0);
     const lanWaveAnimation = useSharedValue(0);
     const pulseAnimation = useSharedValue(0);
-    
+
     // 加载与错误状态管理
     const [isLoading, setIsLoading] = useState(true);
     const [isScreenReaderEnabled, setIsScreenReaderEnabled] = useState(false);
@@ -94,7 +100,7 @@ export const ModeSelectionCards: React.FC<ModeSelectionProps> = React.memo(
       }),
       []
     );
-    
+
     const bounceConfig = useMemo(
       () => ({
         damping: 10,
@@ -135,7 +141,7 @@ export const ModeSelectionCards: React.FC<ModeSelectionProps> = React.memo(
           -1,
           true
         );
-        
+
         const [hotspotAvailable, lanAvailable] = await Promise.all([
           checkHotspotAvailability(),
           checkLanAvailability(),
@@ -145,7 +151,7 @@ export const ModeSelectionCards: React.FC<ModeSelectionProps> = React.memo(
           hotspot: hotspotAvailable,
           lan: lanAvailable,
         });
-        
+
         // 启动波浪动画效果
         if (hotspotAvailable) {
           hotspotWaveAnimation.value = withRepeat(
@@ -154,7 +160,7 @@ export const ModeSelectionCards: React.FC<ModeSelectionProps> = React.memo(
             false
           );
         }
-        
+
         if (lanAvailable) {
           lanWaveAnimation.value = withRepeat(
             withTiming(1, { duration: 3000, easing: Easing.out(Easing.ease) }),
@@ -170,11 +176,11 @@ export const ModeSelectionCards: React.FC<ModeSelectionProps> = React.memo(
         }
       } catch (error) {
         console.error("模式可用性检查失败:", error);
-        setModeAvailability(prev => ({
+        setModeAvailability((prev) => ({
           ...prev,
           error: "网络模式检查失败，请检查连接",
         }));
-        
+
         if (showToast) {
           toast.error("网络模式检查失败", {
             description: "请检查网络连接后重试",
@@ -188,14 +194,17 @@ export const ModeSelectionCards: React.FC<ModeSelectionProps> = React.memo(
     }, []);
 
     // 性能优化：缓存按下效果处理函数
-    const handlePressIn = useCallback((mode: ModeType) => {
-      if (!modeAvailability[mode] || isSwitching) return;
-      
-      cardScale.value = withSpring(0.97, springConfig);
-      if (Platform.OS !== "web" && !isScreenReaderEnabled) {
-        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-      }
-    }, [modeAvailability, isSwitching, springConfig, isScreenReaderEnabled]);
+    const handlePressIn = useCallback(
+      (mode: ModeType) => {
+        if (!modeAvailability[mode] || isSwitching) return;
+
+        cardScale.value = withSpring(0.97, springConfig);
+        if (Platform.OS !== "web" && !isScreenReaderEnabled) {
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+        }
+      },
+      [modeAvailability, isSwitching, springConfig, isScreenReaderEnabled]
+    );
 
     const handlePressOut = useCallback(() => {
       cardScale.value = withSpring(1, springConfig);
@@ -208,18 +217,18 @@ export const ModeSelectionCards: React.FC<ModeSelectionProps> = React.memo(
           return;
 
         setIsSwitching(true);
-        
+
         // 优化动画序列
         contentOpacity.value = withSequence(
           withTiming(0.85, { duration: 150 }),
           withDelay(200, withTiming(1, { duration: 300 }))
         );
 
-        switchAnimProgress.value = withTiming(0, { 
+        switchAnimProgress.value = withTiming(0, {
           duration: 200,
-          easing: Easing.bezier(0.25, 0.1, 0.25, 1)
+          easing: Easing.bezier(0.25, 0.1, 0.25, 1),
         });
-        
+
         iconScale.value = withSequence(
           withTiming(0.8, { duration: 150 }),
           withTiming(1.3, { duration: 200 }),
@@ -235,20 +244,21 @@ export const ModeSelectionCards: React.FC<ModeSelectionProps> = React.memo(
             Haptics.NotificationFeedbackType.Success
           );
         }
-        
+
         setActiveMode(mode);
 
         // 防止动画冲突，使用 setTimeout 延迟状态更新
         const timer = setTimeout(() => setIsSwitching(false), 800);
         refreshTimeoutRef.current = timer;
-        
+
         // 添加成功切换的提示
-        toast.success(`已切换到${mode === 'hotspot' ? '热点' : '局域网'}模式`, {
-          description: mode === 'hotspot' 
-            ? "请连接到设备创建的WIFI热点" 
-            : "请确保设备在同一局域网",
+        toast.success(`已切换到${mode === "hotspot" ? "热点" : "局域网"}模式`, {
+          description:
+            mode === "hotspot"
+              ? "请连接到设备创建的WIFI热点"
+              : "请确保设备在同一局域网",
         });
-        
+
         return () => {
           if (refreshTimeoutRef.current) {
             clearTimeout(refreshTimeoutRef.current);
@@ -291,10 +301,10 @@ export const ModeSelectionCards: React.FC<ModeSelectionProps> = React.memo(
             [2, -3, 0],
             Extrapolate.CLAMP
           ),
-        }
+        },
       ],
     }));
-    
+
     // 为热点模式添加波浪效果动画
     const hotspotWaveStyle = useAnimatedStyle(() => {
       return {
@@ -316,7 +326,7 @@ export const ModeSelectionCards: React.FC<ModeSelectionProps> = React.memo(
         ],
       };
     });
-    
+
     // 为局域网模式添加波浪效果动画
     const lanWaveStyle = useAnimatedStyle(() => {
       return {
@@ -338,7 +348,7 @@ export const ModeSelectionCards: React.FC<ModeSelectionProps> = React.memo(
         ],
       };
     });
-    
+
     // 加载脉冲动画
     const pulseStyle = useAnimatedStyle(() => {
       return {
@@ -354,7 +364,7 @@ export const ModeSelectionCards: React.FC<ModeSelectionProps> = React.memo(
     // 检查屏幕阅读器状态 - 提升无障碍体验
     useEffect(() => {
       let isMounted = true;
-      
+
       const checkScreenReader = async () => {
         try {
           const isEnabled = await AccessibilityInfo.isScreenReaderEnabled();
@@ -365,14 +375,14 @@ export const ModeSelectionCards: React.FC<ModeSelectionProps> = React.memo(
           console.warn("Failed to check screen reader status:", error);
         }
       };
-      
+
       checkScreenReader();
-      
+
       const subscription = AccessibilityInfo.addEventListener(
         "screenReaderChanged",
         setIsScreenReaderEnabled
       );
-      
+
       return () => {
         isMounted = false;
         subscription.remove();
@@ -384,13 +394,13 @@ export const ModeSelectionCards: React.FC<ModeSelectionProps> = React.memo(
       validateModeAvailability();
 
       const validateInterval = setInterval(validateModeAvailability, 30000);
-      
+
       return () => {
         clearInterval(validateInterval);
         if (refreshTimeoutRef.current) {
           clearTimeout(refreshTimeoutRef.current);
         }
-        
+
         // 清理所有动画，防止内存泄漏
         cancelAnimation(hotspotWaveAnimation);
         cancelAnimation(lanWaveAnimation);
@@ -419,11 +429,11 @@ export const ModeSelectionCards: React.FC<ModeSelectionProps> = React.memo(
         );
       }
     }, [activeMode, prevMode]);
-    
+
     // 渲染骨架屏加载状态
     if (isLoading && !modeAvailability.hotspot && !modeAvailability.lan) {
       return (
-        <Animated.View 
+        <Animated.View
           style={pulseStyle}
           className="flex flex-col space-y-4 p-2 w-full"
         >
@@ -432,11 +442,15 @@ export const ModeSelectionCards: React.FC<ModeSelectionProps> = React.memo(
         </Animated.View>
       );
     }
-    
+
     // 渲染错误状态
-    if (modeAvailability.error && !modeAvailability.hotspot && !modeAvailability.lan) {
+    if (
+      modeAvailability.error &&
+      !modeAvailability.hotspot &&
+      !modeAvailability.lan
+    ) {
       return (
-        <Animated.View 
+        <Animated.View
           entering={FadeInDown.springify()}
           className="flex flex-col space-y-4 p-2 w-full"
         >
@@ -447,7 +461,7 @@ export const ModeSelectionCards: React.FC<ModeSelectionProps> = React.memo(
             <AlertCircle className="h-5 w-5" />
             <AlertTitle>网络模式不可用</AlertTitle>
             <AlertDescription>{modeAvailability.error}</AlertDescription>
-            <Button 
+            <Button
               className="mt-3"
               variant="destructive"
               onPress={() => validateModeAvailability(true)}
@@ -482,12 +496,14 @@ export const ModeSelectionCards: React.FC<ModeSelectionProps> = React.memo(
               className="w-full active:opacity-90"
               disabled={!modeAvailability.hotspot || isSwitching}
               accessible={true}
-              accessibilityLabel={`热点模式${activeMode === "hotspot" ? "（当前已选）" : ""}`}
+              accessibilityLabel={`热点模式${
+                activeMode === "hotspot" ? "（当前已选）" : ""
+              }`}
               accessibilityHint="点击切换到热点模式"
               accessibilityRole="button"
               accessibilityState={{
                 disabled: !modeAvailability.hotspot || isSwitching,
-                selected: activeMode === "hotspot"
+                selected: activeMode === "hotspot",
               }}
             >
               <WalkthroughCard
@@ -514,7 +530,7 @@ export const ModeSelectionCards: React.FC<ModeSelectionProps> = React.memo(
                     className="absolute inset-0 rounded-full bg-primary"
                   />
                 )}
-                
+
                 <CardHeader className={`space-y-3 ${cardPadding}`}>
                   <View className="flex-row items-center justify-between">
                     <View className="flex-row items-center space-x-3">
@@ -541,12 +557,14 @@ export const ModeSelectionCards: React.FC<ModeSelectionProps> = React.memo(
                           <Wifi
                             size={iconSize}
                             className={
-                              activeMode === "hotspot" ? "text-blue-500" : "text-muted-foreground"
+                              activeMode === "hotspot"
+                                ? "text-blue-500"
+                                : "text-muted-foreground"
                             }
                           />
                         </View>
                       </Animated.View>
-                      
+
                       <View>
                         <CardTitle
                           className={`
@@ -560,17 +578,27 @@ export const ModeSelectionCards: React.FC<ModeSelectionProps> = React.memo(
                         >
                           会议热点模式
                         </CardTitle>
-                        
+
                         {/* 添加方式标签 - 提升视觉层次 */}
                         <AnimatedBadge
                           variant="secondary"
-                          entering={FadeIn.delay(300)} 
+                          entering={FadeIn.delay(300)}
                           className={`
                             mt-1 rounded-full px-2 py-0.5
-                            ${activeMode === "hotspot" ? "bg-primary/20 border-primary/30" : "bg-muted/50"}
+                            ${
+                              activeMode === "hotspot"
+                                ? "bg-primary/20 border-primary/30"
+                                : "bg-muted/50"
+                            }
                           `}
                         >
-                          <Text className={`text-xs ${activeMode === "hotspot" ? "text-primary" : "text-muted-foreground"}`}>
+                          <Text
+                            className={`text-xs ${
+                              activeMode === "hotspot"
+                                ? "text-primary"
+                                : "text-muted-foreground"
+                            }`}
+                          >
                             无线连接
                           </Text>
                         </AnimatedBadge>
@@ -601,13 +629,12 @@ export const ModeSelectionCards: React.FC<ModeSelectionProps> = React.memo(
                       </Animated.View>
                     ) : null}
                   </View>
-                  
+
                   <CardDescription className="text-muted-foreground/90 text-base leading-relaxed pl-1">
-                    • 手机WiFi搜索附近WIFI并连接{"\n"}
-                    • 请确保设备在自动连接状态
+                    • 手机WiFi搜索附近WIFI并连接{"\n"}• 请确保设备在自动连接状态
                   </CardDescription>
                 </CardHeader>
-                
+
                 <CardFooter className={`pt-2 ${cardPadding}`}>
                   <Text
                     className={`
@@ -648,12 +675,14 @@ export const ModeSelectionCards: React.FC<ModeSelectionProps> = React.memo(
               className="w-full active:opacity-90"
               disabled={!modeAvailability.lan || isSwitching}
               accessible={true}
-              accessibilityLabel={`局域网模式${activeMode === "lan" ? "（当前已选）" : ""}`}
+              accessibilityLabel={`局域网模式${
+                activeMode === "lan" ? "（当前已选）" : ""
+              }`}
               accessibilityHint="点击切换到局域网模式"
               accessibilityRole="button"
               accessibilityState={{
                 disabled: !modeAvailability.lan || isSwitching,
-                selected: activeMode === "lan"
+                selected: activeMode === "lan",
               }}
             >
               <WalkthroughCard
@@ -676,7 +705,7 @@ export const ModeSelectionCards: React.FC<ModeSelectionProps> = React.memo(
                     className="absolute inset-0 rounded-full bg-primary"
                   />
                 )}
-                
+
                 <CardHeader className={`space-y-3 ${cardPadding}`}>
                   <View className="flex-row items-center justify-between">
                     <View className="flex-row items-center space-x-3">
@@ -699,12 +728,14 @@ export const ModeSelectionCards: React.FC<ModeSelectionProps> = React.memo(
                           <Network
                             size={iconSize}
                             className={
-                              activeMode === "lan" ? "text-blue-500" : "text-muted-foreground"
+                              activeMode === "lan"
+                                ? "text-blue-500"
+                                : "text-muted-foreground"
                             }
                           />
                         </View>
                       </Animated.View>
-                      
+
                       <View>
                         <CardTitle
                           className={`
@@ -718,17 +749,27 @@ export const ModeSelectionCards: React.FC<ModeSelectionProps> = React.memo(
                         >
                           局域网模式
                         </CardTitle>
-                        
+
                         {/* 添加方式标签 - 提升视觉层次 */}
                         <AnimatedBadge
                           variant="secondary"
-                          entering={FadeIn.delay(300)} 
+                          entering={FadeIn.delay(300)}
                           className={`
                             mt-1 rounded-full px-2 py-0.5
-                            ${activeMode === "lan" ? "bg-primary/20 border-primary/30" : "bg-muted/50"}
+                            ${
+                              activeMode === "lan"
+                                ? "bg-primary/20 border-primary/30"
+                                : "bg-muted/50"
+                            }
                           `}
                         >
-                          <Text className={`text-xs ${activeMode === "lan" ? "text-primary" : "text-muted-foreground"}`}>
+                          <Text
+                            className={`text-xs ${
+                              activeMode === "lan"
+                                ? "text-primary"
+                                : "text-muted-foreground"
+                            }`}
+                          >
                             同网连接
                           </Text>
                         </AnimatedBadge>
@@ -759,13 +800,13 @@ export const ModeSelectionCards: React.FC<ModeSelectionProps> = React.memo(
                       </Animated.View>
                     ) : null}
                   </View>
-                  
+
                   <CardDescription className="text-muted-foreground/90 text-base leading-relaxed pl-1">
-                    • 确保设备连接到同一个WiFi网络{"\n"}
-                    • 适用于固定场景的设备连接
+                    • 确保设备连接到同一个WiFi网络{"\n"}•
+                    适用于固定场景的设备连接
                   </CardDescription>
                 </CardHeader>
-                
+
                 <CardFooter className={`pt-2 ${cardPadding}`}>
                   <Text
                     className={`
@@ -785,10 +826,10 @@ export const ModeSelectionCards: React.FC<ModeSelectionProps> = React.memo(
             </AnimatedTouchable>
           </Animated.View>
         </CopilotStep>
-        
+
         {/* 添加刷新选项 */}
-        <Animated.View 
-          entering={FadeIn.delay(600)} 
+        <Animated.View
+          entering={FadeIn.delay(600)}
           className="items-center mt-2"
         >
           <Button

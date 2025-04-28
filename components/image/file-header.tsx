@@ -19,13 +19,13 @@ import { Text } from "~/components/ui/text";
 interface FileHeaderProps {
   onNavigateUp: () => void;
   onRefresh?: () => void;
-  onViewModeChange?: (mode: 'grid' | 'list') => void;
+  onViewModeChange?: (mode: "grid" | "list") => void;
   onHomePress?: () => void;
   onSettingsPress?: () => void;
   isDisabled: boolean;
   isLandscape: boolean;
   currentPath?: string;
-  viewMode?: 'grid' | 'list';
+  viewMode?: "grid" | "list";
 }
 
 const FileHeader: React.FC<FileHeaderProps> = ({
@@ -37,12 +37,12 @@ const FileHeader: React.FC<FileHeaderProps> = ({
   isDisabled,
   isLandscape,
   currentPath,
-  viewMode = 'grid',
+  viewMode = "grid",
 }) => {
   // 处理路径导航
   const pathSegments = useMemo(() => {
     if (!currentPath) return [];
-    return currentPath.split('/').filter(Boolean);
+    return currentPath.split("/").filter(Boolean);
   }, [currentPath]);
 
   // 动画样式
@@ -77,9 +77,9 @@ const FileHeader: React.FC<FileHeaderProps> = ({
           >
             <ArrowLeft className={isLandscape ? "h-5 w-5" : "h-6 w-6"} />
           </Button>
-          
+
           <View>
-            <Text 
+            <Text
               className={`font-bold ${isLandscape ? "text-lg" : "text-xl"}`}
             >
               文件管理器
@@ -94,7 +94,7 @@ const FileHeader: React.FC<FileHeaderProps> = ({
                   className="text-xs text-muted-foreground max-w-[200px]"
                 >
                   {pathSegments.length > 2
-                    ? `.../${pathSegments.slice(-2).join('/')}`
+                    ? `.../${pathSegments.slice(-2).join("/")}`
                     : currentPath}
                 </Text>
               </Animated.View>
@@ -108,7 +108,9 @@ const FileHeader: React.FC<FileHeaderProps> = ({
               variant="ghost"
               size="icon"
               onPress={onHomePress}
-              className={`${isLandscape ? "h-10 w-10" : "h-12 w-12"} rounded-2xl`}
+              className={`${
+                isLandscape ? "h-10 w-10" : "h-12 w-12"
+              } rounded-2xl`}
             >
               <Home className={isLandscape ? "h-5 w-5" : "h-6 w-6"} />
             </Button>
@@ -119,7 +121,9 @@ const FileHeader: React.FC<FileHeaderProps> = ({
               variant="ghost"
               size="icon"
               onPress={onRefresh}
-              className={`${isLandscape ? "h-10 w-10" : "h-12 w-12"} rounded-2xl`}
+              className={`${
+                isLandscape ? "h-10 w-10" : "h-12 w-12"
+              } rounded-2xl`}
             >
               <RefreshCcw className={isLandscape ? "h-5 w-5" : "h-6 w-6"} />
             </Button>
@@ -129,10 +133,14 @@ const FileHeader: React.FC<FileHeaderProps> = ({
             <Button
               variant="ghost"
               size="icon"
-              onPress={() => onViewModeChange(viewMode === 'grid' ? 'list' : 'grid')}
-              className={`${isLandscape ? "h-10 w-10" : "h-12 w-12"} rounded-2xl`}
+              onPress={() =>
+                onViewModeChange(viewMode === "grid" ? "list" : "grid")
+              }
+              className={`${
+                isLandscape ? "h-10 w-10" : "h-12 w-12"
+              } rounded-2xl`}
             >
-              {viewMode === 'grid' ? (
+              {viewMode === "grid" ? (
                 <Grid className={isLandscape ? "h-5 w-5" : "h-6 w-6"} />
               ) : (
                 <List className={isLandscape ? "h-5 w-5" : "h-6 w-6"} />
@@ -145,7 +153,9 @@ const FileHeader: React.FC<FileHeaderProps> = ({
               variant="ghost"
               size="icon"
               onPress={onSettingsPress}
-              className={`${isLandscape ? "h-10 w-10" : "h-12 w-12"} rounded-2xl`}
+              className={`${
+                isLandscape ? "h-10 w-10" : "h-12 w-12"
+              } rounded-2xl`}
             >
               <Settings className={isLandscape ? "h-5 w-5" : "h-6 w-6"} />
             </Button>

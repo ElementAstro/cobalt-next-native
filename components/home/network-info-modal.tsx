@@ -1,4 +1,10 @@
-import React, { useEffect, useState, useCallback, useMemo, useRef } from "react";
+import React, {
+  useEffect,
+  useState,
+  useCallback,
+  useMemo,
+  useRef,
+} from "react";
 import {
   View,
   TouchableOpacity,
@@ -108,11 +114,11 @@ const NetworkDataCard = React.memo(
     const scale = useSharedValue(1);
     const shimmerPosition = useSharedValue(-1);
     const [isScreenReaderEnabled, setIsScreenReaderEnabled] = useState(false);
-    
+
     // 检查屏幕阅读器状态
     useEffect(() => {
       let isMounted = true;
-      
+
       const checkScreenReader = async () => {
         try {
           const isEnabled = await AccessibilityInfo.isScreenReaderEnabled();
@@ -123,20 +129,20 @@ const NetworkDataCard = React.memo(
           console.warn("Failed to check screen reader status:", error);
         }
       };
-      
+
       checkScreenReader();
-      
+
       const subscription = AccessibilityInfo.addEventListener(
         "screenReaderChanged",
         setIsScreenReaderEnabled
       );
-      
+
       return () => {
         isMounted = false;
         subscription.remove();
       };
     }, []);
-    
+
     // 启动闪光动画
     useEffect(() => {
       if (isLoading) {
@@ -146,7 +152,7 @@ const NetworkDataCard = React.memo(
           false
         );
       }
-      
+
       return () => {
         cancelAnimation(shimmerPosition);
         cancelAnimation(scale);
@@ -161,27 +167,29 @@ const NetworkDataCard = React.memo(
         }),
         withSpring(1)
       );
-      
+
       if (Platform.OS !== "web" && !isScreenReaderEnabled) {
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
       }
-      
+
       onPress?.();
     }, [onPress, isScreenReaderEnabled]);
 
     const cardStyle = useAnimatedStyle(() => ({
       transform: [{ scale: scale.value }],
     }));
-    
+
     const shimmerStyle = useAnimatedStyle(() => ({
-      transform: [{ 
-        translateX: interpolate(
-          shimmerPosition.value, 
-          [-1, 1], 
-          [-100, 150],
-          Extrapolate.CLAMP
-        ) 
-      }],
+      transform: [
+        {
+          translateX: interpolate(
+            shimmerPosition.value,
+            [-1, 1],
+            [-100, 150],
+            Extrapolate.CLAMP
+          ),
+        },
+      ],
     }));
 
     return (
@@ -191,46 +199,64 @@ const NetworkDataCard = React.memo(
         layout={LinearTransition.springify()}
         className="relative"
         accessible={true}
-        accessibilityLabel={`${title}: ${isLoading ? '加载中' : isError ? '加载错误' : `${value}${suffix || ""}`}`}
+        accessibilityLabel={`${title}: ${
+          isLoading
+            ? "加载中"
+            : isError
+            ? "加载错误"
+            : `${value}${suffix || ""}`
+        }`}
         accessibilityRole="button"
         accessibilityHint={onPress ? "点击查看详情" : undefined}
         accessibilityState={{
           busy: isLoading,
-          disabled: isError
+          disabled: isError,
         }}
       >
-        <TouchableOpacity 
-          onPress={handlePress} 
+        <TouchableOpacity
+          onPress={handlePress}
           disabled={isLoading || (!onPress && !isError)}
           className="active:opacity-90"
         >
-          <View className={`
+          <View
+            className={`
             flex-1 min-w-[140px] p-4 rounded-2xl backdrop-blur-lg 
-            ${isError 
-              ? "bg-destructive/10 border border-destructive/40" 
-              : "bg-card/60 dark:bg-gray-800/60 border border-border/50"
+            ${
+              isError
+                ? "bg-destructive/10 border border-destructive/40"
+                : "bg-card/60 dark:bg-gray-800/60 border border-border/50"
             }
             ${isLoading ? "overflow-hidden" : ""}
-          `}>
+          `}
+          >
             <View className="flex-row items-center justify-between mb-2">
               <View className="flex-row items-center space-x-2">
                 {isLoading ? (
                   <Skeleton className="h-5 w-5 rounded-full" />
                 ) : (
-                  <Icon size={18} className={isError ? "text-destructive" : colorClass} />
+                  <Icon
+                    size={18}
+                    className={isError ? "text-destructive" : colorClass}
+                  />
                 )}
                 {isLoading ? (
                   <Skeleton className="h-4 w-20 rounded-md" />
                 ) : (
-                  <Text className={`text-sm ${isError ? "text-destructive/90" : "text-muted-foreground"}`}>{title}</Text>
+                  <Text
+                    className={`text-sm ${
+                      isError ? "text-destructive/90" : "text-muted-foreground"
+                    }`}
+                  >
+                    {title}
+                  </Text>
                 )}
               </View>
-              
+
               {onPress && !isLoading && !isError && (
                 <ChevronRight size={14} className="text-muted-foreground/50" />
               )}
             </View>
-            
+
             {isLoading ? (
               <View className="w-full">
                 <Skeleton className="h-6 w-28 rounded-md" />
@@ -275,12 +301,12 @@ export const NetworkInfoModal: React.FC<NetworkInfoModalProps> = ({
   const { isDarkColorScheme } = useColorScheme();
   const { width, height } = useWindowDimensions();
   const isLandscape = width > height;
-  
+
   // 状态管理
   const [error, setError] = useState<string | null>(null);
   const [isScreenReaderEnabled, setIsScreenReaderEnabled] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'info' | 'speed'>('info');
+  const [activeTab, setActiveTab] = useState<"info" | "speed">("info");
   const errorTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const hasAttemptedLoad = useRef(false);
   const loadingTimeout = useRef<NodeJS.Timeout | null>(null);
@@ -296,7 +322,7 @@ export const NetworkInfoModal: React.FC<NetworkInfoModalProps> = ({
   const speedIndicatorScale = useSharedValue(0);
   const speedTestProgress = useSharedValue(0);
   const statusQualityProgress = useSharedValue(0);
-  
+
   // 初始进入动画
   useEffect(() => {
     if (visible) {
@@ -304,12 +330,12 @@ export const NetworkInfoModal: React.FC<NetworkInfoModalProps> = ({
       if (!hasAttemptedLoad.current) {
         setIsLoading(true);
         hasAttemptedLoad.current = true;
-        
+
         // 设置超时，确保加载状态至少显示一段时间
         loadingTimeout.current = setTimeout(() => {
           setIsLoading(false);
         }, 1500);
-        
+
         // 加载数据
         fetchNetworkInfo().catch((err) => {
           console.error("Failed to fetch network info:", err);
@@ -317,18 +343,21 @@ export const NetworkInfoModal: React.FC<NetworkInfoModalProps> = ({
           setIsLoading(false);
         });
       }
-      
+
       // 打开动画
       fadeAnim.value = withTiming(1, { duration: 300 });
       slideAnim.value = withSpring(0, {
         damping: 15,
         stiffness: 100,
       });
-      
-      // 启动卡片脉冲动画 
+
+      // 启动卡片脉冲动画
       cardPulse.value = withRepeat(
         withSequence(
-          withTiming(1.02, { duration: 1500, easing: Easing.inOut(Easing.quad) }),
+          withTiming(1.02, {
+            duration: 1500,
+            easing: Easing.inOut(Easing.quad),
+          }),
           withTiming(1, { duration: 1500, easing: Easing.inOut(Easing.quad) })
         ),
         -1,
@@ -341,24 +370,24 @@ export const NetworkInfoModal: React.FC<NetworkInfoModalProps> = ({
         damping: 15,
         stiffness: 100,
       });
-      
+
       // 重置状态
       hasAttemptedLoad.current = false;
-      
+
       // 清理超时
       if (loadingTimeout.current) {
         clearTimeout(loadingTimeout.current);
       }
-      
+
       // 取消动画
       cancelAnimation(cardPulse);
     }
   }, [visible]);
-  
+
   // 检查屏幕阅读器状态
   useEffect(() => {
     let isMounted = true;
-    
+
     const checkScreenReader = async () => {
       try {
         const isEnabled = await AccessibilityInfo.isScreenReaderEnabled();
@@ -369,14 +398,14 @@ export const NetworkInfoModal: React.FC<NetworkInfoModalProps> = ({
         console.warn("Failed to check screen reader status:", error);
       }
     };
-    
+
     checkScreenReader();
-    
+
     const subscription = AccessibilityInfo.addEventListener(
       "screenReaderChanged",
       setIsScreenReaderEnabled
     );
-    
+
     return () => {
       isMounted = false;
       subscription.remove();
@@ -386,19 +415,19 @@ export const NetworkInfoModal: React.FC<NetworkInfoModalProps> = ({
   // 网络质量进度条动画
   useEffect(() => {
     if (!isLoading && networkSpeed?.quality !== undefined) {
-      statusQualityProgress.value = withTiming(networkSpeed.quality / 100, { 
+      statusQualityProgress.value = withTiming(networkSpeed.quality / 100, {
         duration: 1000,
-        easing: Easing.out(Easing.cubic)
+        easing: Easing.out(Easing.cubic),
       });
     } else {
       statusQualityProgress.value = 0;
     }
-    
+
     return () => {
       cancelAnimation(statusQualityProgress);
     };
   }, [isLoading, networkSpeed?.quality]);
-  
+
   // 网络速度测试进度动画
   useEffect(() => {
     if (isTestingSpeed) {
@@ -407,7 +436,7 @@ export const NetworkInfoModal: React.FC<NetworkInfoModalProps> = ({
         withTiming(0.6, { duration: 800, easing: Easing.out(Easing.cubic) }),
         withTiming(0.9, { duration: 1200, easing: Easing.inOut(Easing.quad) })
       );
-      
+
       speedIndicatorScale.value = withRepeat(
         withSequence(
           withTiming(1.2, { duration: 600, easing: Easing.out(Easing.quad) }),
@@ -420,7 +449,7 @@ export const NetworkInfoModal: React.FC<NetworkInfoModalProps> = ({
       speedTestProgress.value = withTiming(0, { duration: 300 });
       speedIndicatorScale.value = withTiming(0, { duration: 300 });
     }
-    
+
     return () => {
       cancelAnimation(speedTestProgress);
       cancelAnimation(speedIndicatorScale);
@@ -455,7 +484,10 @@ export const NetworkInfoModal: React.FC<NetworkInfoModalProps> = ({
         type: "category",
         boundaryGap: false,
         data: networkHistory.map((item) =>
-          new Date(item.timestamp).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })
+          new Date(item.timestamp).toLocaleTimeString("zh-CN", {
+            hour: "2-digit",
+            minute: "2-digit",
+          })
         ),
         axisLine: {
           lineStyle: {
@@ -481,7 +513,7 @@ export const NetworkInfoModal: React.FC<NetworkInfoModalProps> = ({
         axisLabel: {
           color: isDarkColorScheme ? "#fff" : "#000",
           fontSize: 10,
-          formatter: '{value} Mbps',
+          formatter: "{value} Mbps",
         },
         splitLine: {
           lineStyle: {
@@ -499,23 +531,30 @@ export const NetworkInfoModal: React.FC<NetworkInfoModalProps> = ({
           data: networkHistory.map((item) => item.download),
           lineStyle: { width: 2 },
           itemStyle: { color: "#3b82f6" },
-          symbol: 'circle',
+          symbol: "circle",
           symbolSize: 6,
           areaStyle: {
             color: {
-              type: 'linear',
+              type: "linear",
               x: 0,
               y: 0,
               x2: 0,
               y2: 1,
-              colorStops: [{
-                  offset: 0, 
-                  color: isDarkColorScheme ? 'rgba(59,130,246,0.4)' : 'rgba(59,130,246,0.2)'
-              }, {
-                  offset: 1, 
-                  color: isDarkColorScheme ? 'rgba(59,130,246,0.1)' : 'rgba(59,130,246,0.05)'
-              }]
-            }
+              colorStops: [
+                {
+                  offset: 0,
+                  color: isDarkColorScheme
+                    ? "rgba(59,130,246,0.4)"
+                    : "rgba(59,130,246,0.2)",
+                },
+                {
+                  offset: 1,
+                  color: isDarkColorScheme
+                    ? "rgba(59,130,246,0.1)"
+                    : "rgba(59,130,246,0.05)",
+                },
+              ],
+            },
           },
         },
         {
@@ -525,23 +564,30 @@ export const NetworkInfoModal: React.FC<NetworkInfoModalProps> = ({
           data: networkHistory.map((item) => item.upload),
           lineStyle: { width: 2 },
           itemStyle: { color: "#10b981" },
-          symbol: 'circle',
+          symbol: "circle",
           symbolSize: 6,
           areaStyle: {
             color: {
-              type: 'linear',
+              type: "linear",
               x: 0,
               y: 0,
               x2: 0,
               y2: 1,
-              colorStops: [{
-                  offset: 0, 
-                  color: isDarkColorScheme ? 'rgba(16,185,129,0.4)' : 'rgba(16,185,129,0.2)'
-              }, {
-                  offset: 1, 
-                  color: isDarkColorScheme ? 'rgba(16,185,129,0.1)' : 'rgba(16,185,129,0.05)'
-              }]
-            }
+              colorStops: [
+                {
+                  offset: 0,
+                  color: isDarkColorScheme
+                    ? "rgba(16,185,129,0.4)"
+                    : "rgba(16,185,129,0.2)",
+                },
+                {
+                  offset: 1,
+                  color: isDarkColorScheme
+                    ? "rgba(16,185,129,0.1)"
+                    : "rgba(16,185,129,0.05)",
+                },
+              ],
+            },
           },
         },
       ],
@@ -563,12 +609,12 @@ export const NetworkInfoModal: React.FC<NetworkInfoModalProps> = ({
       if (Platform.OS !== "web" && !isScreenReaderEnabled) {
         await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
       }
-      
+
       await fetchNetworkInfo();
-      
+
       // 成功提示
       toast.success("网络信息已更新");
-      
+
       // 延时关闭加载状态，确保有足够的视觉反馈
       setTimeout(() => setIsLoading(false), 500);
     } catch (error) {
@@ -587,59 +633,64 @@ export const NetworkInfoModal: React.FC<NetworkInfoModalProps> = ({
       if (Platform.OS !== "web" && !isScreenReaderEnabled) {
         await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
       }
-      
-      setActiveTab('speed');
+
+      setActiveTab("speed");
       await testNetworkSpeed();
-      
+
       // 测速完成后的触觉反馈
       if (Platform.OS !== "web" && !isScreenReaderEnabled) {
-        await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        await Haptics.notificationAsync(
+          Haptics.NotificationFeedbackType.Success
+        );
       }
     } catch (error) {
       console.error("网络测速失败:", error);
       setError("网络测速失败，请重试");
     }
   }, [isTestingSpeed, testNetworkSpeed, isScreenReaderEnabled]);
-  
+
   // 标签切换处理
-  const handleTabChange = useCallback((tab: 'info' | 'speed') => {
-    if (tab === activeTab) return;
-    
-    // 标签动画
-    if (tab === 'info') {
-      infoTabScale.value = withSequence(
-        withTiming(0.95, { duration: 100 }),
-        withTiming(1.05, { duration: 100 }),
-        withTiming(1, { duration: 150 })
-      );
-    } else {
-      speedTabScale.value = withSequence(
-        withTiming(0.95, { duration: 100 }),
-        withTiming(1.05, { duration: 100 }),
-        withTiming(1, { duration: 150 })
-      );
-    }
-    
-    // 触觉反馈
-    if (Platform.OS !== "web" && !isScreenReaderEnabled) {
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    }
-    
-    setActiveTab(tab);
-  }, [activeTab, isScreenReaderEnabled]);
-  
+  const handleTabChange = useCallback(
+    (tab: "info" | "speed") => {
+      if (tab === activeTab) return;
+
+      // 标签动画
+      if (tab === "info") {
+        infoTabScale.value = withSequence(
+          withTiming(0.95, { duration: 100 }),
+          withTiming(1.05, { duration: 100 }),
+          withTiming(1, { duration: 150 })
+        );
+      } else {
+        speedTabScale.value = withSequence(
+          withTiming(0.95, { duration: 100 }),
+          withTiming(1.05, { duration: 100 }),
+          withTiming(1, { duration: 150 })
+        );
+      }
+
+      // 触觉反馈
+      if (Platform.OS !== "web" && !isScreenReaderEnabled) {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      }
+
+      setActiveTab(tab);
+    },
+    [activeTab, isScreenReaderEnabled]
+  );
+
   // 复制IP地址到剪贴板
   const copyIpAddress = useCallback(() => {
     if (!ipAddress) return;
-    
+
     // 这里会有实际复制到剪贴板的代码
     // 示例: Clipboard.setString(ipAddress);
-    
+
     // 触觉反馈
     if (Platform.OS !== "web" && !isScreenReaderEnabled) {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     }
-    
+
     // 通知提示
     toast.success("已复制", {
       description: `IP地址：${ipAddress}`,
@@ -659,32 +710,32 @@ export const NetworkInfoModal: React.FC<NetworkInfoModalProps> = ({
   const refreshIconStyle = useAnimatedStyle(() => ({
     transform: [{ rotate: `${refreshIconRotate.value}deg` }],
   }));
-  
+
   const cardPulseStyle = useAnimatedStyle(() => ({
     transform: [{ scale: cardPulse.value }],
   }));
-  
+
   const infoTabStyle = useAnimatedStyle(() => ({
     transform: [{ scale: infoTabScale.value }],
-    opacity: activeTab === 'info' ? withTiming(1) : withTiming(0.7),
+    opacity: activeTab === "info" ? withTiming(1) : withTiming(0.7),
   }));
-  
+
   const speedTabStyle = useAnimatedStyle(() => ({
     transform: [{ scale: speedTabScale.value }],
-    opacity: activeTab === 'speed' ? withTiming(1) : withTiming(0.7),
+    opacity: activeTab === "speed" ? withTiming(1) : withTiming(0.7),
   }));
-  
+
   const speedIndicatorStyle = useAnimatedStyle(() => ({
     transform: [{ scale: speedIndicatorScale.value }],
     opacity: isTestingSpeed ? withTiming(1) : withTiming(0),
   }));
-  
+
   const progressStyle = useAnimatedStyle(() => ({
     width: `${speedTestProgress.value * 100}%`,
   }));
-  
+
   const networkQualityStyle = useAnimatedStyle(() => ({
-    width: `${statusQualityProgress.value * 100}%`
+    width: `${statusQualityProgress.value * 100}%`,
   }));
 
   // 错误处理和自动重试
@@ -693,18 +744,18 @@ export const NetworkInfoModal: React.FC<NetworkInfoModalProps> = ({
       if (errorTimeoutRef.current) {
         clearTimeout(errorTimeoutRef.current);
       }
-      
+
       // 3秒后自动清除错误
       errorTimeoutRef.current = setTimeout(() => setError(null), 5000);
     }
-    
+
     return () => {
       if (errorTimeoutRef.current) {
         clearTimeout(errorTimeoutRef.current);
       }
     };
   }, [error]);
-  
+
   // 清理资源
   useEffect(() => {
     return () => {
@@ -716,11 +767,11 @@ export const NetworkInfoModal: React.FC<NetworkInfoModalProps> = ({
       cancelAnimation(cardPulse);
       cancelAnimation(infoTabScale);
       cancelAnimation(speedTabScale);
-      
+
       if (errorTimeoutRef.current) {
         clearTimeout(errorTimeoutRef.current);
       }
-      
+
       if (loadingTimeout.current) {
         clearTimeout(loadingTimeout.current);
       }
@@ -754,9 +805,9 @@ export const NetworkInfoModal: React.FC<NetworkInfoModalProps> = ({
             ) : (
               <WifiOff size={24} className="text-rose-500" />
             )}
-            
+
             {networkState?.isConnected && (
-              <Animated.View 
+              <Animated.View
                 style={speedIndicatorStyle}
                 className="absolute -top-1 -right-1"
               >
@@ -764,15 +815,15 @@ export const NetworkInfoModal: React.FC<NetworkInfoModalProps> = ({
               </Animated.View>
             )}
           </View>
-          
+
           <View className="flex-1">
             <Text className="text-base font-medium text-foreground mb-1">
               {networkState?.type || "未知网络"}
             </Text>
-            
+
             {/* 自定义进度条 */}
             <View className="h-1.5 w-full rounded-full bg-muted/30 overflow-hidden">
-              <Animated.View 
+              <Animated.View
                 style={networkQualityStyle}
                 className={`h-full rounded-full ${
                   (networkSpeed?.quality || 0) > 70
@@ -782,7 +833,7 @@ export const NetworkInfoModal: React.FC<NetworkInfoModalProps> = ({
               />
             </View>
           </View>
-          
+
           <AnimatedBadge
             variant={networkState?.isConnected ? "default" : "destructive"}
             entering={ZoomIn.springify()}
@@ -815,7 +866,7 @@ export const NetworkInfoModal: React.FC<NetworkInfoModalProps> = ({
               <Signal size={24} className="text-primary" />
               <Text className="text-xl font-bold text-primary">网络信息</Text>
             </View>
-            
+
             <View className="flex-row space-x-2">
               {ipAddress && (
                 <AnimatedTouchable
@@ -829,7 +880,7 @@ export const NetworkInfoModal: React.FC<NetworkInfoModalProps> = ({
                   <Copy size={20} className="text-primary" />
                 </AnimatedTouchable>
               )}
-              
+
               <AnimatedTouchable
                 style={buttonAnimStyle}
                 onPress={handleRefresh}
@@ -861,9 +912,9 @@ export const NetworkInfoModal: React.FC<NetworkInfoModalProps> = ({
                 <AlertTitle className="font-semibold">出错了</AlertTitle>
                 <AlertDescription>{error}</AlertDescription>
                 <View className="mt-2">
-                  <Button 
-                    variant="destructive" 
-                    size="sm" 
+                  <Button
+                    variant="destructive"
+                    size="sm"
                     onPress={() => setError(null)}
                   >
                     关闭
@@ -875,33 +926,63 @@ export const NetworkInfoModal: React.FC<NetworkInfoModalProps> = ({
 
           {/* 网络状态指示器 */}
           <NetworkStatusIndicator />
-          
+
           {/* 选项卡 */}
           <View className="flex-row items-center p-1 mb-4 bg-muted/50 rounded-full">
-            <AnimatedTouchable 
+            <AnimatedTouchable
               style={infoTabStyle}
-              onPress={() => handleTabChange('info')}
-              className={`flex-1 py-2 rounded-full flex-row items-center justify-center space-x-2 ${activeTab === 'info' ? 'bg-card shadow' : ''}`}
+              onPress={() => handleTabChange("info")}
+              className={`flex-1 py-2 rounded-full flex-row items-center justify-center space-x-2 ${
+                activeTab === "info" ? "bg-card shadow" : ""
+              }`}
               accessibilityRole="tab"
               accessibilityLabel="基本信息标签"
-              accessibilityState={{ selected: activeTab === 'info' }}
+              accessibilityState={{ selected: activeTab === "info" }}
             >
-              <Cpu size={16} className={activeTab === 'info' ? "text-primary" : "text-muted-foreground"} />
-              <Text className={activeTab === 'info' ? "text-sm font-medium text-primary" : "text-sm text-muted-foreground"}>
+              <Cpu
+                size={16}
+                className={
+                  activeTab === "info"
+                    ? "text-primary"
+                    : "text-muted-foreground"
+                }
+              />
+              <Text
+                className={
+                  activeTab === "info"
+                    ? "text-sm font-medium text-primary"
+                    : "text-sm text-muted-foreground"
+                }
+              >
                 基本信息
               </Text>
             </AnimatedTouchable>
-            
-            <AnimatedTouchable 
+
+            <AnimatedTouchable
               style={speedTabStyle}
-              onPress={() => handleTabChange('speed')}
-              className={`flex-1 py-2 rounded-full flex-row items-center justify-center space-x-2 ${activeTab === 'speed' ? 'bg-card shadow' : ''}`}
+              onPress={() => handleTabChange("speed")}
+              className={`flex-1 py-2 rounded-full flex-row items-center justify-center space-x-2 ${
+                activeTab === "speed" ? "bg-card shadow" : ""
+              }`}
               accessibilityRole="tab"
               accessibilityLabel="网络速度标签"
-              accessibilityState={{ selected: activeTab === 'speed' }}
+              accessibilityState={{ selected: activeTab === "speed" }}
             >
-              <Activity size={16} className={activeTab === 'speed' ? "text-primary" : "text-muted-foreground"} />
-              <Text className={activeTab === 'speed' ? "text-sm font-medium text-primary" : "text-sm text-muted-foreground"}>
+              <Activity
+                size={16}
+                className={
+                  activeTab === "speed"
+                    ? "text-primary"
+                    : "text-muted-foreground"
+                }
+              />
+              <Text
+                className={
+                  activeTab === "speed"
+                    ? "text-sm font-medium text-primary"
+                    : "text-sm text-muted-foreground"
+                }
+              >
                 网络速度
               </Text>
             </AnimatedTouchable>
@@ -912,7 +993,7 @@ export const NetworkInfoModal: React.FC<NetworkInfoModalProps> = ({
             layout={LinearTransition.springify()}
             className="space-y-6"
           >
-            {activeTab === 'info' ? (
+            {activeTab === "info" ? (
               // 信息标签内容
               <View className="space-y-6">
                 <View className="flex-row flex-wrap gap-3">
@@ -936,73 +1017,119 @@ export const NetworkInfoModal: React.FC<NetworkInfoModalProps> = ({
                   <NetworkDataCard
                     icon={Smartphone}
                     title="设备类型"
-                    value={Platform.OS === 'ios' ? 'iOS' : Platform.OS === 'android' ? 'Android' : 'Web'}
+                    value={
+                      Platform.OS === "ios"
+                        ? "iOS"
+                        : Platform.OS === "android"
+                        ? "Android"
+                        : "Web"
+                    }
                     colorClass="text-violet-500"
                     delay={300}
                     isLoading={isLoading}
                   />
                 </View>
-                
+
                 {/* 网络状态详情 */}
                 {!isLoading && networkState && (
-                  <Animated.View 
+                  <Animated.View
                     entering={FadeIn.delay(400)}
                     className="p-4 bg-card/60 dark:bg-gray-800/60 rounded-2xl backdrop-blur-lg border border-border/50"
                   >
                     <View className="flex-row items-center justify-between mb-3">
-                      <Text className="text-base font-semibold text-foreground">网络详情</Text>
-                      <Badge variant="outline" className="px-2 py-0.5 rounded-full">
+                      <Text className="text-base font-semibold text-foreground">
+                        网络详情
+                      </Text>
+                      <Badge
+                        variant="outline"
+                        className="px-2 py-0.5 rounded-full"
+                      >
                         <Text className="text-xs">设备状态</Text>
                       </Badge>
                     </View>
-                    
+
                     <View className="space-y-3">
                       {isAirplaneMode !== undefined && (
                         <View className="flex-row items-center justify-between">
-                          <Text className="text-sm text-muted-foreground">飞行模式</Text>
-                          <Badge 
-                            variant={isAirplaneMode ? "secondary" : "outline"} 
-                            className={`px-2 py-0.5 rounded-full ${isAirplaneMode ? 'bg-amber-500/20' : ''}`}
+                          <Text className="text-sm text-muted-foreground">
+                            飞行模式
+                          </Text>
+                          <Badge
+                            variant={isAirplaneMode ? "secondary" : "outline"}
+                            className={`px-2 py-0.5 rounded-full ${
+                              isAirplaneMode ? "bg-amber-500/20" : ""
+                            }`}
                           >
-                            <Text className={`text-xs ${isAirplaneMode ? 'text-amber-600' : 'text-muted-foreground'}`}>
+                            <Text
+                              className={`text-xs ${
+                                isAirplaneMode
+                                  ? "text-amber-600"
+                                  : "text-muted-foreground"
+                              }`}
+                            >
                               {isAirplaneMode ? "已开启" : "已关闭"}
                             </Text>
                           </Badge>
                         </View>
                       )}
-                      
+
                       <View className="flex-row items-center justify-between">
-                        <Text className="text-sm text-muted-foreground">连接状态</Text>
-                        <Badge 
-                          variant={networkState.isConnected ? "default" : "destructive"} 
+                        <Text className="text-sm text-muted-foreground">
+                          连接状态
+                        </Text>
+                        <Badge
+                          variant={
+                            networkState.isConnected ? "default" : "destructive"
+                          }
                           className="px-2 py-0.5 rounded-full"
                         >
-                          <Text className={`text-xs ${networkState.isConnected ? 'text-primary-foreground' : 'text-destructive-foreground'}`}>
+                          <Text
+                            className={`text-xs ${
+                              networkState.isConnected
+                                ? "text-primary-foreground"
+                                : "text-destructive-foreground"
+                            }`}
+                          >
                             {networkState.isConnected ? "已连接" : "已断开"}
                           </Text>
                         </Badge>
                       </View>
-                      
+
                       <View className="flex-row items-center justify-between">
-                        <Text className="text-sm text-muted-foreground">可连接互联网</Text>
-                        <Badge 
-                          variant={networkState.isInternetReachable === false ? "secondary" : "default"} 
-                          className={`px-2 py-0.5 rounded-full ${networkState.isInternetReachable === false ? 'bg-rose-500/20 border-rose-500/30' : ''}`}
+                        <Text className="text-sm text-muted-foreground">
+                          可连接互联网
+                        </Text>
+                        <Badge
+                          variant={
+                            networkState.isInternetReachable === false
+                              ? "secondary"
+                              : "default"
+                          }
+                          className={`px-2 py-0.5 rounded-full ${
+                            networkState.isInternetReachable === false
+                              ? "bg-rose-500/20 border-rose-500/30"
+                              : ""
+                          }`}
                         >
                           <Text className="text-xs">
-                            {networkState.isInternetReachable === null 
-                              ? "未知" 
-                              : networkState.isInternetReachable 
-                                ? "可连接" 
-                                : "不可连接"
-                            }
+                            {networkState.isInternetReachable === null
+                              ? "未知"
+                              : networkState.isInternetReachable
+                              ? "可连接"
+                              : "不可连接"}
                           </Text>
                         </Badge>
                       </View>
-                      
+
                       <View className="flex-row items-center justify-between">
-                        <Text className="text-sm text-muted-foreground">连接细节</Text>
-                        <Text className="text-sm font-medium text-foreground">{networkState.details?.isConnectionExpensive ? "计费网络" : "非计费网络"}</Text>
+                        <Text className="text-sm text-muted-foreground">
+                          连接细节
+                        </Text>
+                        <Text className="text-sm font-medium text-foreground">
+                          {networkState.details?.isConnectionExpensive
+                            ? "计费网络"
+                            : "非计费网络"}
+                        </Text>
                       </View>
                     </View>
                   </Animated.View>
@@ -1013,12 +1140,14 @@ export const NetworkInfoModal: React.FC<NetworkInfoModalProps> = ({
               <View className="space-y-4">
                 {/* 网络速度测试进度条 */}
                 {isTestingSpeed && (
-                  <Animated.View 
+                  <Animated.View
                     entering={SlideInDown.springify()}
                     exiting={SlideOutDown}
                     className="mb-2"
                   >
-                    <Text className="text-sm text-muted-foreground mb-2">正在测试网络速度...</Text>
+                    <Text className="text-sm text-muted-foreground mb-2">
+                      正在测试网络速度...
+                    </Text>
                     <View className="h-2 w-full bg-muted/30 rounded-full overflow-hidden">
                       <Animated.View
                         style={progressStyle}
@@ -1027,7 +1156,7 @@ export const NetworkInfoModal: React.FC<NetworkInfoModalProps> = ({
                     </View>
                   </Animated.View>
                 )}
-                
+
                 {/* 网速测试按钮 */}
                 <Button
                   variant="default"
@@ -1044,11 +1173,9 @@ export const NetworkInfoModal: React.FC<NetworkInfoModalProps> = ({
                   ) : (
                     <Zap className="h-4 w-4 mr-2" />
                   )}
-                  <Text>
-                    {isTestingSpeed ? "测试中..." : "开始速度测试"}
-                  </Text>
+                  <Text>{isTestingSpeed ? "测试中..." : "开始速度测试"}</Text>
                 </Button>
-                
+
                 {/* 网络速度卡片 */}
                 <View className="flex-row flex-wrap gap-3 mt-2">
                   <NetworkDataCard
@@ -1091,15 +1218,20 @@ export const NetworkInfoModal: React.FC<NetworkInfoModalProps> = ({
                         <LineChart size={16} className="text-primary" />
                         <Text className="text-base font-medium">速度历史</Text>
                       </View>
-                      <Badge 
-                        variant="outline" 
+                      <Badge
+                        variant="outline"
                         className="px-2 py-0.5 rounded-full"
                       >
-                        <BarChart3 size={12} className="mr-1 text-muted-foreground" />
-                        <Text className="text-xs">{networkHistory.length}项记录</Text>
+                        <BarChart3
+                          size={12}
+                          className="mr-1 text-muted-foreground"
+                        />
+                        <Text className="text-xs">
+                          {networkHistory.length}项记录
+                        </Text>
                       </Badge>
                     </View>
-                    
+
                     <RNEChartsPro
                       width={width - 64}
                       height={200}

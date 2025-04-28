@@ -62,36 +62,37 @@ const PORT_RANGE_PRESETS = [
 ];
 
 // 验证 Schema
-const portRangeSchema = z.object({
-  start: z
-    .number()
-    .min(1, "端口范围必须大于 0")
-    .max(65535, "端口范围不能超过 65535")
-    .optional(),
-  end: z
-    .number()
-    .min(1, "端口范围必须大于 0")
-    .max(65535, "端口范围不能超过 65535")
-    .optional(),
-  customPorts: z
-    .string()
-    .optional()
-    .transform((val) => (val ? val.trim() : ""))
-    .refine(
-      (val) => !val || /^(\d+)(,\s*\d+)*$/.test(val),
-      { message: "格式无效，请使用逗号分隔端口号" }
-    ),
-  useCustomPorts: z.boolean().default(false),
-}).refine(
-  (data) => {
-    const { start, end } = data;
-    return !start || !end || end >= start;
-  },
-  {
-    message: "结束端口必须大于或等于起始端口",
-    path: ["end"]
-  }
-);
+const portRangeSchema = z
+  .object({
+    start: z
+      .number()
+      .min(1, "端口范围必须大于 0")
+      .max(65535, "端口范围不能超过 65535")
+      .optional(),
+    end: z
+      .number()
+      .min(1, "端口范围必须大于 0")
+      .max(65535, "端口范围不能超过 65535")
+      .optional(),
+    customPorts: z
+      .string()
+      .optional()
+      .transform((val) => (val ? val.trim() : ""))
+      .refine((val) => !val || /^(\d+)(,\s*\d+)*$/.test(val), {
+        message: "格式无效，请使用逗号分隔端口号",
+      }),
+    useCustomPorts: z.boolean().default(false),
+  })
+  .refine(
+    (data) => {
+      const { start, end } = data;
+      return !start || !end || end >= start;
+    },
+    {
+      message: "结束端口必须大于或等于起始端口",
+      path: ["end"],
+    }
+  );
 
 type PortRangeForm = z.infer<typeof portRangeSchema>;
 
@@ -202,7 +203,15 @@ const PortRangePicker: React.FC<PortRangePickerProps> = ({
       const values = getValues();
       onRangeChange(values);
     }
-  }, [watchStart, watchEnd, watchCustomPorts, watchUseCustomPorts, isValid, onRangeChange, getValues]);
+  }, [
+    watchStart,
+    watchEnd,
+    watchCustomPorts,
+    watchUseCustomPorts,
+    isValid,
+    onRangeChange,
+    getValues,
+  ]);
 
   // 应用预设
   const applyPreset = useCallback(
@@ -219,19 +228,19 @@ const PortRangePicker: React.FC<PortRangePickerProps> = ({
         setValue("customPorts", "");
       }
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      
+
       buttonScale.value = withSequence(
         withTiming(0.9, { duration: 100 }),
         withTiming(1.1, { duration: 100 }),
         withTiming(1, { duration: 150 })
       );
-      
+
       toast.success(`已应用预设：${preset.label}`, { duration: 2000 });
 
       const values = getValues();
       onRangeChange(values);
       setShowPresets(false);
-      
+
       trigger();
     },
     [setValue, getValues, onRangeChange, buttonScale, trigger]
@@ -242,7 +251,7 @@ const PortRangePicker: React.FC<PortRangePickerProps> = ({
     const useCustomPorts = !getValues().useCustomPorts;
     setValue("useCustomPorts", useCustomPorts);
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    
+
     // 重置与当前模式不匹配的值
     if (useCustomPorts) {
       // 聚焦自定义端口输入框
@@ -259,9 +268,9 @@ const PortRangePicker: React.FC<PortRangePickerProps> = ({
         }
       }, 100);
     }
-    
+
     trigger();
-    
+
     const values = getValues();
     onRangeChange(values);
   }, [setValue, getValues, onRangeChange, trigger]);
@@ -273,13 +282,13 @@ const PortRangePicker: React.FC<PortRangePickerProps> = ({
     setValue("customPorts", "");
     setValue("useCustomPorts", false);
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    toast.info("已重置为默认端口范围", { 
+    toast.info("已重置为默认端口范围", {
       duration: 2000,
-      icon: <RefreshCw size={16} />
+      icon: <RefreshCw size={16} />,
     });
     const values = getValues();
     onRangeChange(values);
-    
+
     trigger();
   }, [setValue, getValues, onRangeChange, trigger]);
 
@@ -290,13 +299,13 @@ const PortRangePicker: React.FC<PortRangePickerProps> = ({
       withTiming(1.2, { duration: 150 }),
       withTiming(1, { duration: 150 })
     );
-    
+
     setIsGenerating(true);
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    
+
     // 模拟生成随机端口的延迟
-    await new Promise(resolve => setTimeout(resolve, 500));
-    
+    await new Promise((resolve) => setTimeout(resolve, 500));
+
     if (watchUseCustomPorts) {
       // 生成 5-10 个随机端口
       const count = Math.floor(Math.random() * 6) + 5;
@@ -312,32 +321,42 @@ const PortRangePicker: React.FC<PortRangePickerProps> = ({
       setValue("start", start);
       setValue("end", Math.min(end, 65535));
     }
-    
+
     setIsGenerating(false);
     toast.success("已生成随机端口", { duration: 1500 });
-    
+
     trigger();
-    
+
     const values = getValues();
     onRangeChange(values);
-  }, [watchUseCustomPorts, setValue, getValues, onRangeChange, randomizeScale, trigger]);
+  }, [
+    watchUseCustomPorts,
+    setValue,
+    getValues,
+    onRangeChange,
+    randomizeScale,
+    trigger,
+  ]);
 
   // 增加/减少起始或结束端口
-  const adjustPortValue = useCallback((field: "start" | "end", increment: boolean) => {
-    const current = getValues()[field] || (field === "start" ? 1 : 1024);
-    const newValue = increment 
-      ? Math.min(65535, current + 1) 
-      : Math.max(1, current - 1);
-    
-    setValue(field, newValue);
-    
-    const values = getValues();
-    onRangeChange(values);
-    
-    trigger();
-    
-    Haptics.selectionAsync();
-  }, [setValue, getValues, onRangeChange, trigger]);
+  const adjustPortValue = useCallback(
+    (field: "start" | "end", increment: boolean) => {
+      const current = getValues()[field] || (field === "start" ? 1 : 1024);
+      const newValue = increment
+        ? Math.min(65535, current + 1)
+        : Math.max(1, current - 1);
+
+      setValue(field, newValue);
+
+      const values = getValues();
+      onRangeChange(values);
+
+      trigger();
+
+      Haptics.selectionAsync();
+    },
+    [setValue, getValues, onRangeChange, trigger]
+  );
 
   // 动画样式
   const containerStyle = useAnimatedStyle(() => {
@@ -362,14 +381,14 @@ const PortRangePicker: React.FC<PortRangePickerProps> = ({
       ],
     };
   });
-  
+
   const presetsContainerStyle = useAnimatedStyle(() => {
     return {
       height: presetsHeight.value,
       opacity: withTiming(showPresets ? 1 : 0, { duration: 200 }),
     };
   });
-  
+
   const randomizeButtonStyle = useAnimatedStyle(() => {
     return {
       transform: [
@@ -384,7 +403,7 @@ const PortRangePicker: React.FC<PortRangePickerProps> = ({
   const getPortCount = useCallback(() => {
     if (watchUseCustomPorts) {
       if (!watchCustomPorts) return 0;
-      return watchCustomPorts.split(",").filter(p => p.trim() !== "").length;
+      return watchCustomPorts.split(",").filter((p) => p.trim() !== "").length;
     } else {
       if (!watchStart || !watchEnd) return 0;
       return watchEnd - watchStart + 1 > 0 ? watchEnd - watchStart + 1 : 0;
@@ -401,7 +420,7 @@ const PortRangePicker: React.FC<PortRangePickerProps> = ({
             <Skeleton className="w-32 h-5 rounded-md" />
           </View>
         )}
-        
+
         <View className="space-y-2">
           <View className="flex-row items-center space-x-2">
             <Skeleton className="w-20 h-5 rounded-md" />
@@ -410,9 +429,9 @@ const PortRangePicker: React.FC<PortRangePickerProps> = ({
               <Skeleton className="w-24 h-10 rounded-lg" />
             </View>
           </View>
-          
+
           <Skeleton className="w-full h-10 rounded-lg" />
-          
+
           <View className="flex-row justify-end">
             <Skeleton className="w-24 h-8 rounded-md" />
           </View>
@@ -517,7 +536,7 @@ const PortRangePicker: React.FC<PortRangePickerProps> = ({
                 </TooltipContent>
               </Tooltip>
             </Animated.View>
-            
+
             <Animated.View style={randomizeButtonStyle}>
               <Button
                 variant="outline"
@@ -537,9 +556,9 @@ const PortRangePicker: React.FC<PortRangePickerProps> = ({
             </Animated.View>
           </View>
         </View>
-        
+
         {/* 预设面板 (紧凑模式) */}
-        <Animated.View 
+        <Animated.View
           style={presetsContainerStyle}
           className="overflow-hidden"
         >
@@ -598,8 +617,12 @@ const PortRangePicker: React.FC<PortRangePickerProps> = ({
                   onPress={togglePortMode}
                   disabled={disabled}
                   className="h-8 px-2"
-                  accessibilityLabel={`切换至${value ? "范围模式" : "列表模式"}`}
-                  accessibilityHint={`当前为${value ? "自定义端口列表" : "端口范围"}模式，点击切换`}
+                  accessibilityLabel={`切换至${
+                    value ? "范围模式" : "列表模式"
+                  }`}
+                  accessibilityHint={`当前为${
+                    value ? "自定义端口列表" : "端口范围"
+                  }模式，点击切换`}
                 >
                   <Label className="text-xs text-primary">
                     切换至{value ? "范围模式" : "列表模式"}
@@ -682,10 +705,10 @@ const PortRangePicker: React.FC<PortRangePickerProps> = ({
             />
           )}
         </View>
-        
+
         {(errors.start || errors.end || errors.customPorts || error) && (
-          <Animated.View 
-            entering={SlideInDown.duration(200).springify()} 
+          <Animated.View
+            entering={SlideInDown.duration(200).springify()}
             className="flex-row items-center space-x-2 bg-destructive/10 px-2 py-1 rounded-lg"
           >
             <AlertCircle size={14} className="text-destructive" />
@@ -697,19 +720,20 @@ const PortRangePicker: React.FC<PortRangePickerProps> = ({
             </Label>
           </Animated.View>
         )}
-        
-        {getPortCount() > 0 && !error && !errors.start && !errors.end && !errors.customPorts && (
-          <View className="flex-row justify-end">
-            <Badge
-              variant="outline"
-              className="bg-primary/5 self-start"
-            >
-              <Label className="text-xs">
-                将扫描 {getPortCount()} 个端口
-              </Label>
-            </Badge>
-          </View>
-        )}
+
+        {getPortCount() > 0 &&
+          !error &&
+          !errors.start &&
+          !errors.end &&
+          !errors.customPorts && (
+            <View className="flex-row justify-end">
+              <Badge variant="outline" className="bg-primary/5 self-start">
+                <Label className="text-xs">
+                  将扫描 {getPortCount()} 个端口
+                </Label>
+              </Badge>
+            </View>
+          )}
       </Animated.View>
     );
   }
@@ -746,14 +770,21 @@ const PortRangePicker: React.FC<PortRangePickerProps> = ({
                 disabled={disabled}
                 className="rounded-lg border-primary/30"
                 accessibilityLabel="端口预设选项"
-                accessibilityHint={showPresets ? "关闭预设选项" : "打开预设选项"}
+                accessibilityHint={
+                  showPresets ? "关闭预设选项" : "打开预设选项"
+                }
               >
                 <Bookmark size={16} className="text-primary mr-1" />
                 <Label className="text-xs">预设</Label>
-                <ChevronDown size={14} className={`text-muted-foreground ml-1 transition-transform duration-200 ${showPresets ? 'rotate-180' : 'rotate-0'}`} />
+                <ChevronDown
+                  size={14}
+                  className={`text-muted-foreground ml-1 transition-transform duration-200 ${
+                    showPresets ? "rotate-180" : "rotate-0"
+                  }`}
+                />
               </Button>
             </Animated.View>
-            
+
             <Animated.View style={randomizeButtonStyle}>
               <Button
                 variant="outline"
@@ -765,7 +796,10 @@ const PortRangePicker: React.FC<PortRangePickerProps> = ({
                 accessibilityHint="生成随机端口或端口范围"
               >
                 {isGenerating ? (
-                  <Loader2 size={16} className="text-primary animate-spin mr-1" />
+                  <Loader2
+                    size={16}
+                    className="text-primary animate-spin mr-1"
+                  />
                 ) : (
                   <Dices size={16} className="text-primary mr-1" />
                 )}
@@ -777,10 +811,7 @@ const PortRangePicker: React.FC<PortRangePickerProps> = ({
       )}
 
       {/* 预设选择栏 */}
-      <Animated.View
-        style={presetsContainerStyle}
-        className="overflow-hidden"
-      >
+      <Animated.View style={presetsContainerStyle} className="overflow-hidden">
         <View className="bg-card/80 backdrop-blur-lg p-3 rounded-xl border border-border/30">
           <View className="flex-row justify-between items-center mb-2">
             <Label className="text-sm font-medium">选择预设端口范围</Label>
@@ -795,9 +826,11 @@ const PortRangePicker: React.FC<PortRangePickerProps> = ({
           </View>
           <View className="flex-row flex-wrap gap-2">
             {PORT_RANGE_PRESETS.map((preset, index) => (
-              <Animated.View 
+              <Animated.View
                 key={index}
-                entering={SlideInUp.delay(index * 50).duration(200).springify()}
+                entering={SlideInUp.delay(index * 50)
+                  .duration(200)
+                  .springify()}
               >
                 <Pressable
                   onPress={() => applyPreset(preset)}
@@ -830,7 +863,7 @@ const PortRangePicker: React.FC<PortRangePickerProps> = ({
               </Animated.View>
             ))}
           </View>
-          
+
           <View className="mt-3 pt-3 border-t border-border/30">
             <View className="flex-row items-center space-x-2">
               <Info size={16} className="text-muted-foreground" />
@@ -941,7 +974,10 @@ const PortRangePicker: React.FC<PortRangePickerProps> = ({
                         accessibilityHint="输入端口扫描的起始端口号"
                       />
                       {errors.start && (
-                        <Animated.View entering={FadeIn.duration(200)} className="mt-1">
+                        <Animated.View
+                          entering={FadeIn.duration(200)}
+                          className="mt-1"
+                        >
                           <Label className="text-xs text-destructive">
                             {errors.start.message}
                           </Label>
@@ -997,7 +1033,10 @@ const PortRangePicker: React.FC<PortRangePickerProps> = ({
                         accessibilityHint="输入端口扫描的结束端口号"
                       />
                       {errors.end && (
-                        <Animated.View entering={FadeIn.duration(200)} className="mt-1">
+                        <Animated.View
+                          entering={FadeIn.duration(200)}
+                          className="mt-1"
+                        >
                           <Label className="text-xs text-destructive">
                             {errors.end.message}
                           </Label>
@@ -1030,18 +1069,20 @@ const PortRangePicker: React.FC<PortRangePickerProps> = ({
                 </View>
               </View>
 
-              {watchStart !== undefined && watchEnd !== undefined && getPortCount() > 0 && (
-                <Animated.View entering={ZoomIn.duration(200)}>
-                  <Badge
-                    variant="outline"
-                    className="bg-primary/5 self-start mt-2"
-                  >
-                    <Label className="text-xs">
-                      将扫描 {getPortCount()} 个端口
-                    </Label>
-                  </Badge>
-                </Animated.View>
-              )}
+              {watchStart !== undefined &&
+                watchEnd !== undefined &&
+                getPortCount() > 0 && (
+                  <Animated.View entering={ZoomIn.duration(200)}>
+                    <Badge
+                      variant="outline"
+                      className="bg-primary/5 self-start mt-2"
+                    >
+                      <Label className="text-xs">
+                        将扫描 {getPortCount()} 个端口
+                      </Label>
+                    </Badge>
+                  </Animated.View>
+                )}
             </View>
           </View>
         ) : (
@@ -1071,7 +1112,10 @@ const PortRangePicker: React.FC<PortRangePickerProps> = ({
                     accessibilityHint="输入要扫描的端口列表，使用逗号分隔"
                   />
                   {errors.customPorts && (
-                    <Animated.View entering={FadeIn.duration(200)} className="mt-1">
+                    <Animated.View
+                      entering={FadeIn.duration(200)}
+                      className="mt-1"
+                    >
                       <Label className="text-xs text-destructive">
                         {errors.customPorts.message}
                       </Label>
@@ -1099,9 +1143,11 @@ const PortRangePicker: React.FC<PortRangePickerProps> = ({
         {/* 底部操作栏 */}
         <View className="flex-row justify-between items-center pt-2 border-t border-border/30">
           <Text className="text-xs text-muted-foreground">
-            {getPortCount() === 0 ? "请设置端口" : `共 ${getPortCount()} 个端口`}
+            {getPortCount() === 0
+              ? "请设置端口"
+              : `共 ${getPortCount()} 个端口`}
           </Text>
-          
+
           <Button
             variant="ghost"
             size="sm"
@@ -1119,7 +1165,7 @@ const PortRangePicker: React.FC<PortRangePickerProps> = ({
 
       {/* 错误显示 */}
       {error && (
-        <Animated.View 
+        <Animated.View
           entering={SlideInDown.duration(300)}
           className="flex-row items-center space-x-2 bg-destructive/10 p-2 rounded-lg"
         >

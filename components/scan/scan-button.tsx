@@ -38,8 +38,7 @@ import {
   TooltipTrigger,
   TooltipContent,
 } from "~/components/ui/tooltip";
-
-export type ScanStatus = "idle" | "scanning" | "paused" | "error" | "completed";
+import { ScanStatus } from "~/stores/useScannerStore";
 
 interface ScanButtonProps {
   onScan: () => Promise<void>;
