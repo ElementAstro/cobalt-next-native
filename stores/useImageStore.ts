@@ -14,6 +14,15 @@ export const FileItemSchema = z.object({
   modificationTime: z.number().nonnegative().optional(),
   isFavorite: z.boolean().optional(),
   isLocked: z.boolean().optional(),
+  isProtected: z.boolean().optional(), // 文件是否受保护
+  isReadOnly: z.boolean().optional(), // 文件是否只读
+  isHidden: z.boolean().optional(), // 文件是否隐藏
+  isSystem: z.boolean().optional(), // 是否系统文件
+  isArchive: z.boolean().optional(), // 是否归档文件
+  isTemporary: z.boolean().optional(), // 是否临时文件
+  isEncrypted: z.boolean().optional(), // 是否加密文件
+  isCompressed: z.boolean().optional(), // 是否压缩文件
+  creationTime: z.number().nonnegative().optional(), // 创建时间
   permissions: z
     .object({
       read: z.boolean(),
@@ -25,6 +34,10 @@ export const FileItemSchema = z.object({
   lastAccessed: z.number().nonnegative().optional(),
   tags: z.array(z.string()).optional(),
   mimeType: z.string().optional(),
+  metadata: z.record(z.string(), z.any()).optional(), // 文件元数据
+  parentUri: z.string().url().optional(), // 父目录路径
+  color: z.string().optional(), // 自定义颜色标记
+  status: z.enum(['synced', 'pending', 'error']).optional(), // 文件同步状态
 });
 
 export type FileItem = z.infer<typeof FileItemSchema>;
