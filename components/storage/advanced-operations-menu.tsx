@@ -1,7 +1,7 @@
-import React from 'react';
-import { View } from 'react-native';
-import { Button } from '../ui/button';
-import { Text } from '../ui/text';
+import React from "react";
+import { View } from "react-native";
+import { Button } from "../ui/button";
+import { Text } from "../ui/text";
 import {
   Archive,
   ClipboardCheck,
@@ -10,21 +10,19 @@ import {
   Lock,
   Search,
   Sliders,
-  Workflow
-} from 'lucide-react-native';
-import { fileStoreHooks } from '../../stores/useFileStore';
-import { useAdvancedFileOperations } from '../../hooks/use-advanced-file-operations';
+  Workflow,
+} from "lucide-react-native";
+import { fileStoreHooks } from "../../stores/useFileStore";
+import { useAdvancedFileOperations } from "../../hooks/use-advanced-file-operations";
 
 interface AdvancedOperationsMenuProps {
   onClose: () => void;
 }
 
-export function AdvancedOperationsMenu({ onClose }: AdvancedOperationsMenuProps) {
-  const {
-    useSelectedFiles,
-    useCurrentPath,
-    useSetError
-  } = fileStoreHooks;
+export function AdvancedOperationsMenu({
+  onClose,
+}: AdvancedOperationsMenuProps) {
+  const { useSelectedFiles, useCurrentPath, useSetError } = fileStoreHooks;
 
   const selectedFiles = useSelectedFiles();
   const currentPath = useCurrentPath();
@@ -37,72 +35,74 @@ export function AdvancedOperationsMenu({ onClose }: AdvancedOperationsMenuProps)
     createFileVersion,
     operations,
     fileVersions,
-    releaseLock
+    releaseLock,
   } = useAdvancedFileOperations();
 
   const handleBatchOperation = async (operation: string) => {
     if (selectedFiles.length === 0) {
-      setError('No files selected');
+      setError("No files selected");
       return;
     }
 
     try {
       switch (operation) {
-        case 'copy':
-        case 'move':
-        case 'delete':
+        case "copy":
+        case "move":
+        case "delete":
           await batchOperation(selectedFiles, operation);
           break;
-          
-        case 'lock':
+
+        case "lock":
           for (const file of selectedFiles) {
             if (await acquireLock(file)) {
               setTimeout(() => releaseLock(file), 30000); // Auto-release after 30s
             }
           }
           break;
-          
-        case 'version':
+
+        case "version":
           for (const file of selectedFiles) {
             const fileItem = {
-              name: file.split('/').pop() || '',
+              name: file.split("/").pop() || "",
               uri: file,
               isDirectory: false,
               version: {
                 number: (fileVersions.get(file)?.length || 0) + 1,
-                timestamp: Date.now()
-              }
+                timestamp: Date.now(),
+              },
             };
             await createFileVersion(fileItem);
           }
           break;
-          
+
         default:
-          setError('Unknown operation');
+          setError("Unknown operation");
       }
       onClose();
     } catch (error) {
-      setError(error instanceof Error ? error.message : 'Operation failed');
+      setError(error instanceof Error ? error.message : "Operation failed");
     }
   };
 
   const operationButtons = [
     {
       icon: <History className="h-5 w-5" />,
-      label: 'Version',
-      action: () => handleBatchOperation('version'),
+      label: "Version",
+      action: () => handleBatchOperation("version"),
     },
     {
       icon: <Lock className="h-5 w-5" />,
-      label: 'Lock Files',
-      action: () => handleBatchOperation('lock'),
+      label: "Lock Files",
+      action: () => handleBatchOperation("lock"),
     },
     {
       icon: <Workflow className="h-5 w-5" />,
-      label: 'Operations',
+      label: "Operations",
       disabled: operations.size === 0,
-      action: () => {/* TODO: Show operations status dialog */},
-    }
+      action: () => {
+        /* TODO: Show operations status dialog */
+      },
+    },
   ];
 
   return (
@@ -122,7 +122,7 @@ export function AdvancedOperationsMenu({ onClose }: AdvancedOperationsMenuProps)
           </Button>
         ))}
       </View>
-      
+
       {operations.size > 0 && (
         <View className="mt-4 border-t border-border pt-4">
           <Text className="text-sm text-muted-foreground">

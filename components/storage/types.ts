@@ -36,7 +36,7 @@ export interface FileItemType {
   checksum?: string;
   /** Compression information */
   compression?: {
-    type: 'gzip' | 'zip' | 'none';
+    type: "gzip" | "zip" | "none";
     originalSize: number;
     compressedSize: number;
   };
@@ -52,8 +52,8 @@ export interface FileItemType {
 /** Operation status for progress tracking */
 export interface OperationStatus {
   id: string;
-  type: 'copy' | 'move' | 'delete' | 'compress' | 'decompress';
-  status: 'pending' | 'processing' | 'completed' | 'error';
+  type: "copy" | "move" | "delete" | "compress" | "decompress";
+  status: "pending" | "processing" | "completed" | "error";
   progress: number;
   message: string;
   error?: string;
@@ -63,17 +63,17 @@ export interface OperationStatus {
 export interface FileTransaction {
   id: string;
   operations: {
-    type: 'copy' | 'move' | 'delete';
+    type: "copy" | "move" | "delete";
     source: string;
     destination?: string;
   }[];
-  status: 'pending' | 'committing' | 'committed' | 'rollingBack' | 'rolledBack';
+  status: "pending" | "committing" | "committed" | "rollingBack" | "rolledBack";
   timestamp: number;
 }
 
 /** File system monitor event */
 export interface FileSystemEvent {
-  type: 'created' | 'modified' | 'deleted' | 'renamed';
+  type: "created" | "modified" | "deleted" | "renamed";
   path: string;
   timestamp: number;
   details?: {
@@ -156,7 +156,7 @@ export interface CacheConfig {
   enabled: boolean;
   maxSize: number;
   ttl: number;
-  strategy: 'lru' | 'fifo';
+  strategy: "lru" | "fifo";
 }
 
 /** Resource monitoring stats */

@@ -7,15 +7,12 @@ import { useColorScheme } from "nativewind";
 import { documentDirectory } from "expo-file-system";
 import { Sliders } from "lucide-react-native";
 import { Button } from "../ui/button";
-import {
-  AlertDialog,
-  AlertDialogContent,
-} from "../ui/alert-dialog";
+import { AlertDialog, AlertDialogContent } from "../ui/alert-dialog";
 import FileList from "./file-list";
 import FileDetailsDialog from "./file-details-dialog";
 import { SortMenu } from "./sort-menu";
 import ConfirmDialog from "./confirm-dialog";
-import FileHeader from "./file-header";          
+import FileHeader from "./file-header";
 import { fileStoreHooks, useFileStore } from "../../stores/useFileStore";
 import { useFileOperations } from "../../hooks/use-file-operations";
 import { DialogState, FileItemType } from "./types";
@@ -296,7 +293,9 @@ export default function FileSystemBrowser() {
       {showAdvancedMenu && (
         <AlertDialog open={showAdvancedMenu} onOpenChange={setShowAdvancedMenu}>
           <AlertDialogContent>
-            <AdvancedOperationsMenu onClose={() => setShowAdvancedMenu(false)} />
+            <AdvancedOperationsMenu
+              onClose={() => setShowAdvancedMenu(false)}
+            />
           </AlertDialogContent>
         </AlertDialog>
       )}

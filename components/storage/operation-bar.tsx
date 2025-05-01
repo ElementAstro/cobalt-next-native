@@ -1,14 +1,14 @@
-import React, { useEffect } from 'react';
-import { View, StyleSheet } from 'react-native';
+import React, { useEffect } from "react";
+import { View, StyleSheet } from "react-native";
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
   withSpring,
   withTiming,
-} from 'react-native-reanimated';
-import { Button } from '../ui/button';
-import { Text } from '../ui/text';
-import { Share2, Trash } from 'lucide-react-native';
+} from "react-native-reanimated";
+import { Button } from "../ui/button";
+import { Text } from "../ui/text";
+import { Share2, Trash } from "lucide-react-native";
 
 interface OperationBarProps {
   selectedCount: number;
@@ -19,25 +19,29 @@ interface OperationBarProps {
 const styles = StyleSheet.create({
   container: {
     height: 56,
-    backgroundColor: '#007AFF',
+    backgroundColor: "#007AFF",
     paddingHorizontal: 16,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
   },
   text: {
-    color: '#FFFFFF',
-    fontWeight: '500',
+    color: "#FFFFFF",
+    fontWeight: "500",
     fontSize: 16,
   },
   buttonsContainer: {
-    flexDirection: 'row',
+    flexDirection: "row",
     gap: 8,
-    alignItems: 'center',
+    alignItems: "center",
   },
 });
 
-export default function OperationBar({ selectedCount, onShare, onDelete }: OperationBarProps) {
+export default function OperationBar({
+  selectedCount,
+  onShare,
+  onDelete,
+}: OperationBarProps) {
   const opacity = useSharedValue(0);
   const translateY = useSharedValue(50);
 
@@ -58,9 +62,7 @@ export default function OperationBar({ selectedCount, onShare, onDelete }: Opera
 
   return (
     <Animated.View style={[styles.container, animatedStyle]}>
-      <Text style={styles.text}>
-        Selected {selectedCount} items
-      </Text>
+      <Text style={styles.text}>Selected {selectedCount} items</Text>
       <View style={styles.buttonsContainer}>
         <Button variant="ghost" onPress={onShare}>
           <Share2 color="white" size={20} />

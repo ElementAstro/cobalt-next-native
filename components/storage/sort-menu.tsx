@@ -1,18 +1,18 @@
-import React from 'react';
-import { Modal, Platform, TouchableOpacity, View } from 'react-native';
-import { Button } from '../ui/button';
-import { Text } from '../ui/text';
-import { SortAsc, SortDesc, Filter } from 'lucide-react-native';
-import { ActionSheetIOS } from 'react-native';
+import React from "react";
+import { Modal, Platform, TouchableOpacity, View } from "react-native";
+import { Button } from "../ui/button";
+import { Text } from "../ui/text";
+import { SortAsc, SortDesc, Filter } from "lucide-react-native";
+import { ActionSheetIOS } from "react-native";
 
 interface SortMenuProps {
   isVisible: boolean;
   onClose: () => void;
-  onSortChange: (type: 'name' | 'date' | 'size') => void;
+  onSortChange: (type: "name" | "date" | "size") => void;
   onOrderChange: () => void;
-  sortOrder: 'asc' | 'desc';
-  filterType: 'all' | 'folders' | 'files';
-  onFilterChange: (type: 'all' | 'folders' | 'files') => void;
+  sortOrder: "asc" | "desc";
+  filterType: "all" | "folders" | "files";
+  onFilterChange: (type: "all" | "folders" | "files") => void;
 }
 
 export function SortMenu({
@@ -25,22 +25,22 @@ export function SortMenu({
   onFilterChange,
 }: SortMenuProps) {
   const handleSortPress = () => {
-    if (Platform.OS === 'ios') {
+    if (Platform.OS === "ios") {
       ActionSheetIOS.showActionSheetWithOptions(
         {
           options: [
-            'Cancel',
-            'Sort by name',
-            'Sort by date',
-            'Sort by size',
-            sortOrder === 'asc' ? 'Sort descending' : 'Sort ascending',
+            "Cancel",
+            "Sort by name",
+            "Sort by date",
+            "Sort by size",
+            sortOrder === "asc" ? "Sort descending" : "Sort ascending",
           ],
           cancelButtonIndex: 0,
         },
         (buttonIndex) => {
-          if (buttonIndex === 1) onSortChange('name');
-          else if (buttonIndex === 2) onSortChange('date');
-          else if (buttonIndex === 3) onSortChange('size');
+          if (buttonIndex === 1) onSortChange("name");
+          else if (buttonIndex === 2) onSortChange("date");
+          else if (buttonIndex === 3) onSortChange("size");
           else if (buttonIndex === 4) onOrderChange();
         }
       );
@@ -49,7 +49,7 @@ export function SortMenu({
   };
 
   // For Android - Modal menu
-  if (Platform.OS === 'android') {
+  if (Platform.OS === "android") {
     return (
       <Modal
         visible={isVisible}
@@ -66,7 +66,7 @@ export function SortMenu({
             <TouchableOpacity
               className="p-4 border-b border-border"
               onPress={() => {
-                onSortChange('name');
+                onSortChange("name");
                 onClose();
               }}
             >
@@ -75,7 +75,7 @@ export function SortMenu({
             <TouchableOpacity
               className="p-4 border-b border-border"
               onPress={() => {
-                onSortChange('date');
+                onSortChange("date");
                 onClose();
               }}
             >
@@ -84,7 +84,7 @@ export function SortMenu({
             <TouchableOpacity
               className="p-4 border-b border-border"
               onPress={() => {
-                onSortChange('size');
+                onSortChange("size");
                 onClose();
               }}
             >
@@ -97,21 +97,23 @@ export function SortMenu({
                 onClose();
               }}
             >
-              <Text>{sortOrder === 'asc' ? 'Sort descending' : 'Sort ascending'}</Text>
+              <Text>
+                {sortOrder === "asc" ? "Sort descending" : "Sort ascending"}
+              </Text>
             </TouchableOpacity>
             <TouchableOpacity
               className="p-4"
               onPress={() => {
-                onFilterChange(filterType === 'all' ? 'folders' : 'all');
+                onFilterChange(filterType === "all" ? "folders" : "all");
                 onClose();
               }}
             >
               <Text>
-                {filterType === 'all'
-                  ? 'Show folders only'
-                  : filterType === 'folders'
-                  ? 'Show files only'
-                  : 'Show all'}
+                {filterType === "all"
+                  ? "Show folders only"
+                  : filterType === "folders"
+                  ? "Show files only"
+                  : "Show all"}
               </Text>
             </TouchableOpacity>
           </View>
@@ -123,12 +125,12 @@ export function SortMenu({
   return (
     <View className="flex-row space-x-2">
       <Button variant="ghost" size="icon" onPress={handleSortPress}>
-        {sortOrder === 'asc' ? <SortAsc /> : <SortDesc />}
+        {sortOrder === "asc" ? <SortAsc /> : <SortDesc />}
       </Button>
       <Button
         variant="ghost"
         size="icon"
-        onPress={() => onFilterChange(filterType === 'all' ? 'folders' : 'all')}
+        onPress={() => onFilterChange(filterType === "all" ? "folders" : "all")}
       >
         <Filter />
       </Button>

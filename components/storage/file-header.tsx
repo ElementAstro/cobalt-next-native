@@ -1,8 +1,8 @@
-import React from 'react';
-import { View, TouchableOpacity } from 'react-native';
-import { ChevronLeft } from 'lucide-react-native';
-import { Text } from '../ui/text';
-import { documentDirectory } from 'expo-file-system';
+import React from "react";
+import { View, TouchableOpacity } from "react-native";
+import { ChevronLeft } from "lucide-react-native";
+import { Text } from "../ui/text";
+import { documentDirectory } from "expo-file-system";
 
 interface FileHeaderProps {
   onNavigateUp: () => void;
@@ -18,19 +18,19 @@ export default function FileHeader({
   currentPath,
 }: FileHeaderProps) {
   const formatPath = (path: string) => {
-    if (path === documentDirectory) return 'Home';
+    if (path === documentDirectory) return "Home";
     return path
-      .replace(documentDirectory || '', '')
-      .split('/')
+      .replace(documentDirectory || "", "")
+      .split("/")
       .filter(Boolean)
-      .join(' / ');
+      .join(" / ");
   };
 
   return (
     <View
       className={`
         flex-row items-center px-4 py-2 
-        ${isLandscape ? 'border-b border-border' : ''}
+        ${isLandscape ? "border-b border-border" : ""}
       `}
     >
       <TouchableOpacity
@@ -38,11 +38,11 @@ export default function FileHeader({
         disabled={isDisabled}
         className={`
           mr-2 p-2 rounded-full
-          ${isDisabled ? 'opacity-50' : 'active:opacity-70'}
+          ${isDisabled ? "opacity-50" : "active:opacity-70"}
         `}
       >
         <ChevronLeft
-          className={isDisabled ? 'text-muted-foreground' : 'text-foreground'}
+          className={isDisabled ? "text-muted-foreground" : "text-foreground"}
         />
       </TouchableOpacity>
 

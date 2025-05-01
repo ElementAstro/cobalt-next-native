@@ -1,6 +1,6 @@
-import React, { useCallback } from 'react';
-import { View, RefreshControl } from 'react-native';
-import { FlashList } from '@shopify/flash-list';
+import React, { useCallback } from "react";
+import { View, RefreshControl } from "react-native";
+import { FlashList } from "@shopify/flash-list";
 import Animated, {
   FadeIn,
   FadeOut,
@@ -8,18 +8,18 @@ import Animated, {
   useAnimatedStyle,
   useSharedValue,
   withSpring,
-} from 'react-native-reanimated';
-import { Text } from '../ui/text';
-import { useColorScheme } from 'nativewind';
-import { FileItemType } from './types';
-import FileItem from './file-item';
+} from "react-native-reanimated";
+import { Text } from "../ui/text";
+import { useColorScheme } from "nativewind";
+import { FileItemType } from "./types";
+import FileItem from "./file-item";
 
 /**
  * Props for the FileList component
  */
 interface FileListProps {
   files: FileItemType[];
-  viewMode: 'grid' | 'list';
+  viewMode: "grid" | "list";
   isLandscape: boolean;
   onFileAction: (file: FileItemType, action: string) => Promise<void>;
   onRefresh: () => Promise<void>;
@@ -49,9 +49,7 @@ export default function FileList({
    * Visual separator between list items
    * Only shown in list view mode
    */
-  const Separator = () => (
-    <View className="h-[1px] bg-border" />
-  );
+  const Separator = () => <View className="h-[1px] bg-border" />;
   const { colorScheme } = useColorScheme();
   const listAnimation = useSharedValue(0);
 
@@ -127,18 +125,18 @@ export default function FileList({
     <Animated.View style={animatedStyle} className="flex-1">
       <FlashList<FileItemType>
         data={files}
-        numColumns={viewMode === 'grid' ? 2 : 1}
-        estimatedItemSize={viewMode === 'grid' ? 200 : estimatedItemSize}
+        numColumns={viewMode === "grid" ? 2 : 1}
+        estimatedItemSize={viewMode === "grid" ? 200 : estimatedItemSize}
         renderItem={renderItem}
         ListEmptyComponent={renderEmpty}
         refreshControl={
           <RefreshControl
             refreshing={isRefreshing}
             onRefresh={onRefresh}
-            tintColor={colorScheme === 'dark' ? '#fff' : '#000'}
+            tintColor={colorScheme === "dark" ? "#fff" : "#000"}
           />
         }
-        ItemSeparatorComponent={viewMode === 'list' ? Separator : undefined}
+        ItemSeparatorComponent={viewMode === "list" ? Separator : undefined}
       />
     </Animated.View>
   );
