@@ -1,5 +1,5 @@
 import React, { useCallback, useMemo } from "react";
-import { View, ViewStyle, StyleProp } from "react-native";
+import { View, type ViewStyle, type StyleProp } from "react-native";
 import {
   Play,
   Pause,
@@ -29,7 +29,12 @@ import { Badge } from "~/components/ui/badge";
 import { Alert as UIAlert, AlertDescription } from "~/components/ui/alert";
 import { Button } from "~/components/ui/button";
 import { Text } from "~/components/ui/text";
-import { ToastAction } from "sonner-native/lib/typescript/commonjs/src/types";
+// import { ToastAction } from "sonner-native/lib/typescript/commonjs/src/types";
+// Using a simple interface instead
+interface ToastAction {
+  label: string;
+  onClick: () => void;
+}
 
 // Zod schema for download task validation
 const DownloadTaskSchema = z.object({
@@ -246,7 +251,7 @@ export const DownloadItem = React.memo<DownloadItemProps>(({ task, style }) => {
       )}
 
       {error && (
-        <UIAlert variant="destructive" icon={AlertCircle} className="mb-3">
+        <UIAlert variant="destructive" icon={<AlertCircle size={16} />} className="mb-3">
           <AlertDescription>{error}</AlertDescription>
         </UIAlert>
       )}

@@ -70,7 +70,7 @@ function DialogContent({
 }) {
   const { open } = DialogPrimitive.useRootContext();
   return (
-    <DialogPortal hostName={portalHost}>
+    <DialogPortal {...(portalHost && { hostName: portalHost })}>
       <DialogOverlay>
         <DialogPrimitive.Content
           className={cn(

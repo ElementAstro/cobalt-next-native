@@ -88,6 +88,8 @@ class DownloadManager {
         shouldShowAlert: true,
         shouldPlaySound: true,
         shouldSetBadge: true,
+        shouldShowBanner: true,
+        shouldShowList: true,
       }),
     });
   }
@@ -98,7 +100,7 @@ class DownloadManager {
     data?: Record<string, unknown>
   ): Promise<void> {
     await Notifications.scheduleNotificationAsync({
-      content: { title, body, data },
+      content: { title, body, data: data || {} },
       trigger: null,
     });
   }
@@ -150,7 +152,7 @@ class DownloadManager {
       schema.parse({ url, filename });
     } catch (error) {
       if (error instanceof z.ZodError) {
-        throw new Error(error.errors[0].message);
+        throw new Error(error.errors[0]?.message || "Validation error");
       }
       throw error;
     }

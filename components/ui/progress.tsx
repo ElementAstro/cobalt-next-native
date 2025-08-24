@@ -22,7 +22,7 @@ const Progress = React.forwardRef<
       className={cn('relative h-4 w-full overflow-hidden rounded-full bg-secondary', className)}
       {...props}
     >
-      <Indicator value={value} className={indicatorClassName} />
+      <Indicator value={value} className={indicatorClassName || ''} />
     </ProgressPrimitive.Root>
   );
 });

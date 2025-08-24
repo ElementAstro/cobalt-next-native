@@ -13,6 +13,7 @@
     "postinstall": "npx tailwindcss -i ./global.css -o ./node_modules/.cache/nativewind/global.css"
   },
   "dependencies": {
+    "@hookform/resolvers": "^5.2.1",
     "@react-native-async-storage/async-storage": "^2.1.2",
     "@react-native-community/slider": "^4.5.7",
     "@react-navigation/native": "^7.1.10",
@@ -46,7 +47,9 @@
     "nativewind": "^4.1.23",
     "react": "19.0.0",
     "react-dom": "19.0.0",
+    "react-hook-form": "^7.62.0",
     "react-native": "0.79.1",
+    "react-native-chart-kit": "^6.12.0",
     "react-native-echarts-pro": "^1.9.3",
     "react-native-gesture-handler": "^2.25.0",
     "react-native-reanimated": "~3.17.5",
@@ -60,7 +63,7 @@
     "tailwindcss": "3.3.5",
     "tailwindcss-animate": "^1.0.7",
     "use-debounce": "^10.0.4",
-    "zod": "^3.25.46",
+    "zod": "^3.25.76",
     "zustand": "^4.5.7"
   },
   "devDependencies": {

@@ -101,7 +101,7 @@ interface PortRangePickerProps {
     start?: number;
     end?: number;
     customPorts?: string;
-    useCustomPorts: boolean;
+    useCustomPorts?: boolean;
   }) => void;
   initialRange?: {
     start?: number;
@@ -150,7 +150,7 @@ const PortRangePicker: React.FC<PortRangePickerProps> = ({
     watch,
     trigger,
   } = useForm<PortRangeForm>({
-    resolver: zodResolver(portRangeSchema),
+    resolver: zodResolver(portRangeSchema as any),
     defaultValues: {
       start: initialRange.start || 1,
       end: initialRange.end || 1024,
@@ -201,7 +201,12 @@ const PortRangePicker: React.FC<PortRangePickerProps> = ({
   useEffect(() => {
     if (onRangeChange && isValid) {
       const values = getValues();
-      onRangeChange(values);
+      onRangeChange({
+        ...(values.start !== undefined && { start: values.start }),
+        ...(values.end !== undefined && { end: values.end }),
+        ...(values.customPorts !== undefined && { customPorts: values.customPorts }),
+        useCustomPorts: values.useCustomPorts ?? false,
+      });
     }
   }, [
     watchStart,
@@ -238,7 +243,12 @@ const PortRangePicker: React.FC<PortRangePickerProps> = ({
       toast.success(`已应用预设：${preset.label}`, { duration: 2000 });
 
       const values = getValues();
-      onRangeChange(values);
+      onRangeChange({
+        ...(values.start !== undefined && { start: values.start }),
+        ...(values.end !== undefined && { end: values.end }),
+        ...(values.customPorts !== undefined && { customPorts: values.customPorts }),
+        useCustomPorts: values.useCustomPorts ?? false,
+      });
       setShowPresets(false);
 
       trigger();
@@ -272,7 +282,12 @@ const PortRangePicker: React.FC<PortRangePickerProps> = ({
     trigger();
 
     const values = getValues();
-    onRangeChange(values);
+    onRangeChange({
+      ...(values.start !== undefined && { start: values.start }),
+      ...(values.end !== undefined && { end: values.end }),
+      ...(values.customPorts !== undefined && { customPorts: values.customPorts }),
+      useCustomPorts: values.useCustomPorts ?? false,
+    });
   }, [setValue, getValues, onRangeChange, trigger]);
 
   // 重置为默认值
@@ -287,7 +302,12 @@ const PortRangePicker: React.FC<PortRangePickerProps> = ({
       icon: <RefreshCw size={16} />,
     });
     const values = getValues();
-    onRangeChange(values);
+    onRangeChange({
+      ...(values.start !== undefined && { start: values.start }),
+      ...(values.end !== undefined && { end: values.end }),
+      ...(values.customPorts !== undefined && { customPorts: values.customPorts }),
+      useCustomPorts: values.useCustomPorts ?? false,
+    });
 
     trigger();
   }, [setValue, getValues, onRangeChange, trigger]);
@@ -328,7 +348,12 @@ const PortRangePicker: React.FC<PortRangePickerProps> = ({
     trigger();
 
     const values = getValues();
-    onRangeChange(values);
+    onRangeChange({
+      ...(values.start !== undefined && { start: values.start }),
+      ...(values.end !== undefined && { end: values.end }),
+      ...(values.customPorts !== undefined && { customPorts: values.customPorts }),
+      useCustomPorts: values.useCustomPorts ?? false,
+    });
   }, [
     watchUseCustomPorts,
     setValue,
@@ -349,7 +374,12 @@ const PortRangePicker: React.FC<PortRangePickerProps> = ({
       setValue(field, newValue);
 
       const values = getValues();
-      onRangeChange(values);
+      onRangeChange({
+        ...(values.start !== undefined && { start: values.start }),
+        ...(values.end !== undefined && { end: values.end }),
+        ...(values.customPorts !== undefined && { customPorts: values.customPorts }),
+        useCustomPorts: values.useCustomPorts ?? false,
+      });
 
       trigger();
 
@@ -403,7 +433,7 @@ const PortRangePicker: React.FC<PortRangePickerProps> = ({
   const getPortCount = useCallback(() => {
     if (watchUseCustomPorts) {
       if (!watchCustomPorts) return 0;
-      return watchCustomPorts.split(",").filter((p) => p.trim() !== "").length;
+      return watchCustomPorts.split(",").filter((p: string) => p.trim() !== "").length;
     } else {
       if (!watchStart || !watchEnd) return 0;
       return watchEnd - watchStart + 1 > 0 ? watchEnd - watchStart + 1 : 0;
@@ -606,7 +636,7 @@ const PortRangePicker: React.FC<PortRangePickerProps> = ({
           <Controller
             control={control}
             name="useCustomPorts"
-            render={({ field: { value } }) => (
+            render={({ field: { value } }: { field: { value: any } }) => (
               <View className="flex-row justify-between items-center">
                 <Label className="text-sm">
                   {value ? "使用自定义端口列表" : "使用端口范围"}
@@ -637,7 +667,7 @@ const PortRangePicker: React.FC<PortRangePickerProps> = ({
               <Controller
                 control={control}
                 name="start"
-                render={({ field: { onChange, value } }) => (
+                render={({ field: { onChange, value } }: { field: { onChange: any; value: any } }) => (
                   <View className="flex-1">
                     <Input
                       ref={startInputRef}
@@ -661,7 +691,7 @@ const PortRangePicker: React.FC<PortRangePickerProps> = ({
               <Controller
                 control={control}
                 name="end"
-                render={({ field: { onChange, value } }) => (
+                render={({ field: { onChange, value } }: { field: { onChange: any; value: any } }) => (
                   <View className="flex-1">
                     <Input
                       ref={endInputRef}
@@ -686,7 +716,7 @@ const PortRangePicker: React.FC<PortRangePickerProps> = ({
             <Controller
               control={control}
               name="customPorts"
-              render={({ field: { onChange, value } }) => (
+              render={({ field: { onChange, value } }: { field: { onChange: any; value: any } }) => (
                 <View>
                   <Input
                     ref={customInputRef}
@@ -880,7 +910,7 @@ const PortRangePicker: React.FC<PortRangePickerProps> = ({
         <Controller
           control={control}
           name="useCustomPorts"
-          render={({ field: { value, onChange } }) => (
+          render={({ field: { value, onChange } }: { field: { value: any; onChange: any } }) => (
             <View className="flex-row items-center justify-between">
               <View className="flex-row items-center space-x-2">
                 <ChevronsUpDown size={18} className="text-primary" />
@@ -956,7 +986,7 @@ const PortRangePicker: React.FC<PortRangePickerProps> = ({
                 <Controller
                   control={control}
                   name="start"
-                  render={({ field: { onChange, value } }) => (
+                  render={({ field: { onChange, value } }: { field: { onChange: any; value: any } }) => (
                     <View className="flex-1">
                       <Input
                         ref={startInputRef}
@@ -1015,7 +1045,7 @@ const PortRangePicker: React.FC<PortRangePickerProps> = ({
                 <Controller
                   control={control}
                   name="end"
-                  render={({ field: { onChange, value } }) => (
+                  render={({ field: { onChange, value } }: { field: { onChange: any; value: any } }) => (
                     <View className="flex-1">
                       <Input
                         ref={endInputRef}
@@ -1093,7 +1123,7 @@ const PortRangePicker: React.FC<PortRangePickerProps> = ({
             <Controller
               control={control}
               name="customPorts"
-              render={({ field: { onChange, value } }) => (
+              render={({ field: { onChange, value } }: { field: { onChange: any; value: any } }) => (
                 <View>
                   <Input
                     ref={customInputRef}

@@ -1,8 +1,9 @@
 import { create } from 'zustand';
-import type { 
-  DownloadTask, 
-  DownloadStats, 
-  DownloadSettings, 
+import { downloadManager } from '../components/download/download';
+import type {
+  DownloadTask,
+  DownloadStats,
+  DownloadSettings,
   DownloadAnalytics,
   DownloadOptions
 } from '../components/download/types';
@@ -64,211 +65,277 @@ const DEFAULT_ANALYTICS: DownloadAnalytics = {
 };
 
 // 创建 Store
-const useDownloadStore = create<DownloadState>((set, get) => ({
-  downloads: new Map(),
-  activeDownloads: new Set(),
-  stats: DEFAULT_STATS,
-  settings: DEFAULT_SETTINGS,
-  analytics: DEFAULT_ANALYTICS,
+const useDownloadStore = create<DownloadState>((set, get) => {
+  // Subscribe to download manager updates
+  downloadManager.getDownloads$().subscribe((downloads) => {
+    const downloadsMap = new Map();
+    const activeDownloads = new Set<string>();
+
+    downloads.forEach(task => {
+      downloadsMap.set(task.id, task);
+      if (task.status === 'downloading') {
+        activeDownloads.add(task.id);
+      }
+    });
+
+    set({
+      downloads: downloadsMap,
+      activeDownloads,
+      stats: calculateStats(downloadsMap)
+    });
+  });
+
+  return {
+    downloads: new Map(),
+    activeDownloads: new Set(),
+    stats: DEFAULT_STATS,
+    settings: DEFAULT_SETTINGS,
+    analytics: DEFAULT_ANALYTICS,
 
   addDownload: async (url, filename, options = {}) => {
-    const id = Date.now().toString();
-    const newDownload: DownloadTask = {
-      id,
-      url,
-      filename,
-      destinationUri: `${get().settings.downloadLocation}/${filename}`,
-      progress: 0,
-      status: 'pending',
-      error: null,
-      priority: options.priority || 'normal',
-      size: 0,
-      downloadedSize: 0,
-      speed: 0,
-      startTime: Date.now(),
-      createdAt: Date.now(),
-      updatedAt: Date.now(),
-      metadata: options.metadata || {},
-      resumableDownload: null,
-      retryCount: 0,
-    };
-
-    set((state) => {
-      const newDownloads = new Map(state.downloads);
-      newDownloads.set(id, newDownload);
-      
-      return {
-        downloads: newDownloads,
-        stats: {
-          ...state.stats,
-          total: state.stats.total + 1,
-          pending: state.stats.pending + 1,
+    try {
+      // Use the real download manager
+      const id = await downloadManager.addDownload(url, filename, {
+        ...options,
+        onProgress: (progress) => {
+          // Update store when progress changes
+          set((state) => {
+            const downloads = new Map(state.downloads);
+            const task = downloads.get(id);
+            if (task) {
+              task.progress = progress;
+              task.updatedAt = Date.now();
+              downloads.set(id, task);
+            }
+            return { downloads };
+          });
+          options.onProgress?.(progress);
+        },
+        onComplete: () => {
+          // Update store when download completes
+          set((state) => {
+            const downloads = new Map(state.downloads);
+            const task = downloads.get(id);
+            if (task) {
+              task.status = 'completed';
+              task.progress = 1;
+              task.updatedAt = Date.now();
+              downloads.set(id, task);
+            }
+            return {
+              downloads,
+              stats: calculateStats(downloads)
+            };
+          });
+          options.onComplete?.();
+        },
+        onError: (error) => {
+          // Update store when download fails
+          set((state) => {
+            const downloads = new Map(state.downloads);
+            const task = downloads.get(id);
+            if (task) {
+              task.status = 'error';
+              task.error = error.message;
+              task.updatedAt = Date.now();
+              downloads.set(id, task);
+            }
+            return {
+              downloads,
+              stats: calculateStats(downloads)
+            };
+          });
+          options.onError?.(error);
         }
-      };
-    });
-
-    // 模拟实现 - 在实际应用中这里会调用下载管理逻辑
-    setTimeout(() => {
-      get().resumeDownload(id);
-    }, 500);
-
-    return id;
-  },
-
-  pauseDownload: (id) => {
-    set((state) => {
-      const download = state.downloads.get(id);
-      if (!download || download.status !== 'downloading') return state;
-
-      const newDownloads = new Map(state.downloads);
-      newDownloads.set(id, {
-        ...download,
-        status: 'paused',
-        updatedAt: Date.now(),
       });
 
-      const newActiveDownloads = new Set(state.activeDownloads);
-      newActiveDownloads.delete(id);
-
-      return {
-        downloads: newDownloads,
-        activeDownloads: newActiveDownloads,
-        stats: {
-          ...state.stats,
-          active: state.stats.active - 1,
-          paused: state.stats.paused + 1,
-        }
-      };
-    });
+      return id;
+    } catch (error) {
+      console.error('Failed to add download:', error);
+      throw error;
+    }
   },
 
-  resumeDownload: (id) => {
-    set((state) => {
-      const download = state.downloads.get(id);
-      if (!download || (download.status !== 'paused' && download.status !== 'pending' && download.status !== 'error')) {
-        return state;
-      }
+  pauseDownload: async (id) => {
+    try {
+      await downloadManager.pauseDownload(id);
 
-      const newDownloads = new Map(state.downloads);
-      newDownloads.set(id, {
-        ...download,
-        status: 'downloading',
-        error: null,
-        updatedAt: Date.now(),
+      set((state) => {
+        const downloads = new Map(state.downloads);
+        const task = downloads.get(id);
+        if (task) {
+          task.status = 'paused';
+          task.updatedAt = Date.now();
+          downloads.set(id, task);
+        }
+
+        const newActiveDownloads = new Set(state.activeDownloads);
+        newActiveDownloads.delete(id);
+
+        return {
+          downloads,
+          activeDownloads: newActiveDownloads,
+          stats: calculateStats(downloads)
+        };
       });
-
-      const newActiveDownloads = new Set(state.activeDownloads);
-      newActiveDownloads.add(id);
-
-      return {
-        downloads: newDownloads,
-        activeDownloads: newActiveDownloads,
-        stats: {
-          ...state.stats,
-          active: state.stats.active + 1,
-          paused: download.status === 'paused' ? state.stats.paused - 1 : state.stats.paused,
-          pending: download.status === 'pending' ? state.stats.pending - 1 : state.stats.pending,
-          error: download.status === 'error' ? state.stats.error - 1 : state.stats.error,
-        }
-      };
-    });
+    } catch (error) {
+      console.error('Failed to pause download:', error);
+    }
   },
 
-  cancelDownload: (id) => {
-    set((state) => {
-      const download = state.downloads.get(id);
-      if (!download) return state;
+  resumeDownload: async (id) => {
+    try {
+      await downloadManager.resumeDownload(id);
 
-      const newDownloads = new Map(state.downloads);
-      newDownloads.delete(id);
-
-      const newActiveDownloads = new Set(state.activeDownloads);
-      newActiveDownloads.delete(id);
-
-      let activeDecrement = 0;
-      let pendingDecrement = 0;
-      let pausedDecrement = 0;
-      let errorDecrement = 0;
-      let completedDecrement = 0;
-
-      switch(download.status) {
-        case 'downloading': activeDecrement = 1; break;
-        case 'pending': pendingDecrement = 1; break;
-        case 'paused': pausedDecrement = 1; break;
-        case 'error': errorDecrement = 1; break;
-        case 'completed': completedDecrement = 1; break;
-      }
-
-      return {
-        downloads: newDownloads,
-        activeDownloads: newActiveDownloads,
-        stats: {
-          ...state.stats,
-          total: state.stats.total - 1,
-          active: state.stats.active - activeDecrement,
-          pending: state.stats.pending - pendingDecrement,
-          paused: state.stats.paused - pausedDecrement,
-          error: state.stats.error - errorDecrement,
-          completed: state.stats.completed - completedDecrement,
-          totalSize: state.stats.totalSize - download.size,
-          downloadedSize: state.stats.downloadedSize - download.downloadedSize,
-          totalProgress: calculateTotalProgress(newDownloads),
+      set((state) => {
+        const downloads = new Map(state.downloads);
+        const task = downloads.get(id);
+        if (task) {
+          task.status = 'downloading';
+          task.error = null;
+          task.updatedAt = Date.now();
+          downloads.set(id, task);
         }
-      };
-    });
-  },
 
-  retryDownload: (id) => {
-    set((state) => {
-      const download = state.downloads.get(id);
-      if (!download || download.status !== 'error') return state;
+        const newActiveDownloads = new Set(state.activeDownloads);
+        newActiveDownloads.add(id);
 
-      const newDownloads = new Map(state.downloads);
-      newDownloads.set(id, {
-        ...download,
-        status: 'pending',
-        error: null,
-        retryCount: (download.retryCount || 0) + 1,
-        updatedAt: Date.now(),
-        lastRetryTime: Date.now(),
+        return {
+          downloads,
+          activeDownloads: newActiveDownloads,
+          stats: calculateStats(downloads)
+        };
       });
+    } catch (error) {
+      console.error('Failed to resume download:', error);
+    }
+  },
 
-      return {
-        downloads: newDownloads,
-        stats: {
-          ...state.stats,
-          error: state.stats.error - 1,
-          pending: state.stats.pending + 1,
+  cancelDownload: async (id) => {
+    try {
+      await downloadManager.cancelDownload(id);
+
+      set((state) => {
+        const downloads = new Map(state.downloads);
+        downloads.delete(id);
+
+        const newActiveDownloads = new Set(state.activeDownloads);
+        newActiveDownloads.delete(id);
+
+        return {
+          downloads,
+          activeDownloads: newActiveDownloads,
+          stats: calculateStats(downloads)
+        };
+      });
+    } catch (error) {
+      console.error('Failed to cancel download:', error);
+    }
+  },
+
+  retryDownload: async (id) => {
+    try {
+      await downloadManager.retryDownload(id);
+
+      set((state) => {
+        const downloads = new Map(state.downloads);
+        const task = downloads.get(id);
+        if (task) {
+          task.status = 'pending';
+          task.error = null;
+          task.retryCount = (task.retryCount || 0) + 1;
+          task.updatedAt = Date.now();
+          task.lastRetryTime = Date.now();
+          downloads.set(id, task);
         }
-      };
-    });
 
-    // 开始重试下载
-    setTimeout(() => {
-      get().resumeDownload(id);
-    }, 500);
+        return {
+          downloads,
+          stats: calculateStats(downloads)
+        };
+      });
+    } catch (error) {
+      console.error('Failed to retry download:', error);
+    }
   },
 
   updateSettings: (newSettings) => {
     set((state) => ({
       settings: { ...state.settings, ...newSettings }
     }));
+
+    // Update download manager settings
+    if (newSettings.maxConcurrentDownloads) {
+      downloadManager.setMaxConcurrentDownloads(newSettings.maxConcurrentDownloads);
+    }
+    if (newSettings.retryAttempts !== undefined && newSettings.retryDelay !== undefined) {
+      downloadManager.setRetryConfig(newSettings.retryAttempts, newSettings.retryDelay);
+    }
+    if (newSettings.autoResumeOnConnection !== undefined) {
+      downloadManager.setAutoResumeOnConnection(newSettings.autoResumeOnConnection);
+    }
   },
-}));
+  };
+});
 
 // 辅助函数：计算总体下载进度
 function calculateTotalProgress(downloads: Map<string, DownloadTask>): number {
   if (downloads.size === 0) return 0;
-  
+
   let totalWeightedProgress = 0;
   let totalSize = 0;
-  
+
   for (const download of downloads.values()) {
     totalWeightedProgress += download.progress * download.size;
     totalSize += download.size;
   }
-  
+
   return totalSize > 0 ? totalWeightedProgress / totalSize : 0;
+}
+
+// 辅助函数：计算下载统计
+function calculateStats(downloads: Map<string, DownloadTask>): DownloadStats {
+  const stats: DownloadStats = {
+    total: 0,
+    active: 0,
+    pending: 0,
+    paused: 0,
+    completed: 0,
+    error: 0,
+    totalProgress: 0,
+    totalSpeed: 0,
+    totalSize: 0,
+    downloadedSize: 0,
+  };
+
+  for (const task of downloads.values()) {
+    stats.total++;
+    stats.totalSize += task.size;
+    stats.downloadedSize += task.downloadedSize;
+    stats.totalSpeed += task.speed;
+
+    switch (task.status) {
+      case 'downloading':
+        stats.active++;
+        stats.totalProgress += task.progress;
+        break;
+      case 'pending':
+        stats.pending++;
+        break;
+      case 'paused':
+        stats.paused++;
+        break;
+      case 'completed':
+        stats.completed++;
+        break;
+      case 'error':
+        stats.error++;
+        break;
+    }
+  }
+
+  stats.totalProgress = stats.active > 0 ? stats.totalProgress / stats.active : 0;
+  return stats;
 }
 
 export default useDownloadStore;

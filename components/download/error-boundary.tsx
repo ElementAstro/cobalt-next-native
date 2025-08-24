@@ -1,4 +1,4 @@
-import React, { Component, ErrorInfo, ReactNode } from "react";
+import React, { Component, type ErrorInfo, type ReactNode } from "react";
 import { View, Text, TouchableOpacity, ScrollView } from "react-native";
 import { AlertTriangle, RefreshCw, ChevronDown, ChevronUp } from "lucide-react-native";
 import Animated, { 
@@ -26,7 +26,7 @@ interface State {
 }
 
 export class ErrorBoundary extends Component<Props, State> {
-  public state: State = {
+  public override state: State = {
     hasError: false,
   };
 
@@ -34,7 +34,7 @@ export class ErrorBoundary extends Component<Props, State> {
     return { hasError: true, error };
   }
 
-  componentDidCatch(error: Error, errorInfo: ErrorInfo) {
+  override componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     this.setState({ errorInfo });
     
     // 将错误信息传递给可选的错误处理回调
@@ -47,17 +47,17 @@ export class ErrorBoundary extends Component<Props, State> {
   }
 
   resetError = () => {
-    this.setState({ hasError: false, error: undefined, errorInfo: undefined });
+    this.setState({ hasError: false });
   };
 
-  render() {
+  override render() {
     if (this.state.hasError) {
       // 使用自定义的 fallback 或默认的错误视图
       return this.props.fallback || (
-        <ErrorView 
-          error={this.state.error} 
-          errorInfo={this.state.errorInfo}
-          onReset={this.resetError} 
+        <ErrorView
+          error={this.state.error!}
+          errorInfo={this.state.errorInfo!}
+          onReset={this.resetError}
         />
       );
     }
@@ -67,9 +67,9 @@ export class ErrorBoundary extends Component<Props, State> {
 }
 
 interface ErrorViewProps {
-  error?: Error;
-  errorInfo?: ErrorInfo;
-  onReset?: () => void;
+  error: Error;
+  errorInfo: ErrorInfo;
+  onReset: () => void;
 }
 
 export const ErrorView: React.FC<ErrorViewProps> = ({ error, errorInfo, onReset }) => {

@@ -170,12 +170,13 @@ const NetworkInfo: React.FC<NetworkInfoProps> = ({
           strength: strength,
           carrier:
             networkState.type === ExpoNetwork.NetworkStateType.CELLULAR
-              ? ["中国移动", "中国联通", "中国电信"][
+              ? (["中国移动", "中国联通", "中国电信"][
                   Math.floor(Math.random() * 3)
-                ]
+                ] || null)
               : null,
-          isPrivate:
-            ipAddress?.startsWith("192.168.") || ipAddress?.startsWith("10."),
+          isPrivate: Boolean(
+            ipAddress?.startsWith("192.168.") || ipAddress?.startsWith("10.")
+          ),
           isMetered:
             networkState.type === ExpoNetwork.NetworkStateType.CELLULAR,
         },
@@ -215,7 +216,7 @@ const NetworkInfo: React.FC<NetworkInfoProps> = ({
     fetchNetworkInfo();
 
     // expo-network 不提供事件监听，只能通过定时器模拟
-    let refreshTimer: NodeJS.Timeout | null = null;
+    let refreshTimer: ReturnType<typeof setInterval> | null = null;
     if (autoRefresh && isFocused) {
       refreshTimer = setInterval(() => {
         fetchNetworkInfo();
@@ -445,13 +446,13 @@ const NetworkInfo: React.FC<NetworkInfoProps> = ({
 
 const NetworkInfoWithErrorBoundary = (props: NetworkInfoProps) => (
   <ErrorBoundary
-    fallback={
+    fallback={(error, errorInfo, onReset) => (
       <View className="p-4 bg-destructive/10 rounded-lg">
         <Text className="text-destructive">
           网络信息组件加载失败，请尝试刷新
         </Text>
       </View>
-    }
+    )}
   >
     <NetworkInfo {...props} />
   </ErrorBoundary>

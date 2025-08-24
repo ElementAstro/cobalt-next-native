@@ -38,7 +38,7 @@ import {
   TooltipTrigger,
   TooltipContent,
 } from "~/components/ui/tooltip";
-import { ScanStatus } from "~/stores/useScannerStore";
+import { type ScanStatus } from "~/stores/useScannerStore";
 
 interface ScanButtonProps {
   onScan: () => Promise<void>;
@@ -105,7 +105,7 @@ const ScanButton: React.FC<ScanButtonProps> = ({
 
   const { colorScheme } = useColorScheme();
   const isDark = colorScheme === "dark";
-  const confirmTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const confirmTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // 检查屏幕阅读器状态
   useEffect(() => {

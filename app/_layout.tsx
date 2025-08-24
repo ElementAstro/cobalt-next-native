@@ -10,6 +10,8 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { NAV_THEME } from '~/lib/constants';
 import { useColorScheme } from '~/lib/useColorScheme';
+import { useAppPerformance } from '~/lib/useAppPerformance';
+import { useAppStore } from '~/stores/useAppStore';
 import { PortalHost } from '@rn-primitives/portal';
 import { ThemeToggle } from '~/components/theme-toggle';
 import { setAndroidNavigationBar } from '~/lib/android-navigation-bar';
@@ -47,11 +49,28 @@ export default function RootLayout() {
   const [isColorSchemeLoaded, setIsColorSchemeLoaded] = React.useState(false);
   const [appState, setAppState] = React.useState<AppStateStatus>(AppState.currentState);
 
+  // Initialize performance monitoring
+  const { isAppActive, networkState, deviceInfo } = useAppPerformance();
+  const { updateNetworkState, setDeviceInfo, setAppActive } = useAppStore();
+
+  // Sync performance data with app store
+  React.useEffect(() => {
+    updateNetworkState(networkState);
+  }, [networkState, updateNetworkState]);
+
+  React.useEffect(() => {
+    setDeviceInfo(deviceInfo);
+  }, [deviceInfo, setDeviceInfo]);
+
+  React.useEffect(() => {
+    setAppActive(isAppActive);
+  }, [isAppActive, setAppActive]);
+
   // App state change handler for performance optimization
   React.useEffect(() => {
     const subscription = AppState.addEventListener('change', (nextAppState: AppStateStatus) => {
       setAppState(nextAppState);
-      
+
       // Optimize for background/foreground transitions
       if (nextAppState === 'active') {
         setAndroidNavigationBar(colorScheme);
@@ -99,8 +118,6 @@ export default function RootLayout() {
               animation: 'slide_from_right',
               // Enable gesture navigation
               gestureEnabled: true,
-              // Optimize header for performance
-              headerBackTitleVisible: false,
             }}
           >
             <Stack.Screen

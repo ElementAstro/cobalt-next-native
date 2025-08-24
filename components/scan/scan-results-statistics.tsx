@@ -28,7 +28,55 @@ import { Progress } from "~/components/ui/progress";
 import { useColorScheme } from "nativewind";
 import { Badge } from "~/components/ui/badge";
 import { Text } from "~/components/ui/text";
-import { PieChart, BarChart } from "react-native-chart-kit";
+// import { PieChart, BarChart } from "react-native-chart-kit";
+// Using simple view-based charts instead
+interface ChartData {
+  name: string;
+  population: number;
+  color: string;
+  legendFontColor: string;
+  legendFontSize: number;
+}
+
+interface PieChartProps {
+  data: ChartData[];
+  width: number;
+  height: number;
+  chartConfig: any;
+  accessor: string;
+  backgroundColor: string;
+  paddingLeft: string;
+  center?: number[];
+  absolute?: boolean;
+}
+
+interface BarChartProps {
+  data: any;
+  width: number;
+  height: number;
+  chartConfig: any;
+  verticalLabelRotation?: number;
+  showValuesOnTopOfBars?: boolean;
+}
+
+// Simple placeholder components
+const PieChart: React.FC<PieChartProps> = ({ data }) => (
+  <View className="items-center justify-center h-48 bg-muted rounded-lg">
+    <Text className="text-muted-foreground">饼图数据</Text>
+    {data.map((item, index) => (
+      <Text key={index} className="text-sm">
+        {item.name}: {item.population}
+      </Text>
+    ))}
+  </View>
+);
+
+const BarChart: React.FC<BarChartProps> = ({ data }) => (
+  <View className="items-center justify-center h-48 bg-muted rounded-lg">
+    <Text className="text-muted-foreground">柱状图数据</Text>
+    <Text className="text-sm">数据集: {data.labels?.join(", ")}</Text>
+  </View>
+);
 
 // 定义扫描结果项类型
 interface ScanResult {
@@ -232,7 +280,7 @@ const ScanResultsStatistics: React.FC<StatisticsProps> = ({
             data={stats.serviceData.map((item) => ({
               name: item.name,
               population: item.count,
-              color: item.color,
+              color: item.color || "#8884d8",
               legendFontColor: colorScheme === "dark" ? "#fff" : "#000",
               legendFontSize: 12,
             }))}
@@ -264,17 +312,13 @@ const ScanResultsStatistics: React.FC<StatisticsProps> = ({
           }}
           width={chartWidth}
           height={200}
-          yAxisLabel=""
-          yAxisSuffix=""
+
           chartConfig={{
             ...chartConfig,
             barPercentage: 0.5,
             color: (opacity = 1) => `rgba(59, 130, 246, ${opacity})`,
           }}
-          style={{
-            marginVertical: 8,
-            borderRadius: 16,
-          }}
+
         />
       </View>
 

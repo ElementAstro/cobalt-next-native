@@ -146,7 +146,7 @@ const HistoryCard = React.memo(
       []
     );
 
-    const config = statusConfig[item.status];
+    const config = statusConfig[item.status as keyof typeof statusConfig];
     const StatusIcon = config.icon;
 
     return (
@@ -361,7 +361,7 @@ const ErrorState = ({
   >
     <Alert
       variant="destructive"
-      icon={AlertCircle}
+      icon={<AlertCircle size={16} />}
       className="mb-4 border-destructive/50 bg-destructive/10"
     >
       <AlertTitle>加载失败</AlertTitle>
@@ -437,7 +437,7 @@ const ScanHistory: React.FC<ScanHistoryProps> = ({
   }
 
   if (error) {
-    return <ErrorState message={error} onRetry={onRetry} />;
+    return <ErrorState message={error} {...(onRetry && { onRetry })} />;
   }
 
   return (

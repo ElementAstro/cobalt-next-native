@@ -110,7 +110,7 @@ const InputField: React.FC<InputFieldProps> = ({
     getValues,
     trigger,
   } = useForm<InputForm>({
-    resolver: zodResolver(validationSchema),
+    ...(validationSchema && { resolver: zodResolver(validationSchema as any) }),
     defaultValues: {
       value: externalValue,
     },
@@ -158,7 +158,7 @@ const InputField: React.FC<InputFieldProps> = ({
 
   const debouncedOnChange = useDebouncedCallback((text: string) => {
     onChangeText(text);
-    trigger("value").then((isValid) => {
+    trigger("value").then((isValid: boolean) => {
       if (isValid) {
         // 成功状态反馈
         successAnimation.value = withTiming(1, { duration: 200 });
@@ -388,7 +388,7 @@ const InputField: React.FC<InputFieldProps> = ({
       <Controller
         control={control}
         name="value"
-        render={({ field: { onChange, value } }) => (
+        render={({ field: { onChange, value } }: { field: { onChange: any; value: any } }) => (
           <View>
             <Animated.View
               className={`relative overflow-hidden ${
@@ -410,7 +410,7 @@ const InputField: React.FC<InputFieldProps> = ({
                 secureTextEntry={secureTextEntry && !isPasswordVisible}
                 autoComplete={autoComplete}
                 autoCapitalize={autoCapitalize}
-                maxLength={maxLength}
+                {...(maxLength && { maxLength })}
                 accessibilityLabel={label || placeholder}
                 accessibilityHint={helperText || "输入文本"}
                 accessibilityState={{

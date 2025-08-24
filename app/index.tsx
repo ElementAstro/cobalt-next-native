@@ -14,6 +14,7 @@ import Animated, {
 import { Info } from '~/lib/icons/Info';
 import { Avatar, AvatarFallback, AvatarImage } from '~/components/ui/avatar';
 import { Button } from '~/components/ui/button';
+import { EnhancedButton } from '~/components/ui/enhanced-button';
 import { Input } from '~/components/ui/input';
 import {
   Card,
@@ -26,6 +27,7 @@ import {
 import { Progress } from '~/components/ui/progress';
 import { Text } from '~/components/ui/text';
 import { Tooltip, TooltipContent, TooltipTrigger } from '~/components/ui/tooltip';
+import { PerformanceMonitor } from '~/components/ui/performance-monitor';
 import { useAppPerformance, useDebouncedValue } from '~/lib/useAppPerformance';
 import { Sun } from '~/lib/icons/Sun';
 import { MoonStar } from '~/lib/icons/MoonStar';
@@ -87,39 +89,10 @@ export default function Screen() {
       <View className='justify-center items-center gap-6 p-6'>
         
         {/* Performance Status Indicator */}
-        <Animated.View 
-          entering={FadeIn.delay(100)}
+        <PerformanceMonitor
+          showDetails={true}
           className='w-full max-w-sm'
-        >
-          <Card className='p-4'>
-            <CardHeader className='pb-2'>
-              <CardTitle className='text-lg'>System Status</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <View className='flex-row justify-between items-center mb-2'>
-                <Text className='text-sm text-muted-foreground'>Platform</Text>
-                <Text className='text-sm font-medium capitalize'>{performanceMetrics.platform}</Text>
-              </View>
-              <View className='flex-row justify-between items-center mb-2'>
-                <Text className='text-sm text-muted-foreground'>Network</Text>
-                <View className='flex-row items-center'>
-                  <View className={`w-2 h-2 rounded-full mr-2 ${
-                    performanceMetrics.networkConnected ? 'bg-green-500' : 'bg-red-500'
-                  }`} />
-                  <Text className='text-sm font-medium'>
-                    {performanceMetrics.networkConnected ? 'Connected' : 'Offline'}
-                  </Text>
-                </View>
-              </View>
-              <View className='flex-row justify-between items-center'>
-                <Text className='text-sm text-muted-foreground'>Device Type</Text>
-                <Text className='text-sm font-medium'>
-                  {performanceMetrics.isTablet ? 'Tablet' : 'Phone'}
-                </Text>
-              </View>
-            </CardContent>
-          </Card>
-        </Animated.View>
+        />
 
         {/* Enhanced Input Demo */}
         <Animated.View 

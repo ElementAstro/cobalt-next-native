@@ -1,7 +1,7 @@
 import React, { useCallback, useMemo, useEffect, useState } from "react";
 import { View } from "react-native";
 import { Label } from "~/components/ui/label";
-import type { Option as SelectOption } from "~/components/ui/select";
+import type { SelectOption } from "~/components/ui/select";
 import {
   Zap,
   Bell,
@@ -392,11 +392,10 @@ const AdvancedSettings = React.memo<AdvancedSettingsProps>(
           className="p-4"
         >
           <Alert
-            icon={AlertCircle}
+            icon={<AlertCircle size={16} />}
             variant="destructive"
             className="rounded-xl border-red-500/50"
-            accessibilityRole="alert"
-            accessibilityLabel="扫描进行中，无法修改设置"
+
           >
             <AlertTitle className="flex-row items-center">
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -445,18 +444,17 @@ const AdvancedSettings = React.memo<AdvancedSettingsProps>(
                 <Controller
                   control={control}
                   name="scanSpeed"
-                  render={({ field }) => (
+                  render={({ field }: { field: any }) => (
                     <Select
-                      onValueChange={(option: SelectOption | undefined) => {
+                      onValueChange={(value: string) => {
+                        field.onChange(value);
+                        setScanSpeed(value);
+                        Haptics.selectionAsync();
+                        const option = scanSpeedOptions.find(opt => opt?.value === value);
                         if (option) {
-                          field.onChange(option.value);
-                          setScanSpeed(option.value);
-                          Haptics.selectionAsync();
-                          if (option.label) {
-                            toast.success(`已设置扫描速度: ${option.label}`, {
-                              duration: 1500,
-                            });
-                          }
+                          toast.success(`已设置扫描速度: ${option.label}`, {
+                            duration: 1500,
+                          });
                         }
                       }}
                       disabled={isScanning}
@@ -472,9 +470,6 @@ const AdvancedSettings = React.memo<AdvancedSettingsProps>(
                     >
                       <SelectTrigger
                         className="w-full h-12 rounded-xl border-border/50 hover:border-primary/50 transition-colors"
-                        accessibilityRole="button"
-                        accessibilityLabel="选择扫描速度"
-                        accessibilityHint="点击打开扫描速度选择列表"
                       >
                         <SelectValue
                           className="text-base"
@@ -489,7 +484,6 @@ const AdvancedSettings = React.memo<AdvancedSettingsProps>(
                                 <SelectItem
                                   key={option.value ?? ""}
                                   value={option.value ?? ""}
-                                  label={option.label ?? "选项"}
                                 >
                                   {option.label ?? "选项"}
                                 </SelectItem>
@@ -518,13 +512,14 @@ const AdvancedSettings = React.memo<AdvancedSettingsProps>(
                 <Controller
                   control={control}
                   name="scanMethod"
-                  render={({ field }) => (
+                  render={({ field }: { field: any }) => (
                     <Select
-                      onValueChange={(option: SelectOption | undefined) => {
+                      onValueChange={(value: string) => {
+                        field.onChange(value);
+                        setScanMethod(value);
+                        Haptics.selectionAsync();
+                        const option = scanMethodOptions.find(opt => opt.value === value);
                         if (option) {
-                          field.onChange(option.value);
-                          setScanMethod(option.value);
-                          Haptics.selectionAsync();
                           toast.success(`已设置扫描方式: ${option.label}`, {
                             duration: 1500,
                           });
@@ -543,9 +538,7 @@ const AdvancedSettings = React.memo<AdvancedSettingsProps>(
                     >
                       <SelectTrigger
                         className="w-full h-12 rounded-xl border-border/50 hover:border-primary/50 transition-colors"
-                        accessibilityRole="button"
-                        accessibilityLabel="选择扫描方式"
-                        accessibilityHint="点击打开扫描方式选择列表"
+
                       >
                         <SelectValue
                           className="text-base"
@@ -554,12 +547,6 @@ const AdvancedSettings = React.memo<AdvancedSettingsProps>(
                       </SelectTrigger>
                       <SelectContent
                         className="w-full rounded-xl border-border/50"
-                        insets={{
-                          top: 0,
-                          bottom: 0,
-                          left: 16,
-                          right: 16,
-                        }}
                       >
                         <SelectGroup>
                           <SelectLabel>扫描方式</SelectLabel>
@@ -569,7 +556,7 @@ const AdvancedSettings = React.memo<AdvancedSettingsProps>(
                                 <SelectItem
                                   key={option.value ?? ""}
                                   value={option.value ?? ""}
-                                  label={option.label ?? "选项"}
+
                                 >
                                   {option.label ?? "选项"}
                                 </SelectItem>
@@ -598,7 +585,7 @@ const AdvancedSettings = React.memo<AdvancedSettingsProps>(
                 <Controller
                   control={control}
                   name="timeout"
-                  render={({ field }) => (
+                  render={({ field }: { field: any }) => (
                     <Input
                       value={field.value.toString()}
                       onChangeText={(text) => {
@@ -643,7 +630,7 @@ const AdvancedSettings = React.memo<AdvancedSettingsProps>(
                 <Controller
                   control={control}
                   name="showClosedPorts"
-                  render={({ field }) => (
+                  render={({ field }: { field: any }) => (
                     <AnimatedSwitch
                       value={field.value}
                       onValueChange={(newValue) => {
@@ -679,7 +666,7 @@ const AdvancedSettings = React.memo<AdvancedSettingsProps>(
                 <Controller
                   control={control}
                   name="autoReconnect"
-                  render={({ field }) => (
+                  render={({ field }: { field: any }) => (
                     <AnimatedSwitch
                       value={field.value}
                       onValueChange={(newValue) => {
@@ -715,7 +702,7 @@ const AdvancedSettings = React.memo<AdvancedSettingsProps>(
                 <Controller
                   control={control}
                   name="notificationsEnabled"
-                  render={({ field }) => (
+                  render={({ field }: { field: any }) => (
                     <AnimatedSwitch
                       value={field.value}
                       onValueChange={(newValue) => {

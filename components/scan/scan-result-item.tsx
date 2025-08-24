@@ -482,7 +482,7 @@ const ScanResultItem: React.FC<ScanResultItemProps> = memo(
 
       if (item.status === "error") {
         toast.error(`端口 ${item.port} 扫描出错`, {
-          description: item.details,
+          description: item.details || "",
           icon: <AlertCircle size={18} />,
           duration: 3000,
         });
@@ -490,7 +490,7 @@ const ScanResultItem: React.FC<ScanResultItemProps> = memo(
         toast.success(
           `端口 ${item.port} ${item.service ? `(${item.service})` : ""} 开放`,
           {
-            description: item.latency ? `延迟: ${item.latency}ms` : undefined,
+            description: item.latency ? `延迟: ${item.latency}ms` : "",
             icon: <CheckCircle size={18} />,
             duration: 2000,
             action: {
@@ -643,7 +643,7 @@ const ScanResultItem: React.FC<ScanResultItemProps> = memo(
               {/* 头部：端口和服务信息 */}
               <View className="flex-row items-center justify-between">
                 <View className="flex-row items-center space-x-2">
-                  <ServiceIcon service={item.service} status={item.status} />
+                  <ServiceIcon {...(item.service && { service: item.service })} status={item.status} />
                   <View>
                     <Label className="text-base font-medium">
                       端口 {item.port}
