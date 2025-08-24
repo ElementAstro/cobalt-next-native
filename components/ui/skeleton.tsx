@@ -1,39 +1,55 @@
-import * as React from "react";
-import Animated, {
-  useAnimatedStyle,
-  useSharedValue,
-  withRepeat,
-  withSequence,
-  withTiming,
-} from "react-native-reanimated";
+import React from "react";
+import { View } from "react-native";
 import { cn } from "~/lib/utils";
+import Animated, { 
+  useSharedValue, 
+  useAnimatedStyle, 
+  withRepeat, 
+  withTiming, 
+  Easing 
+} from "react-native-reanimated";
 
-const duration = 1000;
+interface SkeletonProps {
+  className?: string;
+  height?: number;
+  width?: number;
+}
 
-function Skeleton({
-  className,
-  ...props
-}: Omit<React.ComponentPropsWithoutRef<typeof Animated.View>, "style">) {
-  const sv = useSharedValue(1);
+export const Skeleton = ({ 
+  className, 
+  height, 
+  width 
+}: SkeletonProps) => {
+  // 设置动画的初始透明度值
+  const opacity = useSharedValue(0.5);
 
+  // 创建动画样式
+  const animatedStyles = useAnimatedStyle(() => {
+    return {
+      opacity: opacity.value,
+    };
+  });
+
+  // 组件加载时启动动画
   React.useEffect(() => {
-    sv.value = withRepeat(
-      withSequence(withTiming(0.5, { duration }), withTiming(1, { duration })),
-      -1
+    opacity.value = withRepeat(
+      withTiming(1, { 
+        duration: 1000,
+        easing: Easing.bezier(0.4, 0.0, 0.6, 1)
+      }),
+      -1, // 无限重复
+      true // 反向动画
     );
   }, []);
 
-  const style = useAnimatedStyle(() => ({
-    opacity: sv.value,
-  }));
-
   return (
     <Animated.View
-      style={style}
-      className={cn("rounded-md bg-secondary dark:bg-muted", className)}
-      {...props}
+      style={[
+        animatedStyles,
+        height !== undefined && { height },
+        width !== undefined && { width },
+      ]}
+      className={cn("bg-muted/60 rounded", className)}
     />
   );
-}
-
-export { Skeleton };
+};

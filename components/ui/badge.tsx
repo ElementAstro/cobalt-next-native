@@ -1,57 +1,52 @@
-import * as Slot from "@rn-primitives/slot";
-import type { SlottableViewProps } from "@rn-primitives/types";
-import { cva, type VariantProps } from "class-variance-authority";
-import { View } from "react-native";
+import React from "react";
+import { View, Text } from "react-native";
 import { cn } from "~/lib/utils";
-import { TextClassContext } from "~/components/ui/text";
 
-const badgeVariants = cva(
-  "web:inline-flex items-center rounded-full border border-border px-2.5 py-0.5 web:transition-colors web:focus:outline-none web:focus:ring-2 web:focus:ring-ring web:focus:ring-offset-2",
-  {
-    variants: {
-      variant: {
-        default:
-          "border-transparent bg-primary web:hover:opacity-80 active:opacity-80",
-        secondary:
-          "border-transparent bg-secondary web:hover:opacity-80 active:opacity-80",
-        destructive:
-          "border-transparent bg-destructive web:hover:opacity-80 active:opacity-80",
-        outline: "text-foreground",
-      },
-    },
-    defaultVariants: {
-      variant: "default",
-    },
-  }
-);
-
-const badgeTextVariants = cva("text-xs font-semibold ", {
-  variants: {
-    variant: {
-      default: "text-primary-foreground",
-      secondary: "text-secondary-foreground",
-      destructive: "text-destructive-foreground",
-      outline: "text-foreground",
-    },
-  },
-  defaultVariants: {
-    variant: "default",
-  },
-});
-
-type BadgeProps = SlottableViewProps & VariantProps<typeof badgeVariants>;
-
-function Badge({ className, variant, asChild, ...props }: BadgeProps) {
-  const Component = asChild ? Slot.View : View;
-  return (
-    <TextClassContext.Provider value={badgeTextVariants({ variant })}>
-      <Component
-        className={cn(badgeVariants({ variant }), className)}
-        {...props}
-      />
-    </TextClassContext.Provider>
-  );
+interface BadgeProps {
+  variant?:
+    | "default"
+    | "destructive"
+    | "outline"
+    | "secondary"
+    | "success"
+    | "warning";
+  className?: string;
+  children?: React.ReactNode;
 }
 
-export { Badge, badgeTextVariants, badgeVariants };
-export type { BadgeProps };
+export function Badge({
+  variant = "default",
+  className,
+  children,
+  ...props
+}: BadgeProps) {
+  return (
+    <View
+      className={cn(
+        "items-center justify-center rounded-md px-2.5 py-0.5",
+        variant === "default" && "bg-primary",
+        variant === "destructive" && "bg-destructive",
+        variant === "outline" && "border border-border",
+        variant === "secondary" && "bg-secondary",
+        variant === "success" && "bg-success",
+        variant === "warning" && "bg-warning",
+        className
+      )}
+      {...props}
+    >
+      <Text
+        className={cn(
+          "text-xs font-semibold",
+          variant === "default" && "text-primary-foreground",
+          variant === "destructive" && "text-destructive-foreground",
+          variant === "outline" && "text-foreground",
+          variant === "secondary" && "text-secondary-foreground",
+          variant === "success" && "text-success-foreground",
+          variant === "warning" && "text-warning-foreground"
+        )}
+      >
+        {children}
+      </Text>
+    </View>
+  );
+}

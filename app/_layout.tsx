@@ -1,21 +1,19 @@
-import "~/global.css";
+import '~/global.css';
 
-import {
-  DarkTheme,
-  DefaultTheme,
-  Theme,
-  ThemeProvider,
-} from "@react-navigation/native";
-import { Stack } from "expo-router";
-import { StatusBar } from "expo-status-bar";
-import * as React from "react";
-import { Platform } from "react-native";
-import { NAV_THEME } from "~/lib/constants";
-import { useColorScheme } from "~/lib/useColorScheme";
-import { PortalHost } from "@rn-primitives/portal";
-import { ThemeToggle } from "~/components/theme-toggle";
-import { setAndroidNavigationBar } from "~/lib/android-navigation-bar";
-import { GestureHandlerRootView } from "react-native-gesture-handler";
+import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
+import type { Theme } from '@react-navigation/native';
+import { Stack } from 'expo-router';
+import { StatusBar } from 'expo-status-bar';
+import * as React from 'react';
+import { Platform, AppState, type AppStateStatus } from 'react-native';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { NAV_THEME } from '~/lib/constants';
+import { useColorScheme } from '~/lib/useColorScheme';
+import { PortalHost } from '@rn-primitives/portal';
+import { ThemeToggle } from '~/components/theme-toggle';
+import { setAndroidNavigationBar } from '~/lib/android-navigation-bar';
+import { ErrorBoundary } from 'expo-router';
 
 const LIGHT_THEME: Theme = {
   ...DefaultTheme,
@@ -26,54 +24,111 @@ const DARK_THEME: Theme = {
   colors: NAV_THEME.dark,
 };
 
-export {
-  // Catch any errors thrown by the Layout component.
-  ErrorBoundary,
-} from "expo-router";
+// Performance optimization: Memoized theme provider
+const MemoizedThemeProvider = React.memo(({ 
+  children, 
+  theme 
+}: { 
+  children: React.ReactNode; 
+  theme: Theme 
+}) => (
+  <ThemeProvider value={theme}>
+    {children}
+  </ThemeProvider>
+));
+
+MemoizedThemeProvider.displayName = 'MemoizedThemeProvider';
+
+export { ErrorBoundary } from 'expo-router';
 
 export default function RootLayout() {
   const hasMounted = React.useRef(false);
   const { colorScheme, isDarkColorScheme } = useColorScheme();
   const [isColorSchemeLoaded, setIsColorSchemeLoaded] = React.useState(false);
+  const [appState, setAppState] = React.useState<AppStateStatus>(AppState.currentState);
+
+  // App state change handler for performance optimization
+  React.useEffect(() => {
+    const subscription = AppState.addEventListener('change', (nextAppState: AppStateStatus) => {
+      setAppState(nextAppState);
+      
+      // Optimize for background/foreground transitions
+      if (nextAppState === 'active') {
+        setAndroidNavigationBar(colorScheme);
+      }
+    });
+
+    return () => subscription?.remove();
+  }, [colorScheme]);
 
   useIsomorphicLayoutEffect(() => {
     if (hasMounted.current) {
       return;
     }
 
-    if (Platform.OS === "web") {
+    if (Platform.OS === 'web') {
       // Adds the background color to the html element to prevent white background on overscroll.
-      document.documentElement.classList.add("bg-background");
+      document.documentElement.classList.add('bg-background');
+      // Enable CSS containment for better performance
+      document.documentElement.style.contain = 'layout style paint';
     }
+    
     setAndroidNavigationBar(colorScheme);
     setIsColorSchemeLoaded(true);
     hasMounted.current = true;
-  }, []);
+  }, [colorScheme]);
+
+  // Memoize theme selection
+  const selectedTheme = React.useMemo(
+    () => (isDarkColorScheme ? DARK_THEME : LIGHT_THEME),
+    [isDarkColorScheme]
+  );
 
   if (!isColorSchemeLoaded) {
     return null;
   }
 
   return (
-    <ThemeProvider value={isDarkColorScheme ? DARK_THEME : LIGHT_THEME}>
-      <StatusBar style={isDarkColorScheme ? "light" : "dark"} />
-      <GestureHandlerRootView>
-        <Stack>
-          <Stack.Screen
-            name="index"
-            options={{
-              title: "Cobalt",
-              headerRight: () => <ThemeToggle />,
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <SafeAreaProvider>
+        <MemoizedThemeProvider theme={selectedTheme}>
+          <StatusBar style={isDarkColorScheme ? 'light' : 'dark'} />
+          <Stack
+            screenOptions={{
+              // Performance: Enable native stack animations
+              animation: 'slide_from_right',
+              // Enable gesture navigation
+              gestureEnabled: true,
+              // Optimize header for performance
+              headerBackTitleVisible: false,
             }}
-          />
-        </Stack>
-      </GestureHandlerRootView>
-      <PortalHost />
-    </ThemeProvider>
+          >
+            <Stack.Screen
+              name='index'
+              options={{
+                title: 'Cobalt Native',
+                headerRight: () => <ThemeToggle />,
+                // Add accessibility support
+                headerTitleStyle: {
+                  fontWeight: '600',
+                },
+              }}
+            />
+            <Stack.Screen
+              name='download'
+              options={{
+                title: 'Downloads',
+                presentation: 'modal',
+                gestureEnabled: true,
+              }}
+            />
+          </Stack>
+          <PortalHost />
+        </MemoizedThemeProvider>
+      </SafeAreaProvider>
+    </GestureHandlerRootView>
   );
 }
 
 const useIsomorphicLayoutEffect =
-  Platform.OS === "web" && typeof window === "undefined"
-    ? React.useEffect
-    : React.useLayoutEffect;
+  Platform.OS === 'web' && typeof window === 'undefined' ? React.useEffect : React.useLayoutEffect;

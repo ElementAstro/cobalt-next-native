@@ -1,68 +1,58 @@
-import { useTheme } from "@react-navigation/native";
-import { cva, type VariantProps } from "class-variance-authority";
-import type { LucideIcon } from "lucide-react-native";
-import * as React from "react";
-import { View, type ViewProps } from "react-native";
+import React from "react";
+import { View } from "react-native";
 import { cn } from "~/lib/utils";
-import { Text } from "~/components/ui/text";
+import { Text } from "./text";
+import { AlertTriangle, Info, CheckCircle } from "lucide-react-native";
 
-const alertVariants = cva(
-  "relative bg-background w-full rounded-lg border border-border p-4 shadow shadow-foreground/10",
-  {
-    variants: {
-      variant: {
-        default: "",
-        destructive: "border-destructive",
-      },
-    },
-    defaultVariants: {
-      variant: "default",
-    },
-  }
-);
+interface AlertProps {
+  variant?: "default" | "destructive" | "success" | "warning";
+  icon?: React.ReactNode;
+  className?: string;
+  children?: React.ReactNode;
+}
 
-const Alert = React.forwardRef<
-  React.ElementRef<typeof View>,
-  ViewProps &
-    VariantProps<typeof alertVariants> & {
-      icon: LucideIcon;
-      iconSize?: number;
-      iconClassName?: string;
-    }
->(
-  (
-    {
-      className,
-      variant,
-      children,
-      icon: Icon,
-      iconSize = 16,
-      iconClassName,
-      ...props
-    },
-    ref
-  ) => {
-    const { colors } = useTheme();
+const Alert = React.forwardRef<View, AlertProps>(
+  ({ variant = "default", icon, className, children, ...props }, ref) => {
+    const getIcon = () => {
+      if (icon) return icon;
+      switch (variant) {
+        case "destructive":
+          return <AlertTriangle className="text-destructive" size={18} />;
+        case "success":
+          return <CheckCircle className="text-success" size={18} />;
+        case "warning":
+          return <AlertTriangle className="text-warning" size={18} />;
+        default:
+          return <Info className="text-foreground" size={18} />;
+      }
+    };
+
     return (
       <View
         ref={ref}
         role="alert"
-        className={alertVariants({ variant, className })}
+        className={cn(
+          "relative w-full rounded-lg border p-4",
+          variant === "default" && "bg-background text-foreground",
+          variant === "destructive" &&
+            "border-destructive/50 text-destructive bg-destructive/10",
+          variant === "success" && "border-success/50 text-success bg-success/10",
+          variant === "warning" && "border-warning/50 text-warning bg-warning/10",
+          className
+        )}
         {...props}
       >
-        <View className="absolute left-3.5 top-4 -translate-y-0.5">
-          <Icon
-            size={iconSize}
-            color={
-              variant === "destructive" ? colors.notification : colors.text
-            }
-          />
+        <View className="flex-row space-x-2">
+          {getIcon()}
+          <View className="flex-1 space-y-1">
+            {children}
+          </View>
         </View>
-        {children}
       </View>
     );
   }
 );
+
 Alert.displayName = "Alert";
 
 const AlertTitle = React.forwardRef<
@@ -71,13 +61,11 @@ const AlertTitle = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <Text
     ref={ref}
-    className={cn(
-      "pl-7 mb-1 font-medium text-base leading-none tracking-tight text-foreground",
-      className
-    )}
+    className={cn("font-medium leading-none tracking-tight mb-1", className)}
     {...props}
   />
 ));
+
 AlertTitle.displayName = "AlertTitle";
 
 const AlertDescription = React.forwardRef<
@@ -86,10 +74,11 @@ const AlertDescription = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <Text
     ref={ref}
-    className={cn("pl-7 text-sm leading-relaxed text-foreground", className)}
+    className={cn("text-sm [text-wrap:pretty]", className)}
     {...props}
   />
 ));
+
 AlertDescription.displayName = "AlertDescription";
 
-export { Alert, AlertDescription, AlertTitle };
+export { Alert, AlertTitle, AlertDescription };

@@ -1,542 +1,274 @@
-import { create } from "zustand";
-import { persist, createJSONStorage } from "zustand/middleware";
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import * as FileSystem from "expo-file-system";
-import * as Network from "expo-network";
-import { z } from "zod";
-import type {
-  DownloadTask,
-  DownloadStats,
-  DownloadStatus,
-  DownloadPriority,
-  DownloadOptions,
-} from "~/components/download/types";
-
-interface DownloadHistory {
-  id: string;
-  filename: string;
-  url: string;
-  completedAt: number;
-  size: number;
-}
-
-interface DownloadAnalytics {
-  totalDownloads: number;
-  totalBytes: number;
-  averageSpeed: number;
-  successRate: number;
-  lastDownloadDate: number | null;
-}
-
-interface DownloadSettings {
-  maxConcurrentDownloads: number;
-  autoResumeOnConnection: boolean;
-  retryAttempts: number;
-  retryDelay: number;
-  downloadLocation: string;
-  allowedFileTypes: string[];
-  maxFileSize: number;
-  notificationsEnabled: boolean;
-}
-
-interface DownloadSchedule {
-  id: string;
-  url: string;
-  filename: string;
-  scheduledTime: number;
-  priority: DownloadPriority;
-  metadata?: Record<string, unknown>;
-}
-
-interface DownloadError {
-  taskId: string;
-  error: string;
-  timestamp: number;
-  retryCount: number;
-}
+import { create } from 'zustand';
+import type { 
+  DownloadTask, 
+  DownloadStats, 
+  DownloadSettings, 
+  DownloadAnalytics,
+  DownloadOptions
+} from '../components/download/types';
 
 interface DownloadState {
-  // Core state
   downloads: Map<string, DownloadTask>;
-  downloadQueue: string[];
   activeDownloads: Set<string>;
-  errors: Map<string, DownloadError>;
-  
-  // History and analytics
-  history: DownloadHistory[];
+  stats: DownloadStats;
+  settings: DownloadSettings;
   analytics: DownloadAnalytics;
   
-  // Settings and scheduling
-  settings: DownloadSettings;
-  schedules: DownloadSchedule[];
-  
-  // Computed stats
-  stats: DownloadStats;
-  
-  // Actions
+  // 下载管理方法
   addDownload: (url: string, filename: string, options?: DownloadOptions) => Promise<string>;
-  pauseDownload: (id: string) => Promise<void>;
-  resumeDownload: (id: string) => Promise<void>;
-  cancelDownload: (id: string) => Promise<void>;
-  retryDownload: (id: string) => Promise<void>;
-  scheduleDownload: (schedule: Omit<DownloadSchedule, "id">) => string;
+  pauseDownload: (id: string) => void;
+  resumeDownload: (id: string) => void;
+  cancelDownload: (id: string) => void;
+  retryDownload: (id: string) => void;
   updateSettings: (settings: Partial<DownloadSettings>) => void;
-  clearHistory: () => void;
-  clearErrors: () => void;
 }
 
-// Validation schemas
-const downloadTaskSchema = z.object({
-  id: z.string(),
-  url: z.string().url(),
-  filename: z.string(),
-  status: z.enum(["pending", "downloading", "paused", "completed", "error", "canceled"]),
-  progress: z.number().min(0).max(1),
-  size: z.number().min(0),
-  downloadedSize: z.number().min(0),
-  speed: z.number().min(0),
-});
-
-const useDownloadStore = create<DownloadState>()(
-  persist(
-    (set, get) => ({
-      // Initial state
-      downloads: new Map(),
-      downloadQueue: [],
-      activeDownloads: new Set(),
-      errors: new Map(),
-      history: [],
-      analytics: {
-        totalDownloads: 0,
-        totalBytes: 0,
-        averageSpeed: 0,
-        successRate: 1,
-        lastDownloadDate: null,
-      },
-      settings: {
-        maxConcurrentDownloads: 3,
-        autoResumeOnConnection: true,
-        retryAttempts: 3,
-        retryDelay: 1000,
-        downloadLocation: FileSystem.documentDirectory!,
-        allowedFileTypes: ["*"],
-        maxFileSize: 1024 * 1024 * 1024, // 1GB
-        notificationsEnabled: true,
-      },
-      schedules: [],
-      stats: {
-        total: 0,
-        active: 0,
-        pending: 0,
-        paused: 0,
-        completed: 0,
-        error: 0,
-        totalProgress: 0,
-        totalSpeed: 0,
-        totalSize: 0,
-        downloadedSize: 0,
-      },
-
-      // Actions
-      addDownload: async (url, filename, options = {}) => {
-        const state = get();
-        const { settings } = state;
-
-        // Validate input
-        try {
-          await z.object({
-            url: z.string().url(),
-            filename: z.string().min(1),
-          }).parseAsync({ url, filename });
-        } catch (error) {
-          throw new Error("Invalid download parameters");
-        }
-
-        // Generate unique ID
-        const id = Math.random().toString(36).slice(2, 11);
-        
-        // Create download task
-        const task: DownloadTask = {
-          id,
-          url,
-          filename,
-          destinationUri: `${settings.downloadLocation}${filename}`,
-          progress: 0,
-          status: "pending",
-          error: null,
-          priority: options.priority || "normal",
-          size: 0,
-          downloadedSize: 0,
-          speed: 0,
-          startTime: Date.now(),
-          createdAt: Date.now(),
-          updatedAt: Date.now(),
-          metadata: options.metadata || {},
-          resumableDownload: null,
-        };
-
-        // Update state
-        set(state => {
-          const downloads = new Map(state.downloads);
-          downloads.set(id, task);
-          const downloadQueue = [...state.downloadQueue, id];
-          
-          return {
-            downloads,
-            downloadQueue,
-            stats: calculateStats(downloads),
-          };
-        });
-
-        // Process queue if possible
-        await processDownloadQueue();
-
-        return id;
-      },
-
-      pauseDownload: async (id) => {
-        const state = get();
-        const task = state.downloads.get(id);
-        if (!task || task.status !== "downloading") return;
-
-        try {
-          await task.resumableDownload?.pauseAsync();
-          set(state => {
-            const downloads = new Map(state.downloads);
-            const task = { ...downloads.get(id)!, status: "paused" as const };
-            downloads.set(id, task);
-            const activeDownloads = new Set(state.activeDownloads);
-            activeDownloads.delete(id);
-            
-            return {
-              downloads,
-              activeDownloads,
-              stats: calculateStats(downloads),
-            };
-          });
-        } catch (error) {
-          console.error("Failed to pause download:", error);
-        }
-      },
-
-      resumeDownload: async (id) => {
-        const state = get();
-        const task = state.downloads.get(id);
-        if (!task || task.status !== "paused") return;
-
-        set(state => {
-          const downloads = new Map(state.downloads);
-          const task = { ...downloads.get(id)!, status: "pending" as const };
-          downloads.set(id, task);
-          return {
-            downloads,
-            downloadQueue: [...state.downloadQueue, id],
-            stats: calculateStats(downloads),
-          };
-        });
-
-        await processDownloadQueue();
-      },
-
-      cancelDownload: async (id) => {
-        const state = get();
-        const task = state.downloads.get(id);
-        if (!task) return;
-
-        try {
-          await task.resumableDownload?.cancelAsync();
-          await FileSystem.deleteAsync(task.destinationUri, { idempotent: true });
-          
-          set(state => {
-            const downloads = new Map(state.downloads);
-            downloads.delete(id);
-            const activeDownloads = new Set(state.activeDownloads);
-            activeDownloads.delete(id);
-            const downloadQueue = state.downloadQueue.filter(qid => qid !== id);
-            
-            return {
-              downloads,
-              activeDownloads,
-              downloadQueue,
-              stats: calculateStats(downloads),
-            };
-          });
-        } catch (error) {
-          console.error("Failed to cancel download:", error);
-        }
-      },
-
-      retryDownload: async (id) => {
-        const state = get();
-        const task = state.downloads.get(id);
-        if (!task || task.status !== "error") return;
-
-        set(state => {
-          const downloads = new Map(state.downloads);
-          const updatedTask = {
-            ...task,
-            status: "pending" as const,
-            error: null,
-            progress: 0,
-            downloadedSize: 0,
-            speed: 0,
-            startTime: Date.now(),
-            updatedAt: Date.now(),
-          };
-          downloads.set(id, updatedTask);
-          return {
-            downloads,
-            downloadQueue: [...state.downloadQueue, id],
-            stats: calculateStats(downloads),
-          };
-        });
-
-        await processDownloadQueue();
-      },
-
-      scheduleDownload: (schedule) => {
-        const id = Math.random().toString(36).slice(2, 11);
-        set(state => ({
-          schedules: [...state.schedules, { ...schedule, id }],
-        }));
-        return id;
-      },
-
-      updateSettings: (newSettings) => {
-        set(state => ({
-          settings: { ...state.settings, ...newSettings },
-        }));
-      },
-
-      clearHistory: () => {
-        set({ history: [] });
-      },
-
-      clearErrors: () => {
-        set({ errors: new Map() });
-      },
-    }),
-    {
-      name: "download-storage",
-      storage: createJSONStorage(() => AsyncStorage),
-      partialize: (state) => ({
-        downloads: Array.from(state.downloads.entries()),
-        history: state.history,
-        settings: state.settings,
-        schedules: state.schedules,
-      }),
-      onRehydrateStorage: () => (state) => {
-        if (state) {
-          // Convert arrays back to Maps/Sets
-          state.downloads = new Map(state.downloads);
-          state.activeDownloads = new Set();
-          state.errors = new Map();
-          
-          // Recalculate stats
-          state.stats = calculateStats(state.downloads);
-          
-          // Setup network listener
-          setupNetworkListener(state);
-          
-          // Process any pending downloads
-          processDownloadQueue();
-        }
-      },
-    })
-);
-
-// Helper functions
-const calculateStats = (downloads: Map<string, DownloadTask>): DownloadStats => {
-  const stats: DownloadStats = {
-    total: 0,
-    active: 0,
-    pending: 0,
-    paused: 0,
-    completed: 0,
-    error: 0,
-    totalProgress: 0,
-    totalSpeed: 0,
-    totalSize: 0,
-    downloadedSize: 0,
-  };
-
-  downloads.forEach(task => {
-    stats.total++;
-    stats.totalSize += task.size;
-    stats.downloadedSize += task.downloadedSize;
-    stats.totalSpeed += task.speed;
-
-    switch (task.status) {
-      case "downloading":
-        stats.active++;
-        stats.totalProgress += task.progress;
-        break;
-      case "pending":
-        stats.pending++;
-        break;
-      case "paused":
-        stats.paused++;
-        break;
-      case "completed":
-        stats.completed++;
-        break;
-      case "error":
-        stats.error++;
-        break;
-    }
-  });
-
-  stats.totalProgress /= stats.active || 1;
-  return stats;
+// 默认设置
+const DEFAULT_SETTINGS: DownloadSettings = {
+  maxConcurrentDownloads: 3,
+  autoResumeOnConnection: true,
+  retryAttempts: 3,
+  retryDelay: 5000,
+  downloadLocation: 'Downloads',
+  allowedFileTypes: ['*'],
+  maxFileSize: 1024 * 1024 * 1000, // 1GB
+  notificationsEnabled: true,
+  checksumVerification: false,
+  organizeByType: false,
+  organizeByDate: false,
+  compressionEnabled: false,
+  bandwidthLimit: 0,
 };
 
-const setupNetworkListener = (state: DownloadState) => {
-  Network.addNetworkStateListener(({ isConnected }) => {
-    if (isConnected && state.settings.autoResumeOnConnection) {
-      // Resume all paused downloads
-      state.downloads.forEach((task, id) => {
-        if (task.status === "paused") {
-          state.resumeDownload(id);
-        }
-      });
-    }
-  });
+// 默认统计
+const DEFAULT_STATS: DownloadStats = {
+  total: 0,
+  active: 0,
+  pending: 0,
+  paused: 0,
+  completed: 0,
+  error: 0,
+  totalProgress: 0,
+  totalSpeed: 0,
+  totalSize: 0,
+  downloadedSize: 0,
 };
 
-const processDownloadQueue = async () => {
-  const state = useDownloadStore.getState();
-  const { downloads, downloadQueue, activeDownloads, settings } = state;
+// 默认分析数据
+const DEFAULT_ANALYTICS: DownloadAnalytics = {
+  totalDownloads: 0,
+  totalBytes: 0,
+  averageSpeed: 0,
+  successRate: 0,
+  lastDownloadDate: null,
+};
 
-  // Check if we can start more downloads
-  if (activeDownloads.size >= settings.maxConcurrentDownloads) return;
+// 创建 Store
+const useDownloadStore = create<DownloadState>((set, get) => ({
+  downloads: new Map(),
+  activeDownloads: new Set(),
+  stats: DEFAULT_STATS,
+  settings: DEFAULT_SETTINGS,
+  analytics: DEFAULT_ANALYTICS,
 
-  // Get next download from queue
-  const nextId = downloadQueue[0];
-  if (!nextId) return;
-
-  const task = downloads.get(nextId);
-  if (!task) return;
-
-  // Start download
-  try {
-    const callback = (downloadProgress: FileSystem.DownloadProgressData) => {
-      const progress = downloadProgress.totalBytesWritten / downloadProgress.totalBytesExpectedToWrite;
-      const currentTime = Date.now();
-      const timeElapsed = (currentTime - task.startTime) / 1000;
-      const speed = downloadProgress.totalBytesWritten / timeElapsed;
-
-      useDownloadStore.setState(state => {
-        const downloads = new Map(state.downloads);
-        const updatedTask = {
-          ...downloads.get(task.id)!,
-          progress,
-          downloadedSize: downloadProgress.totalBytesWritten,
-          size: downloadProgress.totalBytesExpectedToWrite,
-          speed,
-          updatedAt: currentTime,
-        };
-        downloads.set(task.id, updatedTask);
-        return {
-          downloads,
-          stats: calculateStats(downloads),
-        };
-      });
+  addDownload: async (url, filename, options = {}) => {
+    const id = Date.now().toString();
+    const newDownload: DownloadTask = {
+      id,
+      url,
+      filename,
+      destinationUri: `${get().settings.downloadLocation}/${filename}`,
+      progress: 0,
+      status: 'pending',
+      error: null,
+      priority: options.priority || 'normal',
+      size: 0,
+      downloadedSize: 0,
+      speed: 0,
+      startTime: Date.now(),
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+      metadata: options.metadata || {},
+      resumableDownload: null,
+      retryCount: 0,
     };
 
-    const resumable = FileSystem.createDownloadResumable(
-      task.url,
-      task.destinationUri,
-      {},
-      callback
-    );
-
-    useDownloadStore.setState(state => {
-      const downloads = new Map(state.downloads);
-      const downloadQueue = state.downloadQueue.filter(id => id !== task.id);
-      const activeDownloads = new Set(state.activeDownloads);
-      
-      const updatedTask = {
-        ...downloads.get(task.id)!,
-        status: "downloading" as const,
-        resumableDownload: resumable,
-      };
-      
-      downloads.set(task.id, updatedTask);
-      activeDownloads.add(task.id);
+    set((state) => {
+      const newDownloads = new Map(state.downloads);
+      newDownloads.set(id, newDownload);
       
       return {
-        downloads,
-        downloadQueue,
-        activeDownloads,
-        stats: calculateStats(downloads),
+        downloads: newDownloads,
+        stats: {
+          ...state.stats,
+          total: state.stats.total + 1,
+          pending: state.stats.pending + 1,
+        }
       };
     });
 
-    const result = await resumable.downloadAsync();
-    if (result) {
-      useDownloadStore.setState(state => {
-        const downloads = new Map(state.downloads);
-        const activeDownloads = new Set(state.activeDownloads);
-        const history = [...state.history];
-        
-        activeDownloads.delete(task.id);
-        
-        const completedTask = {
-          ...downloads.get(task.id)!,
-          status: "completed" as const,
-          progress: 1,
-        };
-        downloads.set(task.id, completedTask);
-        
-        history.push({
-          id: task.id,
-          filename: task.filename,
-          url: task.url,
-          completedAt: Date.now(),
-          size: task.size,
-        });
-        
-        return {
-          downloads,
-          activeDownloads,
-          history,
-          stats: calculateStats(downloads),
-        };
+    // 模拟实现 - 在实际应用中这里会调用下载管理逻辑
+    setTimeout(() => {
+      get().resumeDownload(id);
+    }, 500);
+
+    return id;
+  },
+
+  pauseDownload: (id) => {
+    set((state) => {
+      const download = state.downloads.get(id);
+      if (!download || download.status !== 'downloading') return state;
+
+      const newDownloads = new Map(state.downloads);
+      newDownloads.set(id, {
+        ...download,
+        status: 'paused',
+        updatedAt: Date.now(),
       });
-    }
-  } catch (error) {
-    useDownloadStore.setState(state => {
-      const downloads = new Map(state.downloads);
-      const activeDownloads = new Set(state.activeDownloads);
-      const errors = new Map(state.errors);
-      
-      activeDownloads.delete(task.id);
-      
-      const errorTask = {
-        ...downloads.get(task.id)!,
-        status: "error" as const,
-        error: error instanceof Error ? error.message : "Unknown error",
-      };
-      downloads.set(task.id, errorTask);
-      
-      errors.set(task.id, {
-        taskId: task.id,
-        error: errorTask.error,
-        timestamp: Date.now(),
-        retryCount: (errors.get(task.id)?.retryCount || 0) + 1,
-      });
-      
+
+      const newActiveDownloads = new Set(state.activeDownloads);
+      newActiveDownloads.delete(id);
+
       return {
-        downloads,
-        activeDownloads,
-        errors,
-        stats: calculateStats(downloads),
+        downloads: newDownloads,
+        activeDownloads: newActiveDownloads,
+        stats: {
+          ...state.stats,
+          active: state.stats.active - 1,
+          paused: state.stats.paused + 1,
+        }
       };
     });
+  },
+
+  resumeDownload: (id) => {
+    set((state) => {
+      const download = state.downloads.get(id);
+      if (!download || (download.status !== 'paused' && download.status !== 'pending' && download.status !== 'error')) {
+        return state;
+      }
+
+      const newDownloads = new Map(state.downloads);
+      newDownloads.set(id, {
+        ...download,
+        status: 'downloading',
+        error: null,
+        updatedAt: Date.now(),
+      });
+
+      const newActiveDownloads = new Set(state.activeDownloads);
+      newActiveDownloads.add(id);
+
+      return {
+        downloads: newDownloads,
+        activeDownloads: newActiveDownloads,
+        stats: {
+          ...state.stats,
+          active: state.stats.active + 1,
+          paused: download.status === 'paused' ? state.stats.paused - 1 : state.stats.paused,
+          pending: download.status === 'pending' ? state.stats.pending - 1 : state.stats.pending,
+          error: download.status === 'error' ? state.stats.error - 1 : state.stats.error,
+        }
+      };
+    });
+  },
+
+  cancelDownload: (id) => {
+    set((state) => {
+      const download = state.downloads.get(id);
+      if (!download) return state;
+
+      const newDownloads = new Map(state.downloads);
+      newDownloads.delete(id);
+
+      const newActiveDownloads = new Set(state.activeDownloads);
+      newActiveDownloads.delete(id);
+
+      let activeDecrement = 0;
+      let pendingDecrement = 0;
+      let pausedDecrement = 0;
+      let errorDecrement = 0;
+      let completedDecrement = 0;
+
+      switch(download.status) {
+        case 'downloading': activeDecrement = 1; break;
+        case 'pending': pendingDecrement = 1; break;
+        case 'paused': pausedDecrement = 1; break;
+        case 'error': errorDecrement = 1; break;
+        case 'completed': completedDecrement = 1; break;
+      }
+
+      return {
+        downloads: newDownloads,
+        activeDownloads: newActiveDownloads,
+        stats: {
+          ...state.stats,
+          total: state.stats.total - 1,
+          active: state.stats.active - activeDecrement,
+          pending: state.stats.pending - pendingDecrement,
+          paused: state.stats.paused - pausedDecrement,
+          error: state.stats.error - errorDecrement,
+          completed: state.stats.completed - completedDecrement,
+          totalSize: state.stats.totalSize - download.size,
+          downloadedSize: state.stats.downloadedSize - download.downloadedSize,
+          totalProgress: calculateTotalProgress(newDownloads),
+        }
+      };
+    });
+  },
+
+  retryDownload: (id) => {
+    set((state) => {
+      const download = state.downloads.get(id);
+      if (!download || download.status !== 'error') return state;
+
+      const newDownloads = new Map(state.downloads);
+      newDownloads.set(id, {
+        ...download,
+        status: 'pending',
+        error: null,
+        retryCount: (download.retryCount || 0) + 1,
+        updatedAt: Date.now(),
+        lastRetryTime: Date.now(),
+      });
+
+      return {
+        downloads: newDownloads,
+        stats: {
+          ...state.stats,
+          error: state.stats.error - 1,
+          pending: state.stats.pending + 1,
+        }
+      };
+    });
+
+    // 开始重试下载
+    setTimeout(() => {
+      get().resumeDownload(id);
+    }, 500);
+  },
+
+  updateSettings: (newSettings) => {
+    set((state) => ({
+      settings: { ...state.settings, ...newSettings }
+    }));
+  },
+}));
+
+// 辅助函数：计算总体下载进度
+function calculateTotalProgress(downloads: Map<string, DownloadTask>): number {
+  if (downloads.size === 0) return 0;
+  
+  let totalWeightedProgress = 0;
+  let totalSize = 0;
+  
+  for (const download of downloads.values()) {
+    totalWeightedProgress += download.progress * download.size;
+    totalSize += download.size;
   }
-
-  // Process next download in queue
-  await processDownloadQueue();
-};
+  
+  return totalSize > 0 ? totalWeightedProgress / totalSize : 0;
+}
 
 export default useDownloadStore;

@@ -1,361 +1,357 @@
-import React, {
-  useState,
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-} from "react";
-import { View, Text, SafeAreaView, ScrollView, Platform } from "react-native";
-import * as Haptics from "expo-haptics";
-import { BlurView } from "expo-blur";
-import {
-  CopilotProvider,
-  useCopilot,
-  walkthroughable,
-} from "react-native-copilot";
-import { toast } from "sonner-native";
-import Animated, {
+import * as React from 'react';
+import { View, ScrollView } from 'react-native';
+import Animated, { 
+  FadeInUp, 
+  FadeOutDown, 
+  LayoutAnimationConfig,
+  FadeIn,
+  SlideInRight,
   useSharedValue,
   useAnimatedStyle,
+  withRepeat,
   withTiming,
-  withSequence,
-  Easing,
-  FadeIn,
-} from "react-native-reanimated";
-import BottomSheet, { BottomSheetBackdrop } from "@gorhom/bottom-sheet";
-import { MaterialCommunityIcons } from "@expo/vector-icons";
-import { Button } from "~/components/ui/button";
-import UpdateDialog from "~/components/home/update-dialog";
-import CustomWebView from "~/components/home/webview";
-import { ModeSelectionCards } from "~/components/home/mode-selection-cards";
-import { StatusCard } from "~/components/home/status-card";
-import FileSystem from "~/components/image/file-system";
-import SettingsPage from "~/components/setting/settings-page";
-import { useColorScheme } from "~/lib/useColorScheme";
-import { useNetworkStore } from "~/stores/useNetworkStore";
-import { useHomeStore } from "~/stores/useHomeStore";
-import useScannerStore, { type ScanStatus } from "~/stores/useScannerStore";
-import ScanButton from "~/components/scan/scan-button";
-import ScanHistory from "~/components/scan/scan-history";
-import AdvancedSettings from "~/components/scan/advanced-settings";
+} from 'react-native-reanimated';
+import { Info } from '~/lib/icons/Info';
+import { Avatar, AvatarFallback, AvatarImage } from '~/components/ui/avatar';
+import { Button } from '~/components/ui/button';
+import { Input } from '~/components/ui/input';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from '~/components/ui/card';
+import { Progress } from '~/components/ui/progress';
+import { Text } from '~/components/ui/text';
+import { Tooltip, TooltipContent, TooltipTrigger } from '~/components/ui/tooltip';
+import { useAppPerformance, useDebouncedValue } from '~/lib/useAppPerformance';
+import { Sun } from '~/lib/icons/Sun';
+import { MoonStar } from '~/lib/icons/MoonStar';
 
-const WalkthroughButton = walkthroughable(ScanButton);
+const GITHUB_AVATAR_URI =
+  'https://i.pinimg.com/originals/ef/a2/8d/efa28d18a04e7fa40ed49eeb0ab660db.jpg';
 
-function HomeScreenContent() {
-  const { start } = useCopilot();
-  const [activeMode, setActiveMode] = useState<"hotspot" | "lan">("hotspot");
-  const [isConnected, setIsConnected] = useState(false);
-  const [showWebView, setShowWebView] = useState(false);
-  const [webViewUrl, setWebViewUrl] = useState("");
-  const { ipAddress, port, setIpAddress, setPort } = useHomeStore();
-  const { setModalVisible } = useNetworkStore();
-  const {
-    isScanning,
-    scanProgress,
-    scanStatus,
-    scanHistory,
-    startScan,
-    stopScan,
-    setScanProgress,
-    setScanStatus,
-  } = useScannerStore();
+export default function Screen() {
+  const [progressValue, setProgressValue] = React.useState(78);
+  const [inputValue, setInputValue] = React.useState('');
+  const [isLoading, setIsLoading] = React.useState(false);
+  
+  // Use performance monitoring
+  const { isAppActive, networkState, deviceInfo } = useAppPerformance();
+  
+  // Debounced input for better performance
+  const debouncedInputValue = useDebouncedValue(inputValue, 300);
 
-  // 新增变量定义
-  const bottomSheetRef = useRef<BottomSheet>(null);
-  const colorScheme = useColorScheme();
-  const buttonOpacity = useSharedValue(1);
-  const scanAnimation = useSharedValue(0);
+  // Animation values
+  const shimmerOpacity = useSharedValue(0.3);
 
-  // Sheet 状态变化处理
-  const handleSheetChanges = useCallback((index: number) => {
-    if (index === -1) {
-      setSelectedSheet(null);
-    }
-  }, []);
-
-  // 新增 renderBackdrop 函数
-  const renderBackdrop = useCallback(
-    (props: any) => (
-      <BottomSheetBackdrop
-        {...props}
-        disappearsOnIndex={-1}
-        appearsOnIndex={0}
-      />
-    ),
-    []
-  );
-
-  // 扫描动画 & 连接动画
-  const connectionScale = useSharedValue(1);
-
-  // 扫描动画逻辑
-  useEffect(() => {
-    if (isScanning) {
-      scanAnimation.value = withTiming(1, {
-        duration: 1500,
-        easing: Easing.linear,
-      });
-    } else {
-      scanAnimation.value = withTiming(0, { duration: 500 });
-    }
-  }, [isScanning, scanAnimation]);
-
-  // 连接状态动画
-  useEffect(() => {
-    connectionScale.value = withSequence(
-      withTiming(1.1, { duration: 200 }),
-      withTiming(1, { duration: 200 })
+  React.useEffect(() => {
+    // Continuous shimmer animation for modern look
+    shimmerOpacity.value = withRepeat(
+      withTiming(1, { duration: 1500 }),
+      -1,
+      true
     );
-  }, [connectionScale, isConnected]);
+  }, [shimmerOpacity]);
 
-  useEffect(() => {
-    start();
-  }, [start]);
+  const shimmerStyle = useAnimatedStyle(() => ({
+    opacity: shimmerOpacity.value,
+  }));
 
-  const handleScan = async () => {
-    if (isScanning) {
-      stopScan();
-      return;
-    }
-
-    startScan();
-    setScanProgress(0);
-    setScanStatus("scanning");
-
-    try {
-      // 模拟扫描进度
-      let progress = 0;
-      const interval = setInterval(() => {
-        progress += 0.1;
-        if (progress >= 1) {
-          clearInterval(interval);
-          setScanProgress(1);
-          return;
-        }
-        setScanProgress(progress);
-      }, 1000);
-
-      await new Promise((resolve) => setTimeout(resolve, 2000));
-      stopScan();
-      setIsConnected(true);
-      setScanStatus("completed");
-
-      const protocol = "http";
-      const url = `${protocol}://${ipAddress}:${port}?mode=${activeMode}&timestamp=${Date.now()}`;
-      setWebViewUrl(url);
-      setShowWebView(true);
-      toast.success("连接成功");
-    } catch (error) {
-      stopScan();
-      setScanStatus("error");
-      toast.error("扫描失败", {
-        description: error instanceof Error ? error.message : "未知错误",
-      });
-    }
-  };
-
-  const handleWebViewError = useCallback((_: any) => {
-    setShowWebView(false);
-    setIsConnected(false);
-    toast.error("连接失败", {
-      description: "请确保设备在同一网络下",
-    });
-  }, []);
-
-  const handleIpChange = (value: string) => {
-    setIpAddress(value);
-  };
-
-  const handlePortChange = (value: string) => {
-    setPort(value);
-  };
-
-  // Sheet的展开比例
-  const snapPoints = useMemo(() => ["25%", "50%", "95%"], []);
-  const [selectedSheet, setSelectedSheet] = useState<
-    "settings" | "files" | "history" | null
-  >(null);
-
-  if (showWebView) {
-    return <CustomWebView url={webViewUrl} onError={handleWebViewError} />;
+  function updateProgressValue() {
+    setProgressValue(Math.floor(Math.random() * 100));
   }
 
+  const handleEnhancedButtonPress = async () => {
+    setIsLoading(true);
+    // Simulate async operation
+    await new Promise(resolve => setTimeout(resolve, 2000));
+    setIsLoading(false);
+  };
+
+  const performanceMetrics = React.useMemo(() => ({
+    platform: deviceInfo.platform,
+    isTablet: deviceInfo.isTablet,
+    networkConnected: networkState.isConnected,
+    appActive: isAppActive,
+  }), [deviceInfo, networkState, isAppActive]);
+
   return (
-    <SafeAreaView className="flex-1">
-      <BlurView intensity={25} tint="dark" className="flex-1">
-        {/* 添加设置按钮 */}
-        <View className="absolute right-4 top-8 z-10 flex-row space-x-2">
-          <Animated.View entering={FadeIn.duration(500).springify()}>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="w-12 h-12 rounded-full bg-primary/10 backdrop-blur-md border border-primary/20"
-              onPress={() => {
-                if (Platform.OS !== "web") {
-                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                }
-                setSelectedSheet("history");
-                bottomSheetRef.current?.snapToIndex(2);
-              }}
-            >
-              <MaterialCommunityIcons
-                name="history"
-                size={26}
-                className="text-primary"
-              />
-            </Button>
-          </Animated.View>
-
-          <Animated.View entering={FadeIn.duration(500).springify()}>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="w-12 h-12 rounded-full bg-primary/10 backdrop-blur-md border border-primary/20"
-              onPress={() => {
-                if (Platform.OS !== "web") {
-                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                }
-                setSelectedSheet("files");
-                bottomSheetRef.current?.snapToIndex(2);
-              }}
-            >
-              <MaterialCommunityIcons
-                name="folder"
-                size={26}
-                className="text-primary"
-              />
-            </Button>
-          </Animated.View>
-
-          <Animated.View entering={FadeIn.duration(500).springify()}>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="w-12 h-12 rounded-full bg-primary/10 backdrop-blur-md border border-primary/20"
-              onPress={() => {
-                if (Platform.OS !== "web") {
-                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                }
-                setSelectedSheet("settings");
-                bottomSheetRef.current?.snapToIndex(2);
-              }}
-            >
-              <MaterialCommunityIcons
-                name="cog"
-                size={26}
-                className="text-primary animate-spin-slow"
-              />
-            </Button>
-          </Animated.View>
-        </View>
-        <ScrollView
-          className="flex-1 px-4 pt-16"
-          contentContainerStyle={{ paddingBottom: 120 }}
+    <ScrollView 
+      className='flex-1 bg-background'
+      showsVerticalScrollIndicator={false}
+      contentInsetAdjustmentBehavior="automatic"
+    >
+      <View className='justify-center items-center gap-6 p-6'>
+        
+        {/* Performance Status Indicator */}
+        <Animated.View 
+          entering={FadeIn.delay(100)}
+          className='w-full max-w-sm'
         >
-          <View className="space-y-4">
-            <ModeSelectionCards
-              activeMode={activeMode}
-              setActiveMode={(mode) => {
-                setActiveMode(mode);
-                setIsConnected(false);
-              }}
-            />
-            <StatusCard
-              isConnected={isConnected}
-              activeMode={activeMode}
-              ipAddress={ipAddress}
-              port={port}
-              handleIpChange={handleIpChange}
-              handlePortChange={handlePortChange}
-              onPress={() => setModalVisible(true)}
-            />
-            <Animated.View style={[{ opacity: buttonOpacity }]}>
-              <WalkthroughButton
-                loading={isScanning}
-                onScan={handleScan}
-                progress={scanProgress}
-                status={scanStatus}
-              />
-            </Animated.View>
-            <View className="mt-4">
-              <UpdateDialog />
-            </View>
-          </View>
-        </ScrollView>
-        <BottomSheet
-          ref={bottomSheetRef}
-          snapPoints={snapPoints}
-          index={-1}
-          enablePanDownToClose
-          backdropComponent={renderBackdrop}
-          onChange={handleSheetChanges}
-          handleIndicatorStyle={{
-            backgroundColor:
-              colorScheme.colorScheme === "dark" ? "#ffffff50" : "#00000050",
-            width: 40,
-          }}
-          backgroundStyle={{
-            backgroundColor:
-              colorScheme.colorScheme === "dark" ? "#1f2937" : "#ffffff",
-          }}
-          enableContentPanningGesture={true}
-          enableHandlePanningGesture={true}
-          animateOnMount={true}
-          style={{
-            shadowColor: "#000",
-            shadowOffset: {
-              width: 0,
-              height: -4,
-            },
-            shadowOpacity: 0.25,
-            shadowRadius: 4,
-            elevation: 5,
-          }}
-        >
-          <View className="flex-1 bg-background">
-            {selectedSheet === "settings" && <SettingsPage />}
-            {selectedSheet === "files" && (
-              <View className="flex-1">
-                <FileSystem />
+          <Card className='p-4'>
+            <CardHeader className='pb-2'>
+              <CardTitle className='text-lg'>System Status</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <View className='flex-row justify-between items-center mb-2'>
+                <Text className='text-sm text-muted-foreground'>Platform</Text>
+                <Text className='text-sm font-medium capitalize'>{performanceMetrics.platform}</Text>
               </View>
-            )}
-            {selectedSheet === "history" && (
-              <View className="flex-1 p-4">
-                <Text className="text-xl font-bold mb-4">扫描历史</Text>
-                <ScanHistory
-                  history={scanHistory}
-                  onSelectHistory={(item) => {
-                    bottomSheetRef.current?.close();
-                    toast.info(`选择了扫描记录: ${item.ipAddress}`);
-                  }}
+              <View className='flex-row justify-between items-center mb-2'>
+                <Text className='text-sm text-muted-foreground'>Network</Text>
+                <View className='flex-row items-center'>
+                  <View className={`w-2 h-2 rounded-full mr-2 ${
+                    performanceMetrics.networkConnected ? 'bg-green-500' : 'bg-red-500'
+                  }`} />
+                  <Text className='text-sm font-medium'>
+                    {performanceMetrics.networkConnected ? 'Connected' : 'Offline'}
+                  </Text>
+                </View>
+              </View>
+              <View className='flex-row justify-between items-center'>
+                <Text className='text-sm text-muted-foreground'>Device Type</Text>
+                <Text className='text-sm font-medium'>
+                  {performanceMetrics.isTablet ? 'Tablet' : 'Phone'}
+                </Text>
+              </View>
+            </CardContent>
+          </Card>
+        </Animated.View>
+
+        {/* Enhanced Input Demo */}
+        <Animated.View 
+          entering={SlideInRight.delay(200)}
+          className='w-full max-w-sm'
+        >
+          <Card className='p-6'>
+            <CardHeader>
+              <CardTitle>Input Component</CardTitle>
+              <CardDescription>
+                Modern input with validation and animations
+              </CardDescription>
+            </CardHeader>
+            <CardContent className='space-y-4'>
+              <Input
+                label="Email Address"
+                placeholder="Enter your email"
+                value={inputValue}
+                onChangeText={setInputValue}
+                leftIcon={<Sun size={16} className="text-gray-400" />}
+                variant="outline"
+                size="md"
+                isRequired
+                hint="We'll never share your email"
+                showCharacterCount
+                maxLength={50}
+                keyboardType="email-address"
+                autoCapitalize="none"
+              />
+              
+              {debouncedInputValue.length > 0 && (
+                <Animated.View entering={FadeInUp}>
+                  <Text className='text-sm text-muted-foreground'>
+                    Debounced value: {debouncedInputValue}
+                  </Text>
+                </Animated.View>
+              )}
+            </CardContent>
+          </Card>
+        </Animated.View>
+
+        {/* User Profile Card with Shimmer Effect */}
+        <Animated.View entering={FadeInUp.delay(300)}>
+          <Card className='w-full max-w-sm p-6 rounded-2xl'>
+            <CardHeader className='items-center'>
+              <View className='relative'>
+                <Avatar alt="Rick Sanchez's Avatar" className='w-24 h-24'>
+                  <AvatarImage source={{ uri: GITHUB_AVATAR_URI }} />
+                  <AvatarFallback>
+                    <Text>RS</Text>
+                  </AvatarFallback>
+                </Avatar>
+                
+                {/* Online Status Indicator */}
+                <Animated.View 
+                  style={shimmerStyle}
+                  className='absolute -bottom-1 -right-1 w-6 h-6 bg-green-500 rounded-full border-2 border-white'
                 />
               </View>
-            )}
-          </View>
-        </BottomSheet>
-      </BlurView>
-    </SafeAreaView>
+              
+              <View className='p-3' />
+              <CardTitle className='pb-2 text-center'>Rick Sanchez</CardTitle>
+              <View className='flex-row items-center'>
+                <CardDescription className='text-base font-semibold'>Scientist</CardDescription>
+                <Tooltip delayDuration={150}>
+                  <TooltipTrigger className='px-2 pb-0.5 active:opacity-50'>
+                    <Info size={14} strokeWidth={2.5} className='w-4 h-4 text-foreground/70' />
+                  </TooltipTrigger>
+                  <TooltipContent className='py-2 px-4 shadow'>
+                    <Text className='native:text-lg'>Freelance Scientist</Text>
+                  </TooltipContent>
+                </Tooltip>
+              </View>
+            </CardHeader>
+            
+            <CardContent className='items-center pb-6'>
+              <View className='flex-row gap-2'>
+                <View className='bg-secondary/50 rounded-lg px-3 py-1'>
+                  <Text className='text-xs font-medium'>Physics</Text>
+                </View>
+                <View className='bg-secondary/50 rounded-lg px-3 py-1'>
+                  <Text className='text-xs font-medium'>Chemistry</Text>
+                </View>
+                <View className='bg-secondary/50 rounded-lg px-3 py-1'>
+                  <Text className='text-xs font-medium'>Biology</Text>
+                </View>
+              </View>
+              
+              <View className='w-full pt-6'>
+                <View className='flex-row justify-between items-center pb-2'>
+                  <Text className='text-sm text-muted-foreground'>Expertise Level</Text>
+                  <Text className='text-sm font-medium'>{progressValue}%</Text>
+                </View>
+                <Progress value={progressValue} className='web:w-full' />
+              </View>
+
+              {/* Additional Stats Section */}
+              <View className='w-full pt-6'>
+                <View className='flex-row justify-around gap-3'>
+                  <View className='items-center'>
+                    <Text className='text-sm text-muted-foreground'>Dimension</Text>
+                    <Text className='text-xl font-semibold'>C-137</Text>
+                  </View>
+                  <View className='items-center'>
+                    <Text className='text-sm text-muted-foreground'>Age</Text>
+                    <Text className='text-xl font-semibold'>70</Text>
+                  </View>
+                  <View className='items-center'>
+                    <Text className='text-sm text-muted-foreground'>Species</Text>
+                    <Text className='text-xl font-semibold'>Human</Text>
+                  </View>
+                </View>
+              </View>
+
+              {/* Productivity Section */}
+              <View className='w-full pt-6'>
+                <View className='flex-row items-center overflow-hidden mb-2'>
+                  <Text className='text-sm text-muted-foreground mr-2'>Productivity:</Text>
+                  <LayoutAnimationConfig skipEntering>
+                    <Animated.View
+                      key={progressValue}
+                      entering={FadeInUp}
+                      exiting={FadeOutDown}
+                      className='w-11 items-center'
+                    >
+                      <Text className='text-sm font-bold text-sky-600'>{progressValue}%</Text>
+                    </Animated.View>
+                  </LayoutAnimationConfig>
+                </View>
+                <Progress value={progressValue} className='h-2' indicatorClassName='bg-sky-600' />
+              </View>
+            </CardContent>
+            
+            <CardFooter className='flex-col gap-3 pt-0'>
+              <EnhancedButton
+                variant="primary"
+                size="lg"
+                onPress={handleEnhancedButtonPress}
+                isLoading={isLoading}
+                loadingText="Processing..."
+                leftIcon={<MoonStar size={16} />}
+                hapticFeedback
+                className='w-full'
+                accessibilityLabel="Enhanced button with loading state"
+              >
+                {isLoading ? 'Loading...' : 'Enhanced Action'}
+              </EnhancedButton>
+              
+              <View className='flex-row gap-2 w-full'>
+                <Button
+                  variant='outline'
+                  onPress={updateProgressValue}
+                  className='flex-1'
+                >
+                  <Text>Update Progress</Text>
+                </Button>
+                
+                <EnhancedButton
+                  variant="ghost"
+                  size="md"
+                  onPress={() => setProgressValue(0)}
+                  className='flex-1'
+                >
+                  Reset
+                </EnhancedButton>
+              </View>
+            </CardFooter>
+          </Card>
+        </Animated.View>
+
+        {/* Feature Showcase */}
+        <Animated.View 
+          entering={FadeInUp.delay(400)}
+          className='w-full max-w-sm'
+        >
+          <Card className='p-6'>
+            <CardHeader>
+              <CardTitle>2025 Features</CardTitle>
+              <CardDescription>
+                Latest React Native & Expo capabilities
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <View className='space-y-3'>
+                <FeatureItem 
+                  title="New Architecture Ready"
+                  description="Fabric, TurboModules, JSI support"
+                  isEnabled={true}
+                />
+                <FeatureItem 
+                  title="Enhanced TypeScript"
+                  description="Strict mode with utility types"
+                  isEnabled={true}
+                />
+                <FeatureItem 
+                  title="Performance Monitoring"
+                  description="Real-time app metrics"
+                  isEnabled={isAppActive}
+                />
+                <FeatureItem 
+                  title="Modern Animations"
+                  description="Reanimated 3 with native threads"
+                  isEnabled={true}
+                />
+              </View>
+            </CardContent>
+          </Card>
+        </Animated.View>
+      </View>
+    </ScrollView>
   );
 }
 
-export default function HomeScreen() {
+// Feature showcase component
+function FeatureItem({ 
+  title, 
+  description, 
+  isEnabled 
+}: { 
+  title: string; 
+  description: string; 
+  isEnabled: boolean;
+}) {
   return (
-    <CopilotProvider
-      tooltipStyle={{
-        backgroundColor: "#1F2937",
-        borderRadius: 8,
-        paddingHorizontal: 16,
-        paddingVertical: 8,
-      }}
-      backdropColor="rgba(0,0,0,0.8)"
-      labels={{
-        previous: "上一步",
-        next: "下一步",
-        skip: "跳过",
-        finish: "完成",
-      }}
-    >
-      <HomeScreenContent />
-    </CopilotProvider>
+    <View className='flex-row items-center justify-between p-3 bg-muted/20 rounded-lg'>
+      <View className='flex-1'>
+        <Text className='font-medium text-sm'>{title}</Text>
+        <Text className='text-xs text-muted-foreground'>{description}</Text>
+      </View>
+      <View className={`w-3 h-3 rounded-full ${
+        isEnabled ? 'bg-green-500' : 'bg-gray-300'
+      }`} />
+    </View>
   );
 }
