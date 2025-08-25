@@ -16,6 +16,8 @@ import { PortalHost } from '@rn-primitives/portal';
 import { ThemeToggle } from '~/components/theme-toggle';
 import { setAndroidNavigationBar } from '~/lib/android-navigation-bar';
 import { ErrorBoundary } from 'expo-router';
+import { EnhancedErrorBoundary } from '~/components/error-handling/enhanced-error-boundary';
+import { NotificationSystem } from '~/components/notifications/notification-system';
 
 const LIGHT_THEME: Theme = {
   ...DefaultTheme,
@@ -110,38 +112,49 @@ export default function RootLayout() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
-        <MemoizedThemeProvider theme={selectedTheme}>
-          <StatusBar style={isDarkColorScheme ? 'light' : 'dark'} />
-          <Stack
-            screenOptions={{
-              // Performance: Enable native stack animations
-              animation: 'slide_from_right',
-              // Enable gesture navigation
-              gestureEnabled: true,
-            }}
-          >
-            <Stack.Screen
-              name='index'
-              options={{
-                title: 'Cobalt Native',
-                headerRight: () => <ThemeToggle />,
-                // Add accessibility support
-                headerTitleStyle: {
-                  fontWeight: '600',
-                },
-              }}
-            />
-            <Stack.Screen
-              name='download'
-              options={{
-                title: 'Downloads',
-                presentation: 'modal',
+        <EnhancedErrorBoundary level="app" source="RootLayout" enableRetry={true}>
+          <MemoizedThemeProvider theme={selectedTheme}>
+            <StatusBar style={isDarkColorScheme ? 'light' : 'dark'} />
+            <Stack
+              screenOptions={{
+                // Performance: Enable native stack animations
+                animation: 'slide_from_right',
+                // Enable gesture navigation
                 gestureEnabled: true,
               }}
-            />
-          </Stack>
-          <PortalHost />
-        </MemoizedThemeProvider>
+            >
+              <Stack.Screen
+                name='index'
+                options={{
+                  title: 'Cobalt Native',
+                  headerRight: () => <ThemeToggle />,
+                  // Add accessibility support
+                  headerTitleStyle: {
+                    fontWeight: '600',
+                  },
+                }}
+              />
+              <Stack.Screen
+                name='download'
+                options={{
+                  title: 'Downloads',
+                  presentation: 'modal',
+                  gestureEnabled: true,
+                }}
+              />
+              <Stack.Screen
+                name='dashboard'
+                options={{
+                  title: 'Dashboard',
+                  headerRight: () => <ThemeToggle />,
+                  gestureEnabled: true,
+                }}
+              />
+            </Stack>
+            <PortalHost />
+            <NotificationSystem position="top" maxNotifications={3} />
+          </MemoizedThemeProvider>
+        </EnhancedErrorBoundary>
       </SafeAreaProvider>
     </GestureHandlerRootView>
   );

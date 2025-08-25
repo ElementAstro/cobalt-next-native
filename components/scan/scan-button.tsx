@@ -1,5 +1,5 @@
 import React, { useCallback, useState, useEffect, useRef } from "react";
-import { View, Pressable, AccessibilityInfo } from "react-native";
+import { View, Pressable, AccessibilityInfo, Platform } from "react-native";
 import { Button } from "~/components/ui/button";
 import {
   Scan,
@@ -592,13 +592,24 @@ const ScanButton: React.FC<ScanButtonProps> = ({
       color = baseColor;
     }
 
+    const shadowOpacity = interpolate(progressGlow.value, [0, 1], [0.3, 0.7]);
+    const shadowRadius = interpolate(progressGlow.value, [0, 1], [1, 3]);
+    const elevation = interpolate(progressGlow.value, [0, 1], [2, 4]);
+
     return {
       backgroundColor: color,
-      shadowColor: color,
-      shadowOffset: { width: 0, height: 0 },
-      shadowOpacity: interpolate(progressGlow.value, [0, 1], [0.3, 0.7]),
-      shadowRadius: interpolate(progressGlow.value, [0, 1], [1, 3]),
-      elevation: interpolate(progressGlow.value, [0, 1], [2, 4]),
+      elevation,
+      ...Platform.select({
+        web: {
+          boxShadow: `0 0 ${shadowRadius}px ${color}${Math.round(shadowOpacity * 255).toString(16).padStart(2, '0')}`,
+        },
+        default: {
+          shadowColor: color,
+          shadowOffset: { width: 0, height: 0 },
+          shadowOpacity,
+          shadowRadius,
+        },
+      }),
     };
   });
 

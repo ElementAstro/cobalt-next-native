@@ -31,6 +31,7 @@ import { PerformanceMonitor } from '~/components/ui/performance-monitor';
 import { useAppPerformance, useDebouncedValue } from '~/lib/useAppPerformance';
 import { Sun } from '~/lib/icons/Sun';
 import { MoonStar } from '~/lib/icons/MoonStar';
+import { useRouter } from 'expo-router';
 
 const GITHUB_AVATAR_URI =
   'https://i.pinimg.com/originals/ef/a2/8d/efa28d18a04e7fa40ed49eeb0ab660db.jpg';
@@ -39,7 +40,8 @@ export default function Screen() {
   const [progressValue, setProgressValue] = React.useState(78);
   const [inputValue, setInputValue] = React.useState('');
   const [isLoading, setIsLoading] = React.useState(false);
-  
+  const router = useRouter();
+
   // Use performance monitoring
   const { isAppActive, networkState, deviceInfo } = useAppPerformance();
   
@@ -249,7 +251,7 @@ export default function Screen() {
                 >
                   <Text>Update Progress</Text>
                 </Button>
-                
+
                 <EnhancedButton
                   variant="ghost"
                   size="md"
@@ -259,6 +261,16 @@ export default function Screen() {
                   Reset
                 </EnhancedButton>
               </View>
+
+              <EnhancedButton
+                variant="primary"
+                size="lg"
+                onPress={() => router.push('/dashboard')}
+                className='w-full mt-2'
+                accessibilityLabel="Open unified dashboard"
+              >
+                Open Dashboard
+              </EnhancedButton>
             </CardFooter>
           </Card>
         </Animated.View>

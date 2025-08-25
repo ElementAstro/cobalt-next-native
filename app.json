@@ -21,7 +21,10 @@
       "bundleIdentifier": "com.cobaltnext.app",
       "buildNumber": "1",
       "infoPlist": {
-        "UIBackgroundModes": ["background-fetch", "background-processing"],
+        "UIBackgroundModes": [
+          "background-fetch",
+          "background-processing"
+        ],
         "NSCameraUsageDescription": "This app uses the camera to scan QR codes.",
         "NSMicrophoneUsageDescription": "This app uses the microphone for voice features."
       }
@@ -53,7 +56,9 @@
           "icon": "./assets/images/notification-icon.png",
           "color": "#ffffff"
         }
-      ]
+      ],
+      "expo-audio",
+      "expo-video"
     ],
     "experiments": {
       "typedRoutes": true

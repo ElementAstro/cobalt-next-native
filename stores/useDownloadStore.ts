@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { downloadManager } from '../components/download/download';
+import { getDownloadManager } from '../components/download/download';
 import type {
   DownloadTask,
   DownloadStats,
@@ -66,24 +66,27 @@ const DEFAULT_ANALYTICS: DownloadAnalytics = {
 
 // 创建 Store
 const useDownloadStore = create<DownloadState>((set, get) => {
-  // Subscribe to download manager updates
-  downloadManager.getDownloads$().subscribe((downloads) => {
-    const downloadsMap = new Map();
-    const activeDownloads = new Set<string>();
+  // Subscribe to download manager updates only in browser environment
+  if (typeof window !== 'undefined') {
+    const downloadManager = getDownloadManager();
+    downloadManager.getDownloads$().subscribe((downloads) => {
+      const downloadsMap = new Map();
+      const activeDownloads = new Set<string>();
 
-    downloads.forEach(task => {
-      downloadsMap.set(task.id, task);
-      if (task.status === 'downloading') {
-        activeDownloads.add(task.id);
-      }
-    });
+      downloads.forEach(task => {
+        downloadsMap.set(task.id, task);
+        if (task.status === 'downloading') {
+          activeDownloads.add(task.id);
+        }
+      });
 
-    set({
-      downloads: downloadsMap,
-      activeDownloads,
-      stats: calculateStats(downloadsMap)
+      set({
+        downloads: downloadsMap,
+        activeDownloads,
+        stats: calculateStats(downloadsMap)
+      });
     });
-  });
+  }
 
   return {
     downloads: new Map(),
@@ -94,7 +97,13 @@ const useDownloadStore = create<DownloadState>((set, get) => {
 
   addDownload: async (url, filename, options = {}) => {
     try {
+      // Check if we're in browser environment
+      if (typeof window === 'undefined') {
+        throw new Error('Download functionality not available in server environment');
+      }
+
       // Use the real download manager
+      const downloadManager = getDownloadManager();
       const id = await downloadManager.addDownload(url, filename, {
         ...options,
         onProgress: (progress) => {
@@ -158,6 +167,8 @@ const useDownloadStore = create<DownloadState>((set, get) => {
 
   pauseDownload: async (id) => {
     try {
+      if (typeof window === 'undefined') return;
+      const downloadManager = getDownloadManager();
       await downloadManager.pauseDownload(id);
 
       set((state) => {
@@ -185,6 +196,8 @@ const useDownloadStore = create<DownloadState>((set, get) => {
 
   resumeDownload: async (id) => {
     try {
+      if (typeof window === 'undefined') return;
+      const downloadManager = getDownloadManager();
       await downloadManager.resumeDownload(id);
 
       set((state) => {
@@ -213,6 +226,8 @@ const useDownloadStore = create<DownloadState>((set, get) => {
 
   cancelDownload: async (id) => {
     try {
+      if (typeof window === 'undefined') return;
+      const downloadManager = getDownloadManager();
       await downloadManager.cancelDownload(id);
 
       set((state) => {
@@ -235,6 +250,8 @@ const useDownloadStore = create<DownloadState>((set, get) => {
 
   retryDownload: async (id) => {
     try {
+      if (typeof window === 'undefined') return;
+      const downloadManager = getDownloadManager();
       await downloadManager.retryDownload(id);
 
       set((state) => {
@@ -264,15 +281,18 @@ const useDownloadStore = create<DownloadState>((set, get) => {
       settings: { ...state.settings, ...newSettings }
     }));
 
-    // Update download manager settings
-    if (newSettings.maxConcurrentDownloads) {
-      downloadManager.setMaxConcurrentDownloads(newSettings.maxConcurrentDownloads);
-    }
-    if (newSettings.retryAttempts !== undefined && newSettings.retryDelay !== undefined) {
-      downloadManager.setRetryConfig(newSettings.retryAttempts, newSettings.retryDelay);
-    }
-    if (newSettings.autoResumeOnConnection !== undefined) {
-      downloadManager.setAutoResumeOnConnection(newSettings.autoResumeOnConnection);
+    // Update download manager settings only in browser environment
+    if (typeof window !== 'undefined') {
+      const downloadManager = getDownloadManager();
+      if (newSettings.maxConcurrentDownloads) {
+        downloadManager.setMaxConcurrentDownloads(newSettings.maxConcurrentDownloads);
+      }
+      if (newSettings.retryAttempts !== undefined && newSettings.retryDelay !== undefined) {
+        downloadManager.setRetryConfig(newSettings.retryAttempts, newSettings.retryDelay);
+      }
+      if (newSettings.autoResumeOnConnection !== undefined) {
+        downloadManager.setAutoResumeOnConnection(newSettings.autoResumeOnConnection);
+      }
     }
   },
   };

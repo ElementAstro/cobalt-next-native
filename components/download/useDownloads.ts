@@ -1,6 +1,6 @@
 // hooks/useDownloads.ts
 import { useState, useEffect } from "react";
-import { downloadManager } from "./download";
+import { getDownloadManager } from "./download";
 import type { DownloadTask, DownloadStats } from "./types";
 
 export const useDownloads = () => {
@@ -10,6 +10,14 @@ export const useDownloads = () => {
   const [error, setError] = useState<Error | null>(null);
 
   useEffect(() => {
+    // Only initialize in browser environment
+    if (typeof window === 'undefined') {
+      setIsLoading(false);
+      return;
+    }
+
+    const downloadManager = getDownloadManager();
+
     const downloadsSub = downloadManager.getDownloads$().subscribe({
       next: (data) => {
         setDownloads(data);

@@ -43,13 +43,21 @@ class DownloadManager {
   }
 
   private async init(): Promise<void> {
-    await this.loadPersistedDownloads();
-    this.setupNetworkListener();
-    this.setupNotifications();
+    // Only initialize in browser environment
+    if (typeof window !== 'undefined') {
+      await this.loadPersistedDownloads();
+      this.setupNetworkListener();
+      this.setupNotifications();
+    }
   }
 
   private async loadPersistedDownloads(): Promise<void> {
     try {
+      // Check if we're in a browser environment
+      if (typeof window === 'undefined') {
+        return;
+      }
+
       const savedDownloads = await AsyncStorage.getItem("@downloads");
       if (savedDownloads) {
         const downloads = JSON.parse(savedDownloads) as DownloadTask[];
@@ -71,14 +79,23 @@ class DownloadManager {
   }
 
   private setupNetworkListener(): void {
-    // 监听网络状态变化
-    Network.addNetworkStateListener(({ isConnected }) => {
-      if (isConnected && this.autoResumeOnConnection) {
-        this.resumeAll();
-      } else if (!isConnected) {
-        this.pauseAll();
-      }
-    });
+    // Only setup network listener in browser environment
+    if (typeof window === 'undefined') {
+      return;
+    }
+
+    try {
+      // 监听网络状态变化
+      Network.addNetworkStateListener(({ isConnected }) => {
+        if (isConnected && this.autoResumeOnConnection) {
+          this.resumeAll();
+        } else if (!isConnected) {
+          this.pauseAll();
+        }
+      });
+    } catch (error) {
+      console.error("Failed to setup network listener:", error);
+    }
   }
 
   private async setupNotifications(): Promise<void> {
@@ -415,4 +432,15 @@ class DownloadManager {
   }
 }
 
-export const downloadManager = DownloadManager.getInstance();
+// Lazy-loaded singleton to avoid SSR issues
+let downloadManagerInstance: DownloadManager | null = null;
+
+export const getDownloadManager = (): DownloadManager => {
+  if (!downloadManagerInstance) {
+    downloadManagerInstance = DownloadManager.getInstance();
+  }
+  return downloadManagerInstance;
+};
+
+// For backward compatibility, but this should be avoided in SSR contexts
+export const downloadManager = typeof window !== 'undefined' ? DownloadManager.getInstance() : null;
